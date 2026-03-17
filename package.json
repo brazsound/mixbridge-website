@@ -1,0 +1,71 @@
+{
+  "name": "mix-bridge-app",
+  "version": "0.1.0",
+  "description": "Pro Tools stem and bounce automation via PTSL",
+  "main": "dist-main/index.js",
+  "author": "Braz Sound",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig-main.json && vite build",
+    "build:renderer": "vite build",
+    "build:main": "tsc -p tsconfig-main.json",
+    "dist": "npm run build && electron-builder",
+    "dev": "npm run build:main && concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
+    "start": "npm run build && electron .",
+    "dev:vite": "vite",
+    "dev:electron": "wait-on http://localhost:5173 && NODE_ENV=development electron .",
+    "preview": "vite preview",
+    "compile:proto": "echo 'Using @grpc/proto-loader at runtime'",
+    "release": "node scripts/release.js"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.9.14",
+    "@grpc/proto-loader": "^0.7.10",
+    "dotenv": "^16.4.5",
+    "electron-updater": "^6.3.9",
+    "semver": "^7.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "@types/semver": "^7.7.1",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.16",
+    "concurrently": "^8.2.2",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.13.3",
+    "postcss": "^8.4.32",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.8",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.brazsound.mix-bridge",
+    "productName": "Mix Bridge",
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.music"
+    },
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist-main/**/*",
+      "dist-renderer/**/*"
+    ],
+    "extraResources": [],
+    "publish": {
+      "provider": "github",
+      "owner": "brazsound",
+      "repo": "mix-bridge"
+    }
+  }
+}

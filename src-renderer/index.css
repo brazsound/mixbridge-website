@@ -1,0 +1,226 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Apple Liquid Glass Design Tokens ─── */
+:root {
+  /* Background */
+  --bg:             #060609;
+  --bg-gradient:    #060609;
+
+  /* Glass surfaces */
+  --glass-bg:       rgba(255, 255, 255, 0.055);
+  --glass-bg-hover: rgba(255, 255, 255, 0.085);
+  --glass-border:   rgba(255, 255, 255, 0.11);
+  --glass-border-hi:rgba(255, 255, 255, 0.22);
+  --glass-shadow:   0 8px 32px rgba(0, 0, 0, 0.55), 0 0 0 0.5px rgba(255,255,255,0.04) inset;
+  --glass-shadow-sm:0 2px 12px rgba(0, 0, 0, 0.45), 0 0 0 0.5px rgba(255,255,255,0.06) inset;
+
+  /* Legacy compat aliases */
+  --surface:        rgba(255, 255, 255, 0.055);
+  --border:         rgba(255, 255, 255, 0.10);
+
+  /* Typography */
+  --text:           #f5f5f7;
+  --text-secondary: rgba(245, 245, 247, 0.72);
+  --text-muted:     rgba(245, 245, 247, 0.44);
+
+  /* Apple system colors */
+  --accent:         #0a84ff;
+  --accent-hover:   #0070e8;
+  --accent-glow:    rgba(10, 132, 255, 0.35);
+  --success:        #32d74b;
+  --success-soft:   rgba(50, 215, 75, 0.15);
+  --danger:         #ff453a;
+  --danger-soft:    rgba(255, 69, 58, 0.15);
+  --warning:        #ff9f0a;
+  --warning-soft:   rgba(255, 159, 10, 0.15);
+}
+
+/* ─── Shortcut conflict error fade ─── */
+@keyframes shortcut-error-fade {
+  0%   { opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.animate-shortcut-error {
+  animation: shortcut-error-fade 4.5s ease-out forwards;
+}
+
+/* ─── Tutorial bubble ─── */
+@keyframes tutorialBubbleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tutorialBubbleOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* ─── Base ─── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  font-feature-settings: 'ss01' on, 'ss02' on;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── macOS window chrome ─── */
+.window-drag          { -webkit-app-region: drag; }
+.window-no-drag       { -webkit-app-region: no-drag; }
+.window-title-offset  { margin-left: 72px; }
+
+body.platform-darwin  { padding-top: 38px; }
+
+/* ─── Glass utilities ─── */
+@layer utilities {
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .glass-sm {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow-sm);
+  }
+
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    box-shadow: var(--glass-shadow-sm);
+    position: relative;
+    overflow: hidden;
+  }
+
+
+  .glass-inset {
+    background: rgba(0, 0, 0, 0.20);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+  }
+
+  /* Pill button: glass secondary */
+  .btn-glass {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--text-secondary);
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+    -webkit-app-region: no-drag;
+  }
+  .btn-glass:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.20);
+    color: var(--text);
+  }
+  .btn-glass:active { transform: scale(0.97); }
+  .btn-glass:disabled { opacity: 0.38; pointer-events: none; }
+
+  /* Pill button: filled accent */
+  .btn-accent {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #fff;
+    background: var(--accent);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s;
+    box-shadow: 0 0 0 0px var(--accent-glow);
+    -webkit-app-region: no-drag;
+  }
+  .btn-accent:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+  .btn-accent:active { transform: scale(0.97); }
+  .btn-accent:disabled { opacity: 0.38; pointer-events: none; }
+
+  /* Danger variant */
+  .btn-danger {
+    color: var(--danger);
+    background: var(--danger-soft);
+    border-color: rgba(255,69,58,0.25);
+  }
+  .btn-danger:hover {
+    background: rgba(255,69,58,0.25);
+  }
+}
+
+/* ─── Form elements ─── */
+input, button, select, textarea {
+  font-family: inherit;
+  -webkit-app-region: no-drag;
+}
+
+input::placeholder { color: var(--text-muted); }
+
+select {
+  color: var(--text);
+  background: rgba(0,0,0,0.25);
+}
+
+/* ─── Elegant minimal scrollbar ─── */
+::-webkit-scrollbar        { width: 4px; height: 4px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.15); border-radius: 100px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+
+/* ─── Focus ring (Apple-style blue glow) ─── */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
