@@ -1,5 +1,5 @@
 # For development/testing: when running unpackaged, updater checks GitHub Releases.
 # See https://www.electron.build/auto-update#debugging
 provider: github
-owner: brazsound
+owner: Meteteus
 repo: mix-bridge
