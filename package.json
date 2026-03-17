@@ -64,7 +64,7 @@
     "extraResources": [],
     "publish": {
       "provider": "github",
-      "owner": "brazsound",
+      "owner": "Meteteus",
       "repo": "mix-bridge"
     }
   }
