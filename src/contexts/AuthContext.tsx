@@ -8,19 +8,19 @@ interface AuthContextValue {
   loading: boolean;
   signInWithEmail: (email: string) => Promise<{ error?: string }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error?: string }>;
-  signUpWithPassword: (
-    email: string,
-    password: string,
-    fullName?: string
-  ) => Promise<{ error?: string; needsEmailConfirmation?: boolean }>;
+  signUpWithPassword: (email: string, password: string) => Promise<{ error?: string; needsEmailConfirmation?: boolean }>;
   updateProfile: (fullName: string) => Promise<{ error?: string }>;
-  updatePassword: (newPassword: string) => Promise<{ error?: string }>;
+  /** Requires current password when enabled in Supabase (Password security → Require current password when updating). */
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<{ error?: string }>;
   updateEmail: (newEmail: string) => Promise<{ error?: string }>;
   resetPasswordForEmail: (email: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+/** Keep in sync with Supabase → Authentication → Email → Minimum password length */
+const MIN_PASSWORD_LENGTH = 6;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -66,11 +66,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return {};
   }, []);
 
-  const signUpWithPassword = useCallback(async (email: string, password: string, fullName?: string) => {
+  const signUpWithPassword = useCallback(async (email: string, password: string) => {
     const trimmed = email.trim().toLowerCase();
     if (!trimmed) return { error: 'Email is required' };
     if (!password) return { error: 'Password is required' };
-    if (password.length < 8) return { error: 'Password must be at least 8 characters' };
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` };
+    }
     const redirectTo = `${window.location.origin}/account`;
     const { data, error } = await supabase.auth.signUp({
       email: trimmed,
@@ -78,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       options: {
         emailRedirectTo: redirectTo,
         data: {
-          full_name: fullName?.trim() || undefined,
+          full_name: trimmed,
         },
       },
     });
@@ -95,10 +97,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return {};
   }, []);
 
-  const updatePassword = useCallback(async (newPassword: string) => {
-    if (!newPassword) return { error: 'Password is required' };
-    if (newPassword.length < 8) return { error: 'Password must be at least 8 characters' };
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+  const updatePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    if (!currentPassword) return { error: 'Current password is required' };
+    if (!newPassword) return { error: 'New password is required' };
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      return { error: `New password must be at least ${MIN_PASSWORD_LENGTH} characters` };
+    }
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+      current_password: currentPassword,
+    });
     if (error) return { error: error.message };
     return {};
   }, []);

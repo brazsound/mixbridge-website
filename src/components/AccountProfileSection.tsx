@@ -10,8 +10,15 @@ export function AccountProfileSection() {
   const [fullName, setFullName] = useState('');
   useEffect(() => {
     const meta = user?.user_metadata as { full_name?: string } | undefined;
-    setFullName(typeof meta?.full_name === 'string' ? meta.full_name : '');
-  }, [user?.user_metadata]);
+    const fromMeta = meta?.full_name;
+    if (typeof fromMeta === 'string' && fromMeta.length > 0) {
+      setFullName(fromMeta);
+    } else if (user?.email) {
+      setFullName(user.email);
+    } else {
+      setFullName('');
+    }
+  }, [user?.user_metadata, user?.email]);
 
   const [profileMsg, setProfileMsg] = useState<string | null>(null);
   const [profileErr, setProfileErr] = useState<string | null>(null);
@@ -22,6 +29,7 @@ export function AccountProfileSection() {
   const [emailErr, setEmailErr] = useState<string | null>(null);
   const [emailBusy, setEmailBusy] = useState(false);
 
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordMsg, setPasswordMsg] = useState<string | null>(null);
@@ -73,12 +81,13 @@ export function AccountProfileSection() {
       return;
     }
     setPasswordBusy(true);
-    const { error } = await updatePassword(newPassword);
+    const { error } = await updatePassword(currentPassword, newPassword);
     setPasswordBusy(false);
     if (error) {
       setPasswordErr(error);
       return;
     }
+    setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
     setPasswordMsg('Password updated.');
@@ -95,12 +104,14 @@ export function AccountProfileSection() {
 
       <form onSubmit={handleProfile} className="space-y-3">
         <h3 className="text-sm font-medium text-text-secondary">Display name</h3>
-        <p className="text-text-muted text-xs">Shown in your account; not used for licensing.</p>
+        <p className="text-text-muted text-xs">
+          Starts as your email; change anytime. Not used for licensing.
+        </p>
         <input
           type="text"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
-          placeholder="Your name"
+          placeholder={user?.email ?? 'Display name'}
           className={inputClass}
           autoComplete="name"
         />
@@ -115,7 +126,7 @@ export function AccountProfileSection() {
         <form onSubmit={handleEmail} className="space-y-3">
           <h3 className="text-sm font-medium text-text-secondary">Change email</h3>
           <p className="text-text-muted text-xs">
-            You will confirm from both inboxes if your project requires it.
+            Secure email change is on: confirm the update from both your current and new inbox.
           </p>
           <input
             type="email"
@@ -136,7 +147,17 @@ export function AccountProfileSection() {
       <div className="border-t border-white/10 pt-8">
         <form onSubmit={handlePassword} className="space-y-3">
           <h3 className="text-sm font-medium text-text-secondary">Change password</h3>
-          <p className="text-text-muted text-xs">At least 8 characters.</p>
+          <p className="text-text-muted text-xs">
+            Enter your current password, then your new password (at least 6 characters).
+          </p>
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            placeholder="Current password"
+            className={inputClass}
+            autoComplete="current-password"
+          />
           <input
             type="password"
             value={newPassword}
@@ -144,6 +165,7 @@ export function AccountProfileSection() {
             placeholder="New password"
             className={inputClass}
             autoComplete="new-password"
+            minLength={6}
           />
           <input
             type="password"
@@ -152,6 +174,7 @@ export function AccountProfileSection() {
             placeholder="Confirm new password"
             className={inputClass}
             autoComplete="new-password"
+            minLength={6}
           />
           {passwordErr && <p className="text-amber-400 text-sm">{passwordErr}</p>}
           {passwordMsg && <p className="text-emerald-400/90 text-sm">{passwordMsg}</p>}
