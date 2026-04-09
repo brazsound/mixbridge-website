@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Nav } from '@/components/Nav';
 import { AccountProfileSection } from '@/components/AccountProfileSection';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
 
 const inputClass =
   'w-full px-4 py-3 rounded-lg bg-black/30 border border-white/10 text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent';
@@ -54,6 +55,7 @@ export function AccountPage() {
     signUpWithPassword,
     resetPasswordForEmail,
     signOut,
+    setPasswordWithoutCurrent,
   } = useAuth();
   const [authPanel, setAuthPanel] = useState<AuthPanel>('signin');
   const [email, setEmail] = useState('');
@@ -71,6 +73,31 @@ export function AccountPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
   const [keyCopied, setKeyCopied] = useState(false);
+
+  const [showRecoveryPassword, setShowRecoveryPassword] = useState(false);
+  const [recoveryPass, setRecoveryPass] = useState('');
+  const [recoveryConfirm, setRecoveryConfirm] = useState('');
+  const [recoveryErr, setRecoveryErr] = useState<string | null>(null);
+  const [recoveryDone, setRecoveryDone] = useState(false);
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes('type=recovery')) {
+      setShowRecoveryPassword(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setShowRecoveryPassword(true);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const fromHash = parseAuthHashError();
@@ -182,6 +209,33 @@ export function AccountPage() {
     setEmail('');
     setSignUpPassword('');
     setSignUpConfirm('');
+  };
+
+  const handleRecoveryPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRecoveryErr(null);
+    if (recoveryPass !== recoveryConfirm) {
+      setRecoveryErr('Passwords do not match.');
+      return;
+    }
+    setRecoveryBusy(true);
+    const { error } = await setPasswordWithoutCurrent(recoveryPass);
+    setRecoveryBusy(false);
+    if (error) {
+      setRecoveryErr(error);
+      return;
+    }
+    setRecoveryPass('');
+    setRecoveryConfirm('');
+    setRecoveryDone(true);
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+  };
+
+  const dismissRecoveryBanner = () => {
+    setShowRecoveryPassword(false);
+    setRecoveryDone(false);
+    setRecoveryErr(null);
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
   };
 
   if (authLoading) {
@@ -480,6 +534,62 @@ export function AccountPage() {
             Sign out
           </button>
         </div>
+
+        {showRecoveryPassword && user && (
+          <div
+            className="glass-card p-6 mb-6 border border-accent/30"
+            style={{ background: 'rgba(10,132,255,0.06)' }}
+          >
+            <h2 className="font-medium mb-1">Set your password</h2>
+            {recoveryDone ? (
+              <div className="space-y-4 max-w-md">
+                <p className="text-emerald-400/90 text-sm">Your password is set. You can sign in with email and password next time.</p>
+                <button type="button" className="btn-accent text-sm py-2 px-4" onClick={dismissRecoveryBanner}>
+                  Continue
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-text-muted text-sm mb-4">
+                  You opened a password reset link. Choose a new password to finish.
+                </p>
+                <form onSubmit={handleRecoveryPassword} className="space-y-3 max-w-md">
+                  <input
+                    type="password"
+                    value={recoveryPass}
+                    onChange={(e) => setRecoveryPass(e.target.value)}
+                    placeholder="New password"
+                    className={inputClass}
+                    autoComplete="new-password"
+                    minLength={6}
+                  />
+                  <input
+                    type="password"
+                    value={recoveryConfirm}
+                    onChange={(e) => setRecoveryConfirm(e.target.value)}
+                    placeholder="Confirm new password"
+                    className={inputClass}
+                    autoComplete="new-password"
+                    minLength={6}
+                  />
+                  {recoveryErr && <p className="text-amber-400 text-sm">{recoveryErr}</p>}
+                  <div className="flex flex-wrap gap-2">
+                    <button type="submit" disabled={recoveryBusy} className="btn-accent text-sm py-2 px-4">
+                      {recoveryBusy ? 'Saving…' : 'Save password'}
+                    </button>
+                    <button
+                      type="button"
+                      className="text-sm text-text-muted hover:text-text-secondary px-3 py-2"
+                      onClick={dismissRecoveryBanner}
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+          </div>
+        )}
 
         {fetchError && (
           <div

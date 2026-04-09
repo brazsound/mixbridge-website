@@ -67,7 +67,8 @@ const menuBtnClass =
   'w-full sm:w-auto text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border border-white/10 bg-white/[0.04] text-text-secondary hover:bg-white/[0.07] hover:text-text hover:border-white/15';
 
 export function AccountProfileSection() {
-  const { user, updateProfile, updatePassword, updateEmail } = useAuth();
+  const { user, updateProfile, updatePassword, setPasswordWithoutCurrent, updateEmail, resetPasswordForEmail } =
+    useAuth();
 
   const [modal, setModal] = useState<SettingsModal | null>(null);
 
@@ -100,11 +101,30 @@ export function AccountProfileSection() {
   const [passwordErr, setPasswordErr] = useState<string | null>(null);
   const [passwordBusy, setPasswordBusy] = useState(false);
 
+  const [firstPassword, setFirstPassword] = useState('');
+  const [firstPasswordConfirm, setFirstPasswordConfirm] = useState('');
+  const [firstPwdErr, setFirstPwdErr] = useState<string | null>(null);
+  const [firstPwdMsg, setFirstPwdMsg] = useState<string | null>(null);
+  const [firstPwdBusy, setFirstPwdBusy] = useState(false);
+  const [resetLinkMsg, setResetLinkMsg] = useState<string | null>(null);
+  const [resetLinkBusy, setResetLinkBusy] = useState(false);
+
   const openModal = (m: SettingsModal) => {
     setModal(m);
     setProfileErr(null);
     setEmailErr(null);
     setPasswordErr(null);
+    setPasswordMsg(null);
+    if (m === 'password') {
+      setFirstPwdErr(null);
+      setFirstPwdMsg(null);
+      setFirstPassword('');
+      setFirstPasswordConfirm('');
+      setResetLinkMsg(null);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    }
   };
 
   const closeModal = () => setModal(null);
@@ -166,6 +186,41 @@ export function AccountProfileSection() {
     setPasswordMsg('Password updated.');
   };
 
+  const handleFirstPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFirstPwdErr(null);
+    setFirstPwdMsg(null);
+    setResetLinkMsg(null);
+    if (firstPassword !== firstPasswordConfirm) {
+      setFirstPwdErr('Passwords do not match.');
+      return;
+    }
+    setFirstPwdBusy(true);
+    const { error } = await setPasswordWithoutCurrent(firstPassword);
+    setFirstPwdBusy(false);
+    if (error) {
+      setFirstPwdErr(error);
+      return;
+    }
+    setFirstPwdMsg('Password saved. You can sign in with your email and password next time.');
+    setFirstPassword('');
+    setFirstPasswordConfirm('');
+  };
+
+  const handlePasswordResetEmail = async () => {
+    if (!user?.email) return;
+    setResetLinkMsg(null);
+    setFirstPwdErr(null);
+    setResetLinkBusy(true);
+    const { error } = await resetPasswordForEmail(user.email);
+    setResetLinkBusy(false);
+    if (error) {
+      setFirstPwdErr(error);
+      return;
+    }
+    setResetLinkMsg('Check your email and open the link. Then choose a new password on this page.');
+  };
+
   return (
     <>
       <div className="glass-card p-6">
@@ -184,7 +239,7 @@ export function AccountProfileSection() {
             Change email
           </button>
           <button type="button" className={menuBtnClass} onClick={() => openModal('password')}>
-            Change password
+            Password
           </button>
         </div>
       </div>
@@ -246,48 +301,99 @@ export function AccountProfileSection() {
       )}
 
       {modal === 'password' && (
-        <ModalShell title="Change password" onClose={closeModal}>
-          <form onSubmit={handlePassword} className="space-y-3">
-            <p className="text-text-muted text-xs">
-              Enter your current password, then your new password (at least 6 characters).
-            </p>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Current password"
-              className={inputClass}
-              autoComplete="current-password"
-            />
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="New password"
-              className={inputClass}
-              autoComplete="new-password"
-              minLength={6}
-            />
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
-              className={inputClass}
-              autoComplete="new-password"
-              minLength={6}
-            />
-            {passwordErr && <p className="text-amber-400 text-sm">{passwordErr}</p>}
-            {passwordMsg && <p className="text-emerald-400/90 text-sm">{passwordMsg}</p>}
-            <div className="flex flex-wrap gap-2 pt-2">
-              <button type="submit" disabled={passwordBusy} className="btn-accent text-sm py-2 px-4">
-                {passwordBusy ? 'Updating…' : 'Update password'}
-              </button>
-              <button type="button" onClick={closeModal} className={menuBtnClass}>
-                Done
-              </button>
+        <ModalShell title="Password" onClose={closeModal}>
+          <div className="space-y-8">
+            <form onSubmit={handleFirstPassword} className="space-y-3">
+              <h3 className="text-sm font-medium text-text-secondary">Create a password</h3>
+              <p className="text-text-muted text-xs">
+                If you usually sign in with an email link, set a password here so you can also use email + password
+                on the sign-in page.
+              </p>
+              <input
+                type="password"
+                value={firstPassword}
+                onChange={(e) => setFirstPassword(e.target.value)}
+                placeholder="New password"
+                className={inputClass}
+                autoComplete="new-password"
+                minLength={6}
+              />
+              <input
+                type="password"
+                value={firstPasswordConfirm}
+                onChange={(e) => setFirstPasswordConfirm(e.target.value)}
+                placeholder="Confirm new password"
+                className={inputClass}
+                autoComplete="new-password"
+                minLength={6}
+              />
+              {firstPwdErr && <p className="text-amber-400 text-sm">{firstPwdErr}</p>}
+              {firstPwdMsg && <p className="text-emerald-400/90 text-sm">{firstPwdMsg}</p>}
+              {resetLinkMsg && <p className="text-emerald-400/90 text-sm">{resetLinkMsg}</p>}
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button type="submit" disabled={firstPwdBusy} className="btn-accent text-sm py-2 px-4">
+                  {firstPwdBusy ? 'Saving…' : 'Save password'}
+                </button>
+                <button
+                  type="button"
+                  disabled={resetLinkBusy}
+                  onClick={() => void handlePasswordResetEmail()}
+                  className={menuBtnClass}
+                >
+                  {resetLinkBusy ? 'Sending…' : 'Email me a reset link instead'}
+                </button>
+              </div>
+              <p className="text-text-muted text-[11px] leading-relaxed">
+                If saving fails (for example your project requires a reset flow), use the reset link — it opens the same
+                page so you can set a password.
+              </p>
+            </form>
+
+            <div className="border-t border-white/10 pt-6">
+              <form onSubmit={handlePassword} className="space-y-3">
+                <h3 className="text-sm font-medium text-text-secondary">Change existing password</h3>
+                <p className="text-text-muted text-xs">
+                  Enter your current password, then your new password (at least 6 characters).
+                </p>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Current password"
+                  className={inputClass}
+                  autoComplete="current-password"
+                />
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="New password"
+                  className={inputClass}
+                  autoComplete="new-password"
+                  minLength={6}
+                />
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  className={inputClass}
+                  autoComplete="new-password"
+                  minLength={6}
+                />
+                {passwordErr && <p className="text-amber-400 text-sm">{passwordErr}</p>}
+                {passwordMsg && <p className="text-emerald-400/90 text-sm">{passwordMsg}</p>}
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <button type="submit" disabled={passwordBusy} className="btn-accent text-sm py-2 px-4">
+                    {passwordBusy ? 'Updating…' : 'Update password'}
+                  </button>
+                  <button type="button" onClick={closeModal} className={menuBtnClass}>
+                    Done
+                  </button>
+                </div>
+              </form>
             </div>
-          </form>
+          </div>
         </ModalShell>
       )}
     </>

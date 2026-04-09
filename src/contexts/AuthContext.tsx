@@ -12,6 +12,11 @@ interface AuthContextValue {
   updateProfile: (fullName: string) => Promise<{ error?: string }>;
   /** Requires current password when enabled in Supabase (Password security → Require current password when updating). */
   updatePassword: (currentPassword: string, newPassword: string) => Promise<{ error?: string }>;
+  /**
+   * Set password when the user has none yet (e.g. only ever signed in with magic link).
+   * Also valid right after opening a password recovery link (before the session is upgraded).
+   */
+  setPasswordWithoutCurrent: (newPassword: string) => Promise<{ error?: string }>;
   updateEmail: (newEmail: string) => Promise<{ error?: string }>;
   resetPasswordForEmail: (email: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
@@ -111,6 +116,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return {};
   }, []);
 
+  const setPasswordWithoutCurrent = useCallback(async (newPassword: string) => {
+    if (!newPassword) return { error: 'Password is required' };
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` };
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) return { error: error.message };
+    return {};
+  }, []);
+
   const updateEmail = useCallback(async (newEmail: string) => {
     const trimmed = newEmail.trim().toLowerCase();
     if (!trimmed) return { error: 'Email is required' };
@@ -145,6 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUpWithPassword,
     updateProfile,
     updatePassword,
+    setPasswordWithoutCurrent,
     updateEmail,
     resetPasswordForEmail,
     signOut,
