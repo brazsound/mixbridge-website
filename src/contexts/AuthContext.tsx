@@ -1,0 +1,152 @@
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import type { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
+
+interface AuthContextValue {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  signInWithEmail: (email: string) => Promise<{ error?: string }>;
+  signInWithPassword: (email: string, password: string) => Promise<{ error?: string }>;
+  signUpWithPassword: (
+    email: string,
+    password: string,
+    fullName?: string
+  ) => Promise<{ error?: string; needsEmailConfirmation?: boolean }>;
+  updateProfile: (fullName: string) => Promise<{ error?: string }>;
+  updatePassword: (newPassword: string) => Promise<{ error?: string }>;
+  updateEmail: (newEmail: string) => Promise<{ error?: string }>;
+  resetPasswordForEmail: (email: string) => Promise<{ error?: string }>;
+  signOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signInWithEmail = useCallback(async (email: string) => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return { error: 'Email is required' };
+
+    const redirectTo = `${window.location.origin}/account`;
+    const { error } = await supabase.auth.signInWithOtp({
+      email: trimmed,
+      options: { emailRedirectTo: redirectTo },
+    });
+    if (error) return { error: error.message };
+    return {};
+  }, []);
+
+  const signInWithPassword = useCallback(async (email: string, password: string) => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return { error: 'Email is required' };
+    if (!password) return { error: 'Password is required' };
+    const { error } = await supabase.auth.signInWithPassword({ email: trimmed, password });
+    if (error) return { error: error.message };
+    return {};
+  }, []);
+
+  const signUpWithPassword = useCallback(async (email: string, password: string, fullName?: string) => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return { error: 'Email is required' };
+    if (!password) return { error: 'Password is required' };
+    if (password.length < 8) return { error: 'Password must be at least 8 characters' };
+    const redirectTo = `${window.location.origin}/account`;
+    const { data, error } = await supabase.auth.signUp({
+      email: trimmed,
+      password,
+      options: {
+        emailRedirectTo: redirectTo,
+        data: {
+          full_name: fullName?.trim() || undefined,
+        },
+      },
+    });
+    if (error) return { error: error.message };
+    if (!data.session) return { needsEmailConfirmation: true };
+    return {};
+  }, []);
+
+  const updateProfile = useCallback(async (fullName: string) => {
+    const { error } = await supabase.auth.updateUser({
+      data: { full_name: fullName.trim() || undefined },
+    });
+    if (error) return { error: error.message };
+    return {};
+  }, []);
+
+  const updatePassword = useCallback(async (newPassword: string) => {
+    if (!newPassword) return { error: 'Password is required' };
+    if (newPassword.length < 8) return { error: 'Password must be at least 8 characters' };
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) return { error: error.message };
+    return {};
+  }, []);
+
+  const updateEmail = useCallback(async (newEmail: string) => {
+    const trimmed = newEmail.trim().toLowerCase();
+    if (!trimmed) return { error: 'Email is required' };
+    const emailRedirectTo = `${window.location.origin}/account`;
+    const { error } = await supabase.auth.updateUser(
+      { email: trimmed },
+      { emailRedirectTo }
+    );
+    if (error) return { error: error.message };
+    return {};
+  }, []);
+
+  const resetPasswordForEmail = useCallback(async (email: string) => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return { error: 'Email is required' };
+    const redirectTo = `${window.location.origin}/account`;
+    const { error } = await supabase.auth.resetPasswordForEmail(trimmed, { redirectTo });
+    if (error) return { error: error.message };
+    return {};
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+  }, []);
+
+  const value: AuthContextValue = {
+    user,
+    session,
+    loading,
+    signInWithEmail,
+    signInWithPassword,
+    signUpWithPassword,
+    updateProfile,
+    updatePassword,
+    updateEmail,
+    resetPasswordForEmail,
+    signOut,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
+}

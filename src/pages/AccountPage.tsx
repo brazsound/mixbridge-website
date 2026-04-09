@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Nav } from '@/components/Nav';
+import { AccountProfileSection } from '@/components/AccountProfileSection';
 import { Link } from 'react-router-dom';
+
+const inputClass =
+  'w-full px-4 py-3 rounded-lg bg-black/30 border border-white/10 text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent';
 
 const API_URL = import.meta.env.VITE_LICENSE_API_URL ?? '';
 
@@ -38,12 +42,31 @@ function parseAuthHashError(): string | null {
   return 'Sign-in failed. Please try again.';
 }
 
+type AuthPanel = 'signin' | 'signup' | 'magic';
+
 export function AccountPage() {
-  const { user, session, loading: authLoading, signInWithEmail, signOut } = useAuth();
+  const {
+    user,
+    session,
+    loading: authLoading,
+    signInWithEmail,
+    signInWithPassword,
+    signUpWithPassword,
+    resetPasswordForEmail,
+    signOut,
+  } = useAuth();
+  const [authPanel, setAuthPanel] = useState<AuthPanel>('signin');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [signUpPassword, setSignUpPassword] = useState('');
+  const [signUpConfirm, setSignUpConfirm] = useState('');
+  const [fullName, setFullName] = useState('');
   const [signInError, setSignInError] = useState<string | null>(null);
   const [authHashError, setAuthHashError] = useState<string | null>(null);
   const [signInSent, setSignInSent] = useState(false);
+  const [signUpConfirmSent, setSignUpConfirmSent] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState<string | null>(null);
   const [accountData, setAccountData] = useState<AccountData | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
@@ -110,7 +133,7 @@ export function AccountPage() {
       .finally(() => setDataLoading(false));
   }, [session?.access_token]);
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setSignInError(null);
     const result = await signInWithEmail(email);
@@ -119,6 +142,47 @@ export function AccountPage() {
     } else {
       setSignInSent(true);
     }
+  };
+
+  const handlePasswordSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSignInError(null);
+    const result = await signInWithPassword(email, password);
+    if (result.error) setSignInError(result.error);
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSignInError(null);
+    setForgotMessage(null);
+    const result = await resetPasswordForEmail(email);
+    if (result.error) {
+      setSignInError(result.error);
+      return;
+    }
+    setForgotMessage('If an account exists for that email, we sent a reset link.');
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSignInError(null);
+    if (signUpPassword !== signUpConfirm) {
+      setSignInError('Passwords do not match.');
+      return;
+    }
+    const result = await signUpWithPassword(email, signUpPassword, fullName || undefined);
+    if (result.error) {
+      setSignInError(result.error);
+      return;
+    }
+    if (result.needsEmailConfirmation) {
+      setSignUpConfirmSent(true);
+      return;
+    }
+    setEmail('');
+    setSignUpPassword('');
+    setSignUpConfirm('');
+    setFullName('');
   };
 
   if (authLoading) {
@@ -136,7 +200,7 @@ export function AccountPage() {
     return (
       <div className="min-h-screen bg-bg text-text">
         <Nav />
-        <div className="pt-32 px-6 max-w-md mx-auto">
+        <div className="pt-32 px-6 max-w-md mx-auto pb-20">
           <h1 className="text-2xl font-semibold mb-2">Account</h1>
           <p className="text-text-secondary mb-8">
             Manage your license and devices from anywhere.
@@ -151,7 +215,25 @@ export function AccountPage() {
             </div>
           )}
 
-          {signInSent ? (
+          {signUpConfirmSent ? (
+            <div className="glass-card p-6 space-y-2">
+              <p className="text-text-secondary">Check your email to confirm your account.</p>
+              <p className="text-text-muted text-sm">
+                After you confirm, you can sign in with your email and password.
+              </p>
+              <button
+                type="button"
+                className="text-sm text-accent hover:underline mt-4"
+                onClick={() => {
+                  setSignUpConfirmSent(false);
+                  setAuthPanel('signin');
+                  setSignInError(null);
+                }}
+              >
+                Back to sign in
+              </button>
+            </div>
+          ) : signInSent ? (
             <div className="glass-card p-6">
               <p className="text-text-secondary">
                 We sent you a link. Check your inbox and click it to sign in.
@@ -161,26 +243,215 @@ export function AccountPage() {
               </p>
             </div>
           ) : (
-            <form onSubmit={handleSignIn} className="glass-card p-6">
-              <label htmlFor="email" className="block text-sm font-medium mb-2">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-lg bg-black/30 border border-white/10 text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent"
-                required
-              />
-              {signInError && (
-                <p className="text-amber-400 text-sm mt-2">{signInError}</p>
+            <div className="glass-card p-6 space-y-6">
+              <div className="flex rounded-lg p-0.5 bg-black/25 border border-white/10">
+                {(['signin', 'signup', 'magic'] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setAuthPanel(key);
+                      setSignInError(null);
+                      setShowForgotPassword(false);
+                      setForgotMessage(null);
+                    }}
+                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+                      authPanel === key
+                        ? 'bg-white/10 text-text'
+                        : 'text-text-muted hover:text-text-secondary'
+                    }`}
+                  >
+                    {key === 'signin' ? 'Sign in' : key === 'signup' ? 'Create account' : 'Email link'}
+                  </button>
+                ))}
+              </div>
+
+              {authPanel === 'signin' && !showForgotPassword && (
+                <form onSubmit={handlePasswordSignIn} className="space-y-4">
+                  <div>
+                    <label htmlFor="si-email" className="block text-sm font-medium mb-2">
+                      Email
+                    </label>
+                    <input
+                      id="si-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className={inputClass}
+                      required
+                      autoComplete="email"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="si-password" className="block text-sm font-medium mb-2">
+                      Password
+                    </label>
+                    <input
+                      id="si-password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className={inputClass}
+                      required
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  {signInError && <p className="text-amber-400 text-sm">{signInError}</p>}
+                  <button type="submit" className="btn-accent w-full">
+                    Sign in
+                  </button>
+                  <button
+                    type="button"
+                    className="text-sm text-text-muted hover:text-text-secondary w-full text-center"
+                    onClick={() => {
+                      setShowForgotPassword(true);
+                      setSignInError(null);
+                      setForgotMessage(null);
+                    }}
+                  >
+                    Forgot password?
+                  </button>
+                </form>
               )}
-              <button type="submit" className="btn-accent w-full mt-4">
-                Send sign-in link
-              </button>
-            </form>
+
+              {authPanel === 'signin' && showForgotPassword && (
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <p className="text-text-muted text-sm">
+                    Enter your email and we&apos;ll send a link to choose a new password.
+                  </p>
+                  <div>
+                    <label htmlFor="fp-email" className="block text-sm font-medium mb-2">
+                      Email
+                    </label>
+                    <input
+                      id="fp-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className={inputClass}
+                      required
+                      autoComplete="email"
+                    />
+                  </div>
+                  {signInError && <p className="text-amber-400 text-sm">{signInError}</p>}
+                  {forgotMessage && <p className="text-emerald-400/90 text-sm">{forgotMessage}</p>}
+                  <button type="submit" className="btn-accent w-full">
+                    Send reset link
+                  </button>
+                  <button
+                    type="button"
+                    className="text-sm text-text-muted hover:text-text-secondary w-full text-center"
+                    onClick={() => {
+                      setShowForgotPassword(false);
+                      setSignInError(null);
+                      setForgotMessage(null);
+                    }}
+                  >
+                    Back to sign in
+                  </button>
+                </form>
+              )}
+
+              {authPanel === 'signup' && (
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  <div>
+                    <label htmlFor="su-name" className="block text-sm font-medium mb-2">
+                      Name <span className="text-text-muted font-normal">(optional)</span>
+                    </label>
+                    <input
+                      id="su-name"
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Your name"
+                      className={inputClass}
+                      autoComplete="name"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="su-email" className="block text-sm font-medium mb-2">
+                      Email
+                    </label>
+                    <input
+                      id="su-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className={inputClass}
+                      required
+                      autoComplete="email"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="su-password" className="block text-sm font-medium mb-2">
+                      Password
+                    </label>
+                    <input
+                      id="su-password"
+                      type="password"
+                      value={signUpPassword}
+                      onChange={(e) => setSignUpPassword(e.target.value)}
+                      placeholder="At least 8 characters"
+                      className={inputClass}
+                      required
+                      minLength={8}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="su-confirm" className="block text-sm font-medium mb-2">
+                      Confirm password
+                    </label>
+                    <input
+                      id="su-confirm"
+                      type="password"
+                      value={signUpConfirm}
+                      onChange={(e) => setSignUpConfirm(e.target.value)}
+                      placeholder="••••••••"
+                      className={inputClass}
+                      required
+                      minLength={8}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  {signInError && <p className="text-amber-400 text-sm">{signInError}</p>}
+                  <button type="submit" className="btn-accent w-full">
+                    Create account
+                  </button>
+                </form>
+              )}
+
+              {authPanel === 'magic' && (
+                <form onSubmit={handleMagicLink} className="space-y-4">
+                  <p className="text-text-muted text-sm">
+                    We&apos;ll email you a one-time link—no password needed.
+                  </p>
+                  <div>
+                    <label htmlFor="magic-email" className="block text-sm font-medium mb-2">
+                      Email
+                    </label>
+                    <input
+                      id="magic-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className={inputClass}
+                      required
+                      autoComplete="email"
+                    />
+                  </div>
+                  {signInError && <p className="text-amber-400 text-sm">{signInError}</p>}
+                  <button type="submit" className="btn-accent w-full">
+                    Send sign-in link
+                  </button>
+                </form>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -201,7 +472,9 @@ export function AccountPage() {
           </button>
         </div>
 
-        <p className="text-text-secondary mb-6">{user.email}</p>
+        <div className="space-y-6 mb-8">
+          <AccountProfileSection />
+        </div>
 
         {fetchError && (
           <div
@@ -213,7 +486,7 @@ export function AccountPage() {
         )}
 
         {dataLoading ? (
-          <p className="text-text-muted">Loading…</p>
+          <p className="text-text-muted">Loading license…</p>
         ) : !fetchError && accountData ? (
           <div className="space-y-6">
             <div className="glass-card p-6">
