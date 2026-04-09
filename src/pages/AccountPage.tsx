@@ -19,14 +19,38 @@ interface AccountData {
   error?: string;
 }
 
+function parseAuthHashError(): string | null {
+  const raw = window.location.hash.replace(/^#/, '');
+  if (!raw || !raw.includes('error=')) return null;
+  const params = new URLSearchParams(raw);
+  const code = params.get('error_code');
+  const desc = params.get('error_description');
+  if (code === 'otp_expired') {
+    return 'That sign-in link has expired or was already used. Request a new link below.';
+  }
+  if (desc) {
+    return decodeURIComponent(desc.replace(/\+/g, ' '));
+  }
+  return 'Sign-in failed. Please try again.';
+}
+
 export function AccountPage() {
   const { user, session, loading: authLoading, signInWithEmail, signOut } = useAuth();
   const [email, setEmail] = useState('');
   const [signInError, setSignInError] = useState<string | null>(null);
+  const [authHashError, setAuthHashError] = useState<string | null>(null);
   const [signInSent, setSignInSent] = useState(false);
   const [accountData, setAccountData] = useState<AccountData | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
   const [keyCopied, setKeyCopied] = useState(false);
+
+  useEffect(() => {
+    const fromHash = parseAuthHashError();
+    if (fromHash) {
+      setAuthHashError(fromHash);
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    }
+  }, []);
 
   useEffect(() => {
     if (!session?.access_token || !API_URL) return;
@@ -88,6 +112,15 @@ export function AccountPage() {
           <p className="text-text-secondary mb-8">
             Manage your license and devices from anywhere.
           </p>
+
+          {authHashError && (
+            <div
+              className="mb-6 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+              role="alert"
+            >
+              {authHashError}
+            </div>
+          )}
 
           {signInSent ? (
             <div className="glass-card p-6">
