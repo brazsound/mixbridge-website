@@ -18,19 +18,19 @@ export function Nav() {
         </Link>
         <div className="flex gap-4 md:gap-6 text-sm items-center">
           <a
-            href="#features"
+            href="/#features"
             className="text-text-secondary hover:text-text transition-colors"
           >
             Features
           </a>
           <a
-            href="#pricing"
+            href="/#pricing"
             className="text-text-secondary hover:text-text transition-colors"
           >
             Pricing
           </a>
           <a
-            href="#download"
+            href="/#download"
             className="text-text-secondary hover:text-text transition-colors"
           >
             Download
