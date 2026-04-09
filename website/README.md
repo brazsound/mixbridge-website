@@ -1,14 +1,42 @@
-# Mix Bridge Download Page
+# Mix Bridge Website
 
-A simple download page for end users. No GitHub, no terminal—just a "Download for Mac" button.
+Marketing website for Mix Bridge – Pro Tools stem and bounce automation. Includes an account portal for managing license activations (sign in with magic link, view and deactivate devices).
+
+## Local Development
+
+```bash
+npm install
+cp .env.example .env
+# Edit .env with your Supabase URL, anon key, and license API URL
+npm run dev
+```
+
+Runs at `http://localhost:5174`.
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_SUPABASE_URL` | Supabase project URL (same project as license backend) |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anon/public key (safe to expose) |
+| `VITE_LICENSE_API_URL` | Backend API URL (e.g. `https://your-backend.vercel.app`) |
+
+For the account portal to work, enable Email auth in Supabase Dashboard → Authentication → Providers, and add your site URL to Redirect URLs (e.g. `http://localhost:5174/account` for dev).
+
+## Build
+
+```bash
+npm run build
+```
+
+Output in `dist/`.
 
 ## Deploy
 
-Host the `index.html` file anywhere:
+Build the site and deploy the `dist` folder:
 
-- **Vercel** – Drag the `website` folder to vercel.com, or connect the repo and set root to `website`
-- **Netlify** – Same: drag & drop or connect repo
-- **GitHub Pages** – Enable Pages, set source to this folder
-- **Your own domain** – Upload to any web host
+- **Vercel** – Connect repo, set root to `website`, build command: `npm run build`, output: `dist`
+- **Netlify** – Same: build command `npm run build`, publish directory `dist`
+- **GitHub Pages** – Build locally, push `dist` to `gh-pages` or use GitHub Actions
 
-Once deployed, share the URL (e.g. `https://mixbridge.app` or `https://yoursite.com/mix-bridge`) with users. They click Download and get the `.dmg` installer directly.
+Once deployed, share the URL (e.g. `https://mixbridge.app`) with users.
