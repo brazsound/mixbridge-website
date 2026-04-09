@@ -1,4 +1,4 @@
-# Stem Bounce
+# Mix Bridge
 
 Desktop app that automates stem creation and bounces in **Pro Tools** using the Pro Tools Scripting SDK (PTSL). Built with Electron + React + TypeScript for Mac (Windows-ready).
 
@@ -19,7 +19,7 @@ Desktop app that automates stem creation and bounces in **Pro Tools** using the 
 
 ## Overview
 
-Stem Bounce connects to Pro Tools via PTSL (gRPC) and automates:
+Mix Bridge connects to Pro Tools via PTSL (gRPC) and automates:
 
 - **Single-session mode**: Build a queue of bounce jobs (full mix, batch stems, soloed tracks, muted tracks, timeline selection, markers) and run them on the currently open session.
 - **Session batch mode**: Queue multiple Pro Tools sessions and run them unattended. The app opens each session, executes its bounce queue, saves, and closes before moving to the next.
@@ -155,7 +155,7 @@ App.tsx: When sessionName changes and session not in batch
 ```
 useSessionBatch (hook)
     │
-    ├── Loads from stem-bounce-session-batch.json on mount
+    ├── Loads from mix-bridge-session-batch.json on mount
     ├── Each entry: { id, ptxPath, sessionName, queue, settings, status }
     └── Persists on add/remove/reorder/update
     │
@@ -174,7 +174,7 @@ useSessionScanCache (hook)
     │
     ├── Caches per ptxPath: mixSources, tracks, memoryLocations, sessionInfo
     ├── Populated when: user refreshes (session open) OR batch run opens session
-    └── Persisted to stem-bounce-session-scan-cache.json
+    └── Persisted to mix-bridge-session-scan-cache.json
     │
     ▼
 App.tsx: Panel data selection
@@ -221,7 +221,7 @@ For each pending entry:
 ```
 usePresets (hook)
     │
-    ├── 5 slots, loaded from stem-bounce-presets.json
+    ├── 5 slots, loaded from mix-bridge-presets.json
     ├── Load: apply preset settings to useBounceSettings
     ├── Save: Shift+click stores current settings (excluding capturedRange, track names)
     └── Export/Import: JSON file for backup or sharing
@@ -290,9 +290,9 @@ STEM APP/
 
 | File | Content |
 |------|---------|
-| `stem-bounce-session-batch.json` | Session batch entries (ptxPath, queue, settings) |
-| `stem-bounce-session-scan-cache.json` | Per-session cached scan data |
-| `stem-bounce-presets.json` | 5 preset slots + last active |
+| `mix-bridge-session-batch.json` | Session batch entries (ptxPath, queue, settings) |
+| `mix-bridge-session-scan-cache.json` | Per-session cached scan data |
+| `mix-bridge-presets.json` | 5 preset slots + last active |
 
 ---
 

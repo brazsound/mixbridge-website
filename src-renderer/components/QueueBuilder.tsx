@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useProToolsData } from '../hooks/useProToolsData';
 import type { QueueItem, BatchStemsItem, BounceSoloedItem, BounceMutedItem, BounceRangeItem } from '../hooks/useQueue';
 import type { DefaultNaming } from '../hooks/useSettings';
+import { applyNamingFromConfig } from '../hooks/useSettings';
 import { QueueItemRow } from './QueueItemRow';
 import { RunQueueRunner } from './RunQueueRunner';
 
@@ -16,11 +17,6 @@ interface QueueBuilderProps {
   onUpdateItemName: (id: string, outputName: string, outputNameAlt?: string) => void;
   onRemoveItem: (id: string) => void;
   onClearQueue: () => void;
-}
-
-function applyTemplate(template: string, name: string): string {
-  const date = new Date().toISOString().slice(0, 10);
-  return template.replace(/\{name\}/gi, name).replace(/\{date\}/gi, date);
 }
 
 export function QueueBuilder({
@@ -61,48 +57,52 @@ export function QueueBuilder({
       setRangeWarn('No tracks selected in Pro Tools. Select tracks first.');
       return;
     }
-    const name = applyTemplate(defaultNaming.template, 'Batch');
+    const name = applyNamingFromConfig(defaultNaming, { name: 'Batch' }, 'batch');
     onAddBatchStems(
       selectedTracks.map((t) => t.id),
       selectedTracks.map((t) => t.name),
       name
     );
     setRangeWarn(null);
-  }, [selectedTracks, defaultNaming.template, onAddBatchStems]);
+  }, [selectedTracks, defaultNaming, onAddBatchStems]);
 
   const addSoloed = useCallback(() => {
     if (soloedTracks.length === 0) {
       setRangeWarn('No soloed tracks in Pro Tools. Solo the tracks you want to bounce first.');
       return;
     }
-    const name = applyTemplate(defaultNaming.template, 'Soloed');
+    const name = applyNamingFromConfig(defaultNaming, { name: 'Soloed' }, 'solo');
     onAddBounceSoloed(soloedTracks.map((t) => t.name), name);
     setRangeWarn(null);
-  }, [soloedTracks, defaultNaming.template, onAddBounceSoloed]);
+  }, [soloedTracks, defaultNaming, onAddBounceSoloed]);
 
   const addMuted = useCallback(() => {
-    const name = applyTemplate(defaultNaming.template, 'Muted');
+    const name = applyNamingFromConfig(defaultNaming, { name: 'Muted' }, 'mute');
     onAddBounceMuted(mutedTracks.map((t) => t.name), name);
     setRangeWarn(null);
-  }, [mutedTracks, defaultNaming.template, onAddBounceMuted]);
+  }, [mutedTracks, defaultNaming, onAddBounceMuted]);
 
   const addRangeTimeline = useCallback(() => {
     if (!hasTimelineSelection) {
       setRangeWarn('No timeline selection in Pro Tools. Set In/Out points first.');
       return;
     }
-    const name = applyTemplate(defaultNaming.template, 'Range');
+    const name = applyNamingFromConfig(defaultNaming, { name: 'Range' }, 'mix');
     onAddBounceRange('timeline', name);
     setRangeWarn(null);
-  }, [hasTimelineSelection, defaultNaming.template, onAddBounceRange]);
+  }, [hasTimelineSelection, defaultNaming, onAddBounceRange]);
 
   const addRangeMarker = useCallback(
     (markerNumber: number, markerName: string) => {
-      const name = applyTemplate(defaultNaming.template, markerName || `Marker ${markerNumber}`);
+      const name = applyNamingFromConfig(
+        defaultNaming,
+        { name: markerName || `Marker ${markerNumber}` },
+        'mix'
+      );
       onAddBounceRange('marker', name, markerNumber, markerName);
       setRangeWarn(null);
     },
-    [defaultNaming.template, onAddBounceRange]
+    [defaultNaming, onAddBounceRange]
   );
 
   return (

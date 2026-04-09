@@ -1,15 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { QueueItem } from '../hooks/useQueue';
+import { useToast } from '../contexts/ToastContext';
 import type { BounceSettings } from '../hooks/useBounceSettings';
 import { buildExportPayload, executeBounceItem, fileExtension } from '../utils/bounceExecutor';
-
-export interface RunStatus {
-  state: 'idle' | 'running' | 'done' | 'error';
-  error?: string;
-}
-
-export type RunStatuses = Record<string, RunStatus>;
+import { prepareSoloLatchForBounceRun, queueHasBatchStems } from '../utils/soloLatchAutomation';
+import { usePreBounceAccessibilityGate } from '../hooks/usePreBounceAccessibilityGate';
+import { captureTrackSoloSnapshot, restoreTrackSoloSnapshot } from '../utils/soloTrackSnapshot';
 
 interface RunQueueRunnerProps {
   queue: QueueItem[];
@@ -23,13 +20,27 @@ interface RunQueueRunnerProps {
   onSimulateBlocked?: (msg: string, type?: 'warning' | 'error') => void;
   /** Render a compact inline button instead of the full-width panel button */
   compact?: boolean;
+  /** Ref to scroll to a specific queue item row by id */
+  onScrollToItem?: (id: string) => void;
 }
+
+export interface RunStatus {
+  state: 'idle' | 'running' | 'done' | 'error';
+  error?: string;
+}
+
+export type RunStatuses = Record<string, RunStatus>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function RunQueueRunner({ queue, connected, settings, onStatusChange, onRunStart, simulateMode = false, onSimulateBlocked, compact }: RunQueueRunnerProps) {
+export function RunQueueRunner({ queue, connected, settings, onStatusChange, onRunStart, simulateMode = false, onSimulateBlocked, compact, onScrollToItem }: RunQueueRunnerProps) {
+  const { showToast } = useToast();
+  const { requestGate, gateModal } = usePreBounceAccessibilityGate();
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
+  const [runErrorItemId, setRunErrorItemId] = useState<string | null>(null);
+  const [runErrorDetail, setRunErrorDetail] = useState<string | null>(null);
+  const [errorExpanded, setErrorExpanded] = useState(false);
   const [finished, setFinished] = useState(false);
 
   // Track whether files were already found to exist before the last run.
@@ -42,6 +53,12 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
   const runningRef = useRef(false);
   const cancelRequestedRef = useRef(false);
   const pauseRequestedRef = useRef(false);
+  /** Restore Options → Solo Mode after non–solo-bounce runs (macOS UI scripting). */
+  const soloLatchRestoreRef = useRef<(() => Promise<void>) | null>(null);
+  /** Restore per-track solo flags after batch stem runs (user may have had a multi-solo combo). */
+  const batchSoloSnapshotRef = useRef<Map<string, boolean> | null>(null);
+  /** When user bounces without Accessibility: isolate one stem per item; no snapshot restore. */
+  const legacyBatchStemRunRef = useRef(false);
 
   const [paused, setPaused] = useState(false);
   const [resumeFromIndex, setResumeFromIndex] = useState(0);
@@ -51,16 +68,35 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
   // Reset warning state whenever the queue changes (rename / add / remove).
   // We intentionally exclude `running` — it caused hasCompletedRun to be
   // cleared right after every successful run.
+  const runSoloLatchRestore = useCallback(async () => {
+    const fn = soloLatchRestoreRef.current;
+    soloLatchRestoreRef.current = null;
+    if (fn) await fn();
+  }, []);
+
+  const runBatchSoloRestore = useCallback(async () => {
+    const snap = batchSoloSnapshotRef.current;
+    batchSoloSnapshotRef.current = null;
+    if (snap) await restoreTrackSoloSnapshot(snap);
+  }, []);
+
   useEffect(() => {
     if (!runningRef.current) {
+      if (!paused) {
+        void runBatchSoloRestore();
+        void runSoloLatchRestore();
+      }
       setConflictingFiles([]);
       setAwaitingConfirm(false);
       setFinished(false);
       setRunError(null);
+      setRunErrorItemId(null);
+      setRunErrorDetail(null);
+      setErrorExpanded(false);
       setPaused(false);
       setResumeFromIndex(0);
     }
-  }, [queue]);
+  }, [queue, paused, runSoloLatchRestore, runBatchSoloRestore]);
 
   let disabledReason = '';
   if (!connected) disabledReason = 'Connect to Pro Tools first';
@@ -76,6 +112,12 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
   const executeRun = useCallback(async (startIndex = 0) => {
     if (!window.ptsl || !capturedRange || queue.length === 0) return;
 
+    if (startIndex === 0) {
+      const gate = await requestGate(queue);
+      if (gate === 'abort') return;
+      legacyBatchStemRunRef.current = gate === 'legacy';
+    }
+
     const payload = buildExportPayload(settings);
 
     runningRef.current = true;
@@ -88,13 +130,29 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
     setAwaitingConfirm(false);
     onRunStart();
 
+    if (startIndex === 0) {
+      soloLatchRestoreRef.current = null;
+      batchSoloSnapshotRef.current = null;
+      const { restore } = await prepareSoloLatchForBounceRun(queue);
+      soloLatchRestoreRef.current = restore;
+      if (queueHasBatchStems(queue) && !legacyBatchStemRunRef.current) {
+        batchSoloSnapshotRef.current = await captureTrackSoloSnapshot();
+      }
+    }
+
     const trackListRes = await window.ptsl.getTrackList({});
     const allTrackNames = (
       (trackListRes.data as { track_list?: { name: string }[] })?.track_list ?? []
     ).map((t) => t.name);
 
+    const finishRunSideEffects = async () => {
+      await runBatchSoloRestore();
+      await runSoloLatchRestore();
+    };
+
     for (let i = startIndex; i < queue.length; i++) {
       if (cancelRequestedRef.current) {
+        await finishRunSideEffects();
         runningRef.current = false;
         setRunning(false);
         return;
@@ -108,7 +166,9 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
       }
 
       try {
-        await executeBounceItem(item, payload, capturedRange, settings, allTrackNames, i === 0);
+        await executeBounceItem(item, payload, capturedRange, settings, allTrackNames, i === 0, {
+          legacyBatchStemIsolation: legacyBatchStemRunRef.current,
+        });
         onStatusChange(item.id, { state: 'done' });
 
         if (pauseRequestedRef.current) {
@@ -121,17 +181,48 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
       } catch (e) {
         const msg = (e as Error).message;
         onStatusChange(item.id, { state: 'error', error: msg });
-        setRunError(`"${item.outputName}" failed — see above for details.`);
+        setRunError(`"${item.outputName}" failed to bounce.`);
+        setRunErrorItemId(item.id);
+        setRunErrorDetail(msg);
+        setErrorExpanded(false);
+        await finishRunSideEffects();
         runningRef.current = false;
         setRunning(false);
         return;
       }
     }
 
+    await finishRunSideEffects();
     runningRef.current = false;
     setRunning(false);
-    setFinished(!cancelRequestedRef.current);
-  }, [queue, settings, capturedRange, onStatusChange, onRunStart]);
+    const completed = !cancelRequestedRef.current;
+    setFinished(completed);
+
+    if (completed && window.notifications && window.app?.sendBounceCompleteNotification) {
+      const config = await window.notifications.load();
+      if (config.iMessageEnabled && config.phoneNumber?.trim()) {
+        const sessionRes = await window.ptsl?.getSessionName();
+        const sessionName = (sessionRes?.data as { session_name?: string })?.session_name ?? 'Session';
+        const result = await window.app.sendBounceCompleteNotification({
+          sessionName,
+          phoneNumber: config.phoneNumber.trim(),
+        });
+        if (!result.ok) {
+          showToast('Notification failed — check your iMessage settings.', 'error');
+        }
+      }
+    }
+  }, [
+    queue,
+    settings,
+    capturedRange,
+    onStatusChange,
+    onRunStart,
+    showToast,
+    runSoloLatchRestore,
+    runBatchSoloRestore,
+    requestGate,
+  ]);
 
   const handleCancel = useCallback(() => {
     if (runningRef.current) {
@@ -167,7 +258,7 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
     setFinished(true);
   }, [queue, onStatusChange, onRunStart]);
 
-  // Resolve the folder where bounces will land, then check for conflicts.
+  // Resolve folders per item and check for conflicts.
   const checkAndRun = useCallback(async () => {
     if (!canRun) return;
     if (simulateMode) {
@@ -177,48 +268,48 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
     if (!window.ptsl) return;
     setConflictingFiles([]);
 
-    let bounceFolder = '';
-    if (settings.destination === 'custom' && settings.customPath) {
-      bounceFolder = settings.customPath;
-    } else {
-      // Ask Pro Tools for the session file path, then derive the bounce folder.
-      const pathRes = await window.ptsl.getSessionPath();
-      const sessionFilePath = pathRes.data?.sessionFilePath ?? '';
-      if (sessionFilePath) {
-        // Session file is e.g. /path/to/Session/Session.ptx
-        // Bounced Files go in /path/to/Session/Bounced Files/
-        const sessionFolder = sessionFilePath.replace(/\/[^/]+$/, '');
-        bounceFolder = `${sessionFolder}/Bounced Files`;
-      }
-    }
+    const pathRes = await window.ptsl.getSessionPath();
+    const sessionFilePath = pathRes.data?.sessionFilePath ?? '';
+    const sessionFolder = sessionFilePath.replace(/\/[^/]+$/, '');
+    const defaultBounceFolder =
+      settings.destination === 'custom' && settings.customPath
+        ? settings.customPath
+        : sessionFilePath
+          ? `${sessionFolder}/Bounced Files`
+          : '';
 
-    if (bounceFolder) {
-      const ext = fileExtension(settings.fileType);
-      const fileNames: string[] = [];
-      for (const item of queue) {
-        const safe = item.outputName.replace(/[/\\:*?"<>|]/g, '_');
-        if (settings.mixSources.length <= 1) {
-          fileNames.push(`${safe}${ext}`);
-        } else {
-          for (const s of settings.mixSources) {
-            fileNames.push(`${safe} (${s.name})${ext}`);
-          }
+    const ext = fileExtension(settings.fileType);
+    const folderToFiles = new Map<string, string[]>();
+
+    for (const item of queue) {
+      const folder = item.customFolderPath ?? defaultBounceFolder;
+      if (!folder) continue;
+      const safe = item.outputName.replace(/[/\\:*?"<>|]/g, '_');
+      const names: string[] = [];
+      if (settings.mixSources.length <= 1) {
+        names.push(`${safe}${ext}`);
+      } else {
+        for (const s of settings.mixSources) {
+          names.push(`${safe} (${s.name})${ext}`);
         }
       }
       if (settings.addMP3 && settings.fileType !== 3) {
-        for (const item of queue) {
-          const safe = item.outputName.replace(/[/\\:*?"<>|]/g, '_');
-          const base = safe.replace(/\.[^.]+$/, '') || safe;
-          if (settings.mixSources.length <= 1) {
-            fileNames.push(`${base}.mp3`);
-          } else {
-            for (const s of settings.mixSources) {
-              fileNames.push(`${base} (${s.name}).mp3`);
-            }
+        const base = safe.replace(/\.[^.]+$/, '') || safe;
+        if (settings.mixSources.length <= 1) {
+          names.push(`${base}.mp3`);
+        } else {
+          for (const s of settings.mixSources) {
+            names.push(`${base} (${s.name}).mp3`);
           }
         }
       }
-      const { existing } = await window.ptsl.checkFilesExist(bounceFolder, fileNames);
+      const existing = folderToFiles.get(folder) ?? [];
+      folderToFiles.set(folder, [...existing, ...names]);
+    }
+
+    for (const [folder, fileNames] of folderToFiles) {
+      if (fileNames.length === 0) continue;
+      const { existing } = await window.ptsl.checkFilesExist(folder, fileNames);
       if (existing.length > 0) {
         setConflictingFiles(existing);
         setAwaitingConfirm(true);
@@ -239,22 +330,59 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
   const btnRadius = compact ? '8px' : '12px';
 
   return (
+    <>
+      {gateModal}
     <div className="space-y-2">
       {runError && (
-        <p
-          className="text-[11px] leading-snug break-words px-2 py-1.5 rounded-lg"
+        <div
+          className="px-3 py-2 rounded-lg space-y-1.5"
           style={{
-            color: '#ff8a80',
+            color: 'var(--danger)',
             background: 'var(--danger-soft)',
-            border: '1px solid rgba(255,69,58,0.2)',
+            border: '1px solid rgba(255,69,58,0.25)',
           }}
         >
-          {runError}
-        </p>
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] leading-snug break-words flex-1">
+              {runError}
+            </p>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {runErrorItemId && onScrollToItem && (
+                <button
+                  type="button"
+                  onClick={() => onScrollToItem(runErrorItemId)}
+                  className="text-[10px] font-medium underline underline-offset-2 hover:opacity-80 transition-opacity"
+                  style={{ color: 'var(--danger)' }}
+                >
+                  Jump to item
+                </button>
+              )}
+              {runErrorDetail && (
+                <button
+                  type="button"
+                  onClick={() => setErrorExpanded((v) => !v)}
+                  className="text-[10px] font-medium hover:opacity-80 transition-opacity flex items-center gap-0.5"
+                  style={{ color: 'var(--danger)' }}
+                  aria-expanded={errorExpanded}
+                >
+                  {errorExpanded ? '▾' : '▸'} Details
+                </button>
+              )}
+            </div>
+          </div>
+          {errorExpanded && runErrorDetail && (
+            <p
+              className="text-[10px] font-mono break-all leading-snug px-2 py-1.5 rounded-lg"
+              style={{ background: 'rgba(255,69,58,0.1)', color: 'var(--danger)' }}
+            >
+              {runErrorDetail}
+            </p>
+          )}
+        </div>
       )}
       {finished && !running && !runError && (
         <p
-          className="text-[11px] px-2 py-1 rounded-lg text-center"
+          className="text-[11px] px-3 py-2 rounded-lg text-center"
           style={{ color: 'var(--success)', background: 'var(--success-soft)' }}
         >
           All bounces complete!
@@ -262,8 +390,8 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
       )}
       {paused && !runError && (
         <p
-          className="text-[11px] px-2 py-1 rounded-lg text-center"
-          style={{ color: '#ffd580', background: 'var(--warning-soft)', border: '1px solid rgba(255,159,10,0.25)' }}
+          className="text-[11px] px-3 py-2 rounded-lg text-center"
+          style={{ color: 'var(--warning)', background: 'var(--warning-soft)', border: '1px solid rgba(255,159,10,0.25)' }}
         >
           Paused — make adjustments in Pro Tools, then Resume to continue.
         </p>
@@ -275,18 +403,11 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
             <button
               type="button"
               disabled
-              className={`${btnBase} font-semibold transition-all shrink-0`}
+              className={`btn-glass ${btnBase} font-semibold shrink-0 flex items-center justify-center gap-1.5`}
               style={{
                 borderRadius: btnRadius,
                 flex: compact ? undefined : 1,
-                background: 'rgba(255,255,255,0.06)',
-                color: 'var(--text-muted)',
-                border: '1px solid rgba(255,255,255,0.08)',
                 cursor: 'default',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
               }}
             >
               <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -300,9 +421,9 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
               onClick={handleCancel}
               className={`btn-glass ${btnBase} shrink-0`}
               style={{ borderRadius: btnRadius }}
-              title="Stop after current bounce"
+              title="Stop after current bounce completes"
             >
-              Cancel
+              Stop
             </button>
             <button
               type="button"
@@ -319,15 +440,10 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
             <button
               type="button"
               onClick={handleResume}
-              className={`${btnBase} font-semibold transition-all shrink-0`}
+              className={`btn-accent ${btnBase} font-semibold shrink-0`}
               style={{
                 borderRadius: btnRadius,
                 flex: compact ? undefined : 1,
-                background: 'var(--accent)',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.15)',
-                boxShadow: '0 0 16px var(--accent-glow)',
-                cursor: 'pointer',
               }}
             >
               Resume
@@ -349,22 +465,13 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
             onClick={() => void checkAndRun()}
             disabled={!canRun}
             title={disabledReason || undefined}
-            className={`${compact ? '' : 'w-full'} ${btnBase} font-semibold transition-all`}
+            className={`${compact ? '' : 'w-full'} ${canRun ? 'btn-accent' : 'btn-glass'} ${btnBase} font-semibold transition-all`}
             style={{
               borderRadius: btnRadius,
               flex: compact ? undefined : 1,
-              background: canRun
-                ? 'var(--accent)'
-                : 'rgba(255,255,255,0.06)',
-              color: canRun ? '#fff' : 'var(--text-muted)',
-              border: canRun
-                ? '1px solid rgba(255,255,255,0.15)'
-                : '1px solid rgba(255,255,255,0.08)',
-              boxShadow: canRun ? '0 0 16px var(--accent-glow)' : 'none',
-              cursor: canRun ? 'pointer' : 'not-allowed',
               opacity: canRun ? 1 : 0.55,
-              letterSpacing: '-0.01em',
               whiteSpace: 'nowrap',
+              cursor: canRun ? 'pointer' : 'not-allowed',
             }}
           >
             {buttonLabel}
@@ -377,87 +484,69 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="absolute inset-0"
-            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
             onClick={() => { setAwaitingConfirm(false); setConflictingFiles([]); }}
           />
 
           <div
-            className="relative z-10 w-full max-w-md mx-4 p-6 space-y-4"
-            style={{
-              borderRadius: '20px',
-              background: 'rgba(28, 20, 0, 0.85)',
-              border: '1px solid rgba(255,159,10,0.35)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              boxShadow: '0 24px 64px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,159,10,0.1) inset',
-            }}
+            className="modal-panel relative z-10 w-full max-w-md mx-4 rounded-2xl overflow-hidden"
+            style={{ border: '1px solid rgba(255,159,10,0.4)' }}
           >
-            {/* Top gleam */}
-            <div
-              className="absolute inset-x-0 top-0 h-px"
-              style={{
-                borderRadius: '20px 20px 0 0',
-                background: 'linear-gradient(90deg, transparent, rgba(255,159,10,0.4), transparent)',
-              }}
-            />
 
-            <div className="flex items-start gap-3">
+            {/* Header */}
+            <div className="px-5 py-4 flex items-start gap-3" style={{ borderBottom: '1px solid var(--divider)' }}>
               <div
-                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center mt-0.5"
+                className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
                 style={{ background: 'var(--warning-soft)', border: '1px solid rgba(255,159,10,0.3)' }}
               >
-                <svg className="w-5 h-5" style={{ color: 'var(--warning)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" style={{ color: 'var(--warning)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-sm font-semibold" style={{ color: '#ffd580' }}>
+                <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
                   Files will be overwritten
                 </h3>
-                <p className="text-xs mt-0.5 leading-snug" style={{ color: 'rgba(255,213,128,0.65)' }}>
-                  {conflictingFiles.length} file{conflictingFiles.length !== 1 ? 's' : ''} with the same name already exist{conflictingFiles.length === 1 ? 's' : ''} in the output folder.
+                <p className="text-xs mt-0.5 leading-snug" style={{ color: 'var(--text-muted)' }}>
+                  {conflictingFiles.length} file{conflictingFiles.length !== 1 ? 's' : ''} already exist in the output folder.
                 </p>
               </div>
             </div>
 
-            <div
-              className="px-3 py-2.5 max-h-36 overflow-y-auto space-y-1 rounded-xl"
-              style={{
-                background: 'rgba(0,0,0,0.4)',
-                border: '1px solid rgba(255,159,10,0.15)',
-              }}
-            >
-              {conflictingFiles.map((f) => (
-                <p key={f} className="text-xs font-mono truncate" style={{ color: '#ffd580' }}>
-                  {f}
-                </p>
-              ))}
+            {/* Body */}
+            <div className="px-5 py-4 space-y-3">
+              <div
+                className="px-3 py-2.5 max-h-36 overflow-y-auto space-y-1 rounded-xl"
+                style={{ background: 'var(--surface-pressed)', border: '1px solid var(--divider)' }}
+              >
+                {conflictingFiles.map((f) => (
+                  <p key={f} className="text-xs font-mono truncate" style={{ color: 'var(--text-secondary)' }}>
+                    {f}
+                  </p>
+                ))}
+              </div>
+              <p className="text-xs leading-snug" style={{ color: 'var(--text-muted)' }}>
+                Cancel and rename the stems in your queue to keep the existing files.
+              </p>
             </div>
 
-            <p className="text-xs leading-snug" style={{ color: 'var(--text-muted)' }}>
-              To keep the existing files, cancel and rename the stems in your queue first.
-            </p>
-
-            <div className="flex gap-2.5 pt-1">
+            {/* Footer */}
+            <div className="flex gap-2 px-5 py-4" style={{ borderTop: '1px solid var(--divider)' }}>
               <button
                 type="button"
                 onClick={() => { setAwaitingConfirm(false); setConflictingFiles([]); }}
-                className="btn-glass flex-1 justify-center"
-                style={{ borderRadius: '10px', padding: '9px 12px' }}
+                className="btn-glass flex-1 justify-center py-2 text-sm"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => void executeRun()}
-                className="flex-1 text-sm font-semibold transition-all"
+                className="flex-1 py-2 text-sm font-semibold rounded-xl transition-all"
                 style={{
-                  borderRadius: '10px',
-                  padding: '9px 12px',
                   background: 'var(--warning)',
-                  color: '#000',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  boxShadow: '0 0 12px rgba(255,159,10,0.4)',
+                  color: 'var(--bg)',
+                  border: '1px solid rgba(255,255,255,0.15)',
                 }}
               >
                 Overwrite &amp; Run
@@ -467,5 +556,6 @@ export function RunQueueRunner({ queue, connected, settings, onStatusChange, onR
         </div>
       , document.body)}
     </div>
+    </>
   );
 }

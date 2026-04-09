@@ -126,8 +126,16 @@ const SHORTCUT_LABELS: Record<ShortcutAction, string> = {
   refresh: 'Refresh',
   undo: 'Undo',
   redo: 'Redo',
-  settings: 'Open Settings',
+  settings: 'Settings',
+  templateRename: 'Rename',
+  templateOutputFolder: 'Output folder',
 };
+
+const SHORTCUT_SECTIONS: { label: string; actions: ShortcutAction[] }[] = [
+  { label: 'Stem', actions: ['mix', 'batch', 'solo', 'mute'] },
+  { label: 'General', actions: ['refresh', 'undo', 'redo', 'settings'] },
+  { label: 'Template Editing', actions: ['templateRename', 'templateOutputFolder'] },
+];
 
 interface SettingsShortcutsProps {
   shortcuts: Shortcuts;
@@ -158,30 +166,45 @@ export function SettingsShortcuts({
           border: '1px solid var(--border)',
         }}
       >
-        {(Object.keys(SHORTCUT_LABELS) as ShortcutAction[]).map((action) => (
-            <ShortcutRow
-              key={action}
-              label={SHORTCUT_LABELS[action]}
-              shortcut={shortcuts[action]}
-              defaultShortcut={DEFAULT_SHORTCUTS[action]}
-              errorMessage={conflictError?.action === action ? conflictError.message : null}
-              onErrorAnimationEnd={() => setConflictError(null)}
-              onSet={(value) => {
-                const conflict = (Object.keys(SHORTCUT_LABELS) as ShortcutAction[]).find(
-                  (a) => a !== action && shortcuts[a] === value
-                );
-                if (conflict) {
-                  setConflictError({
-                    action,
-                    message: `Already used by ${SHORTCUT_LABELS[conflict]}`,
-                  });
-                  return;
-                }
-                setConflictError(null);
-                onSetShortcut(action, value);
-              }}
-              onResetOne={() => onResetShortcut(action)}
-            />
+        {SHORTCUT_SECTIONS.map((section, sectionIndex) => (
+          <div key={section.label}>
+            {sectionIndex > 0 && (
+              <div
+                className="my-4"
+                style={{ borderTop: '1px solid var(--border)' }}
+              />
+            )}
+            <div className="section-title mb-2">
+              {section.label}
+            </div>
+            <div className="space-y-1">
+              {section.actions.map((action) => (
+                <ShortcutRow
+                  key={action}
+                  label={SHORTCUT_LABELS[action]}
+                  shortcut={shortcuts[action]}
+                  defaultShortcut={DEFAULT_SHORTCUTS[action]}
+                  errorMessage={conflictError?.action === action ? conflictError.message : null}
+                  onErrorAnimationEnd={() => setConflictError(null)}
+                  onSet={(value) => {
+                    const conflict = (Object.keys(SHORTCUT_LABELS) as ShortcutAction[]).find(
+                      (a) => a !== action && shortcuts[a] === value
+                    );
+                    if (conflict) {
+                      setConflictError({
+                        action,
+                        message: `Already used by ${SHORTCUT_LABELS[conflict]}`,
+                      });
+                      return;
+                    }
+                    setConflictError(null);
+                    onSetShortcut(action, value);
+                  }}
+                  onResetOne={() => onResetShortcut(action)}
+                />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
       <button

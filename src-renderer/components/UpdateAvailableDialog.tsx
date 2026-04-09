@@ -37,17 +37,11 @@ export function UpdateAvailableDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}
+      className="backdrop-modal fixed inset-0 z-[60] flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
       <div
-        className="flex flex-col w-full max-w-md rounded-2xl overflow-hidden"
-        style={{
-          background: '#141416',
-          border: '1px solid var(--glass-border)',
-          boxShadow: '0 24px 48px rgba(0,0,0,0.6)',
-        }}
+        className="modal-panel flex flex-col w-full max-w-md rounded-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 py-4">
@@ -63,7 +57,7 @@ export function UpdateAvailableDialog({
             <div
               className="mt-3 text-xs rounded-lg p-3 max-h-24 overflow-y-auto"
               style={{
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--surface-pressed)',
                 color: 'var(--text-secondary)',
                 whiteSpace: 'pre-wrap',
               }}
@@ -75,7 +69,7 @@ export function UpdateAvailableDialog({
             <div className="mt-3">
               <div
                 className="h-1.5 rounded-full overflow-hidden"
-                style={{ background: 'rgba(255,255,255,0.1)' }}
+                style={{ background: 'var(--divider-strong)' }}
               >
                 <div
                   className="h-full rounded-full transition-all duration-300"

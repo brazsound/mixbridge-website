@@ -1,6 +1,7 @@
 import { useReducer, useCallback, useEffect } from 'react';
 import type { DefaultNaming } from '../hooks/useSettings';
 import { applyNamingFromConfig } from '../hooks/useSettings';
+import type { NamingSessionAudio, NamingSessionCtx } from '../utils/naming';
 
 export type QueueJobType = 'bounce_normal' | 'batch_stems' | 'bounce_soloed' | 'bounce_muted' | 'bounce_range';
 
@@ -8,6 +9,8 @@ export interface QueueItemBase {
   id: string;
   type: QueueJobType;
   outputName: string;
+  /** When set, this item bounces to this folder instead of the global destination. */
+  customFolderPath?: string;
 }
 
 /** Bounce everything as-is — no track state changes */
@@ -43,6 +46,34 @@ export type QueueItem = BounceNormalItem | BatchStemsItem | BounceSoloedItem | B
 
 function generateId(): string {
   return `q-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function createBatchStemsItems(
+  trackIds: string[],
+  trackNames: string[],
+  naming: DefaultNaming,
+  ctx?: { sessionName?: string } & NamingSessionAudio
+): BatchStemsItem[] {
+  return trackIds.map((trackId, i) => {
+    const trackName = trackNames[i] ?? `Track ${i + 1}`;
+    return {
+      id: generateId(),
+      type: 'batch_stems',
+      trackId,
+      trackName,
+      outputName: applyNamingFromConfig(
+        naming,
+        {
+          name: trackName,
+          sessionName: ctx?.sessionName,
+          trackNumber: i + 1,
+          sampleRateHz: ctx?.sampleRateHz,
+          bitDepth: ctx?.bitDepth,
+        },
+        'batch'
+      ),
+    };
+  });
 }
 
 
@@ -130,47 +161,69 @@ export function useQueue() {
       trackIds: string[],
       trackNames: string[],
       naming: DefaultNaming,
-      ctx?: { sessionName?: string }
+      ctx?: { sessionName?: string } & NamingSessionAudio
     ) => {
-      const items: BatchStemsItem[] = trackIds.map((trackId, i) => {
-        const trackName = trackNames[i] ?? `Track ${i + 1}`;
-        return {
-          id: generateId(),
-          type: 'batch_stems',
-          trackId,
-          trackName,
-          outputName: applyNamingFromConfig(naming, {
-            name: trackName,
-            sessionName: ctx?.sessionName,
-            trackNumber: i + 1,
-          }),
-        };
-      });
+      const items = createBatchStemsItems(trackIds, trackNames, naming, ctx);
       setQueue((q) => [...q, ...items]);
     },
     [setQueue]
   );
 
-  const addBounceSoloed = useCallback((trackNames: string[], naming: DefaultNaming) => {
-    setQueue((q) => [
-      ...q,
-      {
-        id: generateId(),
-        type: 'bounce_soloed',
-        trackNames,
-        outputName: applyNamingFromConfig(naming, { name: 'Solo' }),
-      },
-    ]);
-  }, [setQueue]);
+  /** Replace queue with batch stems from matched tracks (used by stem template). */
+  const loadQueueFromBatchStems = useCallback(
+    (
+      trackIds: string[],
+      trackNames: string[],
+      naming: DefaultNaming,
+      ctx?: { sessionName?: string } & NamingSessionAudio
+    ) => {
+      const items = createBatchStemsItems(trackIds, trackNames, naming, ctx);
+      loadQueue(items);
+    },
+    [loadQueue]
+  );
 
-  const addBounceMuted = useCallback((trackNames: string[], naming: DefaultNaming) => {
+  const addBounceSoloed = useCallback(
+    (trackNames: string[], naming: DefaultNaming, ctx?: NamingSessionCtx) => {
+      setQueue((q) => [
+        ...q,
+        {
+          id: generateId(),
+          type: 'bounce_soloed',
+          trackNames,
+          outputName: applyNamingFromConfig(
+            naming,
+            {
+              name: 'Solo',
+              sessionName: ctx?.sessionName,
+              sampleRateHz: ctx?.sampleRateHz,
+              bitDepth: ctx?.bitDepth,
+            },
+            'solo'
+          ),
+        },
+      ]);
+    },
+    [setQueue]
+  );
+
+  const addBounceMuted = useCallback((trackNames: string[], naming: DefaultNaming, ctx?: NamingSessionCtx) => {
     setQueue((q) => [
       ...q,
       {
         id: generateId(),
         type: 'bounce_muted',
         trackNames,
-        outputName: applyNamingFromConfig(naming, { name: 'Mute' }),
+        outputName: applyNamingFromConfig(
+          naming,
+          {
+            name: 'Mute',
+            sessionName: ctx?.sessionName,
+            sampleRateHz: ctx?.sampleRateHz,
+            bitDepth: ctx?.bitDepth,
+          },
+          'mute'
+        ),
       },
     ]);
   }, [setQueue]);
@@ -180,7 +233,8 @@ export function useQueue() {
       rangeSource: 'timeline' | 'marker',
       naming: DefaultNaming,
       markerNumber?: number,
-      markerName?: string
+      markerName?: string,
+      ctx?: NamingSessionCtx
     ) => {
       const name = markerName ?? (markerNumber != null ? `Marker ${markerNumber}` : 'Range');
       setQueue((q) => [
@@ -189,7 +243,16 @@ export function useQueue() {
           id: generateId(),
           type: 'bounce_range',
           rangeSource,
-          outputName: applyNamingFromConfig(naming, { name }),
+          outputName: applyNamingFromConfig(
+            naming,
+            {
+              name,
+              sessionName: ctx?.sessionName,
+              sampleRateHz: ctx?.sampleRateHz,
+              bitDepth: ctx?.bitDepth,
+            },
+            'mix'
+          ),
           markerNumber,
           markerName,
         },
@@ -200,6 +263,33 @@ export function useQueue() {
 
   const updateItemName = useCallback((id: string, outputName: string) => {
     setQueue((q) => q.map((item) => (item.id === id ? { ...item, outputName } : item)));
+  }, [setQueue]);
+
+  const updateItemFolder = useCallback((id: string, customFolderPath: string) => {
+    setQueue((q) => q.map((item) => (item.id === id ? { ...item, customFolderPath } : item)));
+  }, [setQueue]);
+
+  const clearItemFolder = useCallback((id: string) => {
+    setQueue((q) =>
+      q.map((item) => (item.id === id ? { ...item, customFolderPath: undefined } : item))
+    );
+  }, [setQueue]);
+
+  const batchUpdateFolder = useCallback((ids: Set<string>, customFolderPath: string) => {
+    setQueue((q) =>
+      q.map((item) => (ids.has(item.id) ? { ...item, customFolderPath } : item))
+    );
+  }, [setQueue]);
+
+  const batchRename = useCallback((ids: Set<string>, find: string, replace: string) => {
+    if (!find) return;
+    setQueue((q) =>
+      q.map((item) =>
+        ids.has(item.id)
+          ? { ...item, outputName: item.outputName.split(find).join(replace) }
+          : item
+      )
+    );
   }, [setQueue]);
 
   const removeItem = useCallback((id: string) => {
@@ -226,10 +316,15 @@ export function useQueue() {
     loadQueue,
     addBounceNormal,
     addBatchStems,
+    loadQueueFromBatchStems,
     addBounceSoloed,
     addBounceMuted,
     addBounceRange,
     updateItemName,
+    updateItemFolder,
+    clearItemFolder,
+    batchUpdateFolder,
+    batchRename,
     removeItem,
     reorderItems,
     clearQueue,

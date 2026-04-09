@@ -102,13 +102,14 @@ export function SearchableSelect({
 
   const triggerStyle: React.CSSProperties = compact
     ? {
-        padding: '4px 8px',
+        padding: '3px 8px',
         fontSize: '12px',
-        minHeight: '24px',
+        minHeight: '28px',
       }
     : {
-        padding: '8px 12px',
+        padding: '6px 10px',
         fontSize: '12px',
+        minHeight: '28px',
       };
 
   return (
@@ -117,11 +118,11 @@ export function SearchableSelect({
         type="button"
         onClick={() => !disabled && setOpen((o) => !o)}
         disabled={disabled}
-        className="w-full text-left rounded-lg border outline-none transition-colors flex items-center justify-between gap-2"
+        className="w-full text-left rounded-lg border outline-none transition-colors flex items-center justify-between gap-2 hover:bg-black/20 hover:border-[var(--divider-strong)] disabled:hover:bg-transparent disabled:hover:border-inherit"
         style={{
           ...triggerStyle,
           background: 'rgba(0,0,0,0.35)',
-          borderColor: 'rgba(255,255,255,0.15)',
+          borderColor: 'var(--divider-strong)',
           color: value ? 'var(--text)' : 'var(--text-muted)',
           cursor: disabled ? 'not-allowed' : 'pointer',
         }}
@@ -143,21 +144,16 @@ export function SearchableSelect({
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed rounded-lg overflow-hidden"
+            className="menu-panel fixed overflow-hidden rounded-lg"
             style={{
               left: dropdownRect.left,
               width: dropdownRect.width,
               top: dropdownPlacement === 'above' ? undefined : dropdownRect.top + 4,
               bottom: dropdownPlacement === 'above' ? window.innerHeight - dropdownRect.top + 4 : undefined,
               zIndex: 99999,
-              background: 'rgba(24, 24, 24, 0.98)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
             }}
           >
-            <div className="p-1.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="p-1.5" style={{ borderBottom: '1px solid var(--divider)' }}>
               <input
                 ref={inputRef}
                 type="text"
@@ -167,7 +163,7 @@ export function SearchableSelect({
                 className="w-full px-2.5 py-1.5 text-xs rounded-md outline-none"
                 style={{
                   background: 'rgba(0,0,0,0.75)',
-                  border: '1px solid rgba(255,255,255,0.15)',
+                  border: '1px solid var(--divider-strong)',
                   color: 'var(--text)',
                 }}
                 onKeyDown={(e) => {
@@ -189,20 +185,10 @@ export function SearchableSelect({
                     key={opt.value}
                     type="button"
                     onClick={() => handleSelect(opt)}
-                    className="w-full text-left px-3 py-1.5 text-xs truncate block transition-colors"
+                    className={`w-full text-left px-3 py-1.5 text-xs truncate block transition-colors ${opt.value !== value ? 'hover:bg-[var(--surface-hover)]' : ''}`}
                     style={{
                       color: opt.value === value ? 'var(--accent)' : 'var(--text)',
-                      background: opt.value === value ? 'rgba(59,130,246,0.15)' : 'transparent',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (opt.value !== value) {
-                        (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (opt.value !== value) {
-                        (e.currentTarget as HTMLElement).style.background = 'transparent';
-                      }
+                      background: opt.value === value ? 'var(--accent-soft-mid)' : 'transparent',
                     }}
                   >
                     {opt.label}

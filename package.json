@@ -64,7 +64,7 @@
     "extraResources": [],
     "publish": {
       "provider": "github",
-      "owner": "Meteteus",
+      "owner": "matheusbraz",
       "repo": "mix-bridge"
     }
   }

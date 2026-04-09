@@ -1,11 +1,15 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import type { QueueItem } from '../hooks/useQueue';
+import type { TrackInfo } from '../hooks/useProToolsData';
 import type { DefaultNaming } from '../hooks/useSettings';
 import { applyNamingFromConfig } from '../hooks/useSettings';
+import type { NamingSessionAudio, NamingSessionCtx } from '../utils/naming';
 import type { Shortcuts } from '../hooks/useShortcuts';
 import { formatShortcutForDisplay } from '../hooks/useShortcuts';
 import type { RunStatuses } from './RunQueueRunner';
 import { StemRow } from './StemRow';
+import { BatchActionsBar } from './BatchActionsBar';
+import { BatchRenameModal } from './BatchRenameModal';
 
 interface StemListProps {
   shortcuts?: Shortcuts;
@@ -15,6 +19,8 @@ interface StemListProps {
   canUndo: boolean;
   canRedo: boolean;
   defaultNaming: DefaultNaming;
+  /** Current session sample rate / bit depth for {sampleRate} and {bitDepth} tokens */
+  namingSessionAudio?: NamingSessionAudio;
   selectedTracks: TrackInfo[];
   soloedTracks: TrackInfo[];
   mutedTracks: TrackInfo[];
@@ -23,18 +29,30 @@ interface StemListProps {
   runStatuses: RunStatuses;
   onRefresh: () => Promise<void>;
   onAddBounceNormal: (outputName: string) => void;
-  onAddBatchStems: (trackIds: string[], trackNames: string[], naming: DefaultNaming, ctx?: { sessionName?: string }) => void;
-  onAddBounceSoloed: (trackNames: string[], naming: DefaultNaming) => void;
-  onAddBounceMuted: (trackNames: string[], naming: DefaultNaming) => void;
+  onAddBatchStems: (
+    trackIds: string[],
+    trackNames: string[],
+    naming: DefaultNaming,
+    ctx?: { sessionName?: string } & NamingSessionAudio
+  ) => void;
+  onAddBounceSoloed: (trackNames: string[], naming: DefaultNaming, ctx?: NamingSessionCtx) => void;
+  onAddBounceMuted: (trackNames: string[], naming: DefaultNaming, ctx?: NamingSessionCtx) => void;
   onUpdateItemName: (id: string, name: string) => void;
+  onUpdateItemFolder: (id: string, customFolderPath: string) => void;
+  onClearItemFolder: (id: string) => void;
+  onBatchUpdateFolder?: (ids: Set<string>, path: string) => void;
+  onBatchRename?: (ids: Set<string>, find: string, replace: string) => void;
   onRemoveItem: (id: string) => void;
   onReorderItems: (fromIndex: number, toIndex: number) => void;
   onClearQueue: () => void;
   onUndo: () => void;
   onRedo: () => void;
+  onSaveAsTemplate?: () => void;
   onBounceOne?: (item: QueueItem) => void;
   canBounceOne?: boolean;
   queueRunning?: boolean;
+  /** Display name for default output folder (e.g. "Bounced Files" or custom path's folder name) */
+  defaultOutputFolderDisplay?: string;
 }
 
 export function StemList({
@@ -45,6 +63,7 @@ export function StemList({
   canUndo,
   canRedo,
   defaultNaming,
+  namingSessionAudio = {},
   selectedTracks,
   soloedTracks,
   mutedTracks,
@@ -57,21 +76,79 @@ export function StemList({
   onAddBounceSoloed,
   onAddBounceMuted,
   onUpdateItemName,
+  onUpdateItemFolder,
+  onClearItemFolder,
+  onBatchUpdateFolder,
+  onBatchRename,
   onRemoveItem,
   onReorderItems,
   onClearQueue,
   onUndo,
   onRedo,
+  onSaveAsTemplate,
   onBounceOne,
   canBounceOne = false,
   queueRunning = false,
+  defaultOutputFolderDisplay = 'Bounced Files',
 }: StemListProps) {
   const fmt = (s: string) => formatShortcutForDisplay(s);
+  const namingCtx = useMemo(
+    (): NamingSessionCtx => ({ sessionName: sessionName ?? undefined, ...namingSessionAudio }),
+    [sessionName, namingSessionAudio]
+  );
   const [warn, setWarn] = useState<string | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [pendingEditIndex, setPendingEditIndex] = useState<number | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBatchRename, setShowBatchRename] = useState(false);
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
   const dragIndexRef = useRef<number | null>(null);
+
+  const handleToggleSelect = useCallback(
+    (index: number, shiftKey: boolean) => {
+      const item = queue[index];
+      if (!item) return;
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (shiftKey && lastSelectedIndex !== null) {
+          const lo = Math.min(lastSelectedIndex, index);
+          const hi = Math.max(lastSelectedIndex, index);
+          for (let i = lo; i <= hi; i++) {
+            const it = queue[i];
+            if (it) next.add(it.id);
+          }
+        } else {
+          if (next.has(item.id)) next.delete(item.id);
+          else next.add(item.id);
+        }
+        return next;
+      });
+      setLastSelectedIndex(index);
+    },
+    [queue, lastSelectedIndex]
+  );
+
+  const handleDeleteSelected = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    for (const id of selectedIds) {
+      onRemoveItem(id);
+    }
+    setSelectedIds(new Set());
+  }, [selectedIds, onRemoveItem]);
+
+  const handleOutputFolder = useCallback(async () => {
+    if (!onBatchUpdateFolder || selectedIds.size === 0) return;
+    const res = await window.app?.pickFolder?.();
+    if (!res?.canceled && res?.folderPath) onBatchUpdateFolder(selectedIds, res.folderPath);
+  }, [selectedIds, onBatchUpdateFolder]);
+
+  const handleBatchRenameApply = useCallback(
+    (find: string, replace: string) => {
+      if (onBatchRename && selectedIds.size > 0) onBatchRename(selectedIds, find, replace);
+    },
+    [selectedIds, onBatchRename]
+  );
 
   const handleDragStart = useCallback((index: number) => {
     dragIndexRef.current = index;
@@ -106,9 +183,9 @@ export function StemList({
       selectedTracks.map((t) => t.id),
       selectedTracks.map((t) => t.name),
       defaultNaming,
-      sessionName ? { sessionName } : undefined
+      namingCtx
     );
-  }, [selectedTracks, defaultNaming, sessionName, onAddBatchStems]);
+  }, [selectedTracks, defaultNaming, namingCtx, onAddBatchStems]);
 
   const handleSolo = useCallback(() => {
     setWarn(null);
@@ -116,17 +193,22 @@ export function StemList({
       setWarn('No tracks are soloed in Pro Tools. Solo the tracks you want, then click Solo.');
       return;
     }
-    onAddBounceSoloed(soloedTracks.map((t) => t.name), defaultNaming);
-  }, [soloedTracks, defaultNaming, onAddBounceSoloed]);
+    onAddBounceSoloed(soloedTracks.map((t) => t.name), defaultNaming, namingCtx);
+  }, [soloedTracks, defaultNaming, namingCtx, onAddBounceSoloed]);
 
   const handleMute = useCallback(() => {
     setWarn(null);
-    onAddBounceMuted(mutedTracks.map((t) => t.name), defaultNaming);
-  }, [mutedTracks, defaultNaming, onAddBounceMuted]);
+    if (mutedTracks.length === 0) {
+      setWarn('No tracks are muted in Pro Tools. Mute the tracks you want, then click Mute.');
+      return;
+    }
+    onAddBounceMuted(mutedTracks.map((t) => t.name), defaultNaming, namingCtx);
+  }, [mutedTracks, defaultNaming, namingCtx, onAddBounceMuted]);
 
   const handleClearRequest = () => setConfirmClear(true);
   const handleClearConfirm = () => {
     setConfirmClear(false);
+    setSelectedIds(new Set());
     onClearQueue();
   };
   const handleClearCancel = () => setConfirmClear(false);
@@ -147,17 +229,34 @@ export function StemList({
           </p>
         </div>
 
-        {/* Undo / Redo / Clear */}
+        {/* Save as template / Undo / Redo / Clear */}
         <div className="flex items-center gap-1.5 shrink-0">
+          {onSaveAsTemplate && (
+            <button
+              type="button"
+              onClick={onSaveAsTemplate}
+              disabled={queue.length === 0}
+              title="Save current queue as a template"
+              className="btn-glass text-xs"
+              style={{
+                padding: '4px 8px',
+                opacity: queue.length > 0 ? 1 : 0.35,
+                borderColor: 'rgba(168,85,247,0.35)',
+              }}
+            >
+              Save as template
+            </button>
+          )}
           <button
             type="button"
             onClick={onUndo}
             disabled={!canUndo}
             title={shortcuts ? `Undo (${fmt(shortcuts.undo)})` : 'Undo'}
+            aria-label={shortcuts ? `Undo (${fmt(shortcuts.undo)})` : 'Undo'}
             className="btn-glass"
             style={{ padding: '4px 7px', opacity: canUndo ? 1 : 0.35 }}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M3 10h10a5 5 0 010 10H9m-6-10l4-4M3 10l4 4" />
             </svg>
@@ -167,6 +266,7 @@ export function StemList({
             onClick={onRedo}
             disabled={!canRedo}
             title={shortcuts ? `Redo (${fmt(shortcuts.redo)})` : 'Redo'}
+            aria-label={shortcuts ? `Redo (${fmt(shortcuts.redo)})` : 'Redo'}
             className="btn-glass"
             style={{ padding: '4px 7px', opacity: canRedo ? 1 : 0.35 }}
           >
@@ -189,7 +289,7 @@ export function StemList({
 
       {/* Toolbar */}
       {connected && (
-        <div data-tutorial="build-stems" className="flex items-center gap-1.5 mb-4 flex-wrap">
+        <div data-tutorial="build-stems" className="flex items-center gap-2 mb-4 flex-wrap">
           {/* Refresh */}
           <button
             type="button"
@@ -214,24 +314,25 @@ export function StemList({
             Refresh
           </button>
 
-          {/* Divider */}
-          <div className="h-5 w-px mx-1" style={{ background: 'rgba(255,255,255,0.1)' }} />
+          <div className="h-4 w-px" style={{ background: 'var(--divider-strong)' }} />
 
           {/* Normal Bounce */}
           <button
             type="button"
-            onClick={() => onAddBounceNormal(applyNamingFromConfig(defaultNaming, { name: 'Mix' }))}
+            onClick={() =>
+              onAddBounceNormal(
+                applyNamingFromConfig(defaultNaming, { name: 'Mix', ...namingCtx }, 'mix')
+              )
+            }
             disabled={ptDataLoading}
             title={shortcuts ? `Bounce the full mix as-is (${fmt(shortcuts.mix)})` : 'Bounce the full mix as-is'}
             className="btn-glass"
-            style={{ borderColor: 'rgba(52,211,153,0.35)' }}
           >
-            <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: '#34d399' }} />
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#34d399' }} />
             Mix
           </button>
 
-          {/* Divider */}
-          <div className="h-5 w-px mx-1" style={{ background: 'rgba(255,255,255,0.1)' }} />
+          <div className="h-4 w-px" style={{ background: 'var(--divider-strong)' }} />
 
           {/* Batch */}
           <button
@@ -240,11 +341,10 @@ export function StemList({
             disabled={ptDataLoading}
             title={shortcuts ? `Create one bounce per selected track (${fmt(shortcuts.batch)})` : 'Create one bounce per selected track'}
             className="btn-glass"
-            style={{ borderColor: 'rgba(168,85,247,0.35)' }}
           >
-            <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: '#a855f7' }} />
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#a855f7' }} />
             Batch
-            <span style={{ color: 'var(--text-muted)' }}>({selectedTracks.length})</span>
+            <span className="text-[var(--text-muted)]">({selectedTracks.length})</span>
           </button>
 
           {/* Solo */}
@@ -254,11 +354,10 @@ export function StemList({
             disabled={ptDataLoading}
             title={shortcuts ? `Capture current solo state as a bounce (${fmt(shortcuts.solo)})` : 'Capture current solo state as a bounce'}
             className="btn-glass"
-            style={{ borderColor: 'rgba(250,204,21,0.3)' }}
           >
-            <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: '#facc15' }} />
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#facc15' }} />
             Solo
-            <span style={{ color: 'var(--text-muted)' }}>({soloedTracks.length})</span>
+            <span className="text-[var(--text-muted)]">({soloedTracks.length})</span>
           </button>
 
           {/* Mute */}
@@ -268,23 +367,41 @@ export function StemList({
             disabled={ptDataLoading}
             title={shortcuts ? `Capture current mute state as a bounce (${fmt(shortcuts.mute)})` : 'Capture current mute state as a bounce'}
             className="btn-glass"
-            style={{ borderColor: 'rgba(239,68,68,0.3)' }}
           >
-            <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: '#ef4444' }} />
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#ef4444' }} />
             Mute
-            <span style={{ color: 'var(--text-muted)' }}>({mutedTracks.length})</span>
+            <span className="text-[var(--text-muted)]">({mutedTracks.length})</span>
           </button>
         </div>
       )}
 
+      {/* Batch actions bar */}
+      {selectedIds.size > 0 && (
+        <BatchActionsBar
+          selectedCount={selectedIds.size}
+          onClearSelection={() => setSelectedIds(new Set())}
+          onOutputFolder={handleOutputFolder}
+          onBatchRename={() => setShowBatchRename(true)}
+          onDeleteSelected={handleDeleteSelected}
+        />
+      )}
+
+      {/* Rename modal */}
+      <BatchRenameModal
+        open={showBatchRename}
+        selectedCount={selectedIds.size}
+        onApply={handleBatchRenameApply}
+        onClose={() => setShowBatchRename(false)}
+      />
+
       {/* Warnings */}
       {warn && (
         <div
-          className="mb-3 px-4 py-2.5 text-xs rounded-xl"
+          className="mb-3 px-4 py-3 text-xs rounded-xl leading-snug"
           style={{
             background: 'var(--warning-soft)',
             border: '1px solid rgba(255,159,10,0.3)',
-            color: '#ffd580',
+            color: 'var(--warning)',
           }}
         >
           {warn}
@@ -292,11 +409,11 @@ export function StemList({
       )}
       {ptDataError && (
         <div
-          className="mb-3 px-4 py-2.5 text-xs rounded-xl"
+          className="mb-3 px-4 py-3 text-xs rounded-xl leading-snug"
           style={{
             background: 'var(--danger-soft)',
             border: '1px solid rgba(255,69,58,0.3)',
-            color: '#ff8a80',
+            color: 'var(--danger)',
           }}
         >
           {ptDataError}
@@ -305,32 +422,18 @@ export function StemList({
 
       {/* Not connected */}
       {!connected && (
-        <div
-          className="px-5 py-12 text-center rounded-2xl"
-          style={{
-            background: 'rgba(255,255,255,0.025)',
-            border: '1px dashed rgba(255,255,255,0.1)',
-          }}
-        >
-          <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Not connected</p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-            Connect to Pro Tools to start building your stem list.
-          </p>
+        <div className="empty-state">
+          <p className="empty-state-title">Not connected</p>
+          <p className="empty-state-body">Connect to Pro Tools to start building your stem list.</p>
         </div>
       )}
 
       {/* Empty state */}
       {connected && queue.length === 0 && (
-        <div
-          className="px-5 py-12 text-center rounded-2xl"
-          style={{
-            background: 'rgba(255,255,255,0.025)',
-            border: '1px dashed rgba(255,255,255,0.1)',
-          }}
-        >
-          <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>No bounces in queue</p>
-          <p className="text-xs mt-1 max-w-xs mx-auto" style={{ color: 'var(--text-muted)' }}>
-            Click Mix for a full mix, or select tracks / set solo/mute in Pro Tools and use the buttons above.
+        <div className="empty-state">
+          <p className="empty-state-title">No bounces in queue</p>
+          <p className="empty-state-body">
+            Click Mix for a full mix, or select tracks and use Batch, Solo, or Mute.
           </p>
         </div>
       )}
@@ -358,9 +461,12 @@ export function StemList({
                 dataTutorial={index === 0 ? 'rename-stems' : undefined}
                 item={item}
                 index={index}
-                isDragOver={false}
+                isDragOver={dragOverIndex === index && dragIndexRef.current !== null && dragIndexRef.current !== index}
                 runStatus={runStatuses[item.id]}
+                defaultOutputFolderDisplay={defaultOutputFolderDisplay}
                 onUpdateName={(name) => onUpdateItemName(item.id, name)}
+                onUpdateFolder={(path) => onUpdateItemFolder(item.id, path)}
+                onClearFolder={() => onClearItemFolder(item.id)}
                 onRemove={() => onRemoveItem(item.id)}
                 onBounceOne={onBounceOne ? () => void onBounceOne(item) : undefined}
                 canBounceOne={canBounceOne}
@@ -374,6 +480,9 @@ export function StemList({
                 onTabToNext={() => {
                   if (index + 1 < queue.length) setPendingEditIndex(index + 1);
                 }}
+                selectionMode={!!(onBatchUpdateFolder && onBatchRename)}
+                selected={selectedIds.has(item.id)}
+                onToggleSelect={(shiftKey) => handleToggleSelect(index, shiftKey)}
               />
               {/* Insertion line after last row when dropping at end */}
               {dragOverIndex === index &&

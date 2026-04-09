@@ -46,7 +46,26 @@ function parseBitDepth(raw: string | undefined): { bits: number; label: string }
     BDepth_24: { bits: 24, label: '24-bit' },
     BDepth_32Float: { bits: 32, label: '32-bit float' },
   };
-  return map[raw] ?? { bits: 0, label: raw };
+  const direct = map[raw];
+  if (direct) return direct;
+  const lower = raw.toLowerCase();
+  for (const [k, v] of Object.entries(map)) {
+    if (k.toLowerCase() === lower) return v;
+  }
+  // Unknown enum strings: extract 16 / 24 / 32 (PTSL may use "Bit24", "BDepth_Bit24", etc.)
+  const loose = raw.match(/\b(16|24|32)\b/);
+  if (loose) {
+    const bits = Number(loose[1]);
+    return { bits, label: bits === 32 ? '32-bit float' : `${bits}-bit` };
+  }
+  const bitSuffix = raw.match(/(?:Bit|BDepth|BD)[_]?(\d{2})(?:Float)?/i);
+  if (bitSuffix) {
+    const bits = Number(bitSuffix[1]);
+    if (bits === 16 || bits === 24 || bits === 32) {
+      return { bits, label: bits === 32 ? '32-bit float' : `${bits}-bit` };
+    }
+  }
+  return { bits: 0, label: raw };
 }
 
 const EMPTY: SessionInfo = {

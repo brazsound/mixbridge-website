@@ -2,7 +2,31 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('app', {
   pickFolder: (defaultPath?: string) => ipcRenderer.invoke('app:pickFolder', defaultPath),
+  ensureFolder: (folderPath: string) => ipcRenderer.invoke('app:ensureFolder', folderPath),
   showItemInFolder: (filePath: string) => ipcRenderer.invoke('app:showItemInFolder', filePath),
+  sendBounceCompleteNotification: (payload: { sessionName: string; phoneNumber: string }) =>
+    ipcRenderer.invoke('app:sendBounceCompleteNotification', payload),
+  proToolsSoloButtonModeSupported: () => ipcRenderer.invoke('app:proToolsSoloButtonModeSupported') as Promise<boolean>,
+  getProToolsSoloButtonMode: () =>
+    ipcRenderer.invoke('app:getProToolsSoloButtonMode') as Promise<'Latch' | 'XOR' | 'Momentary' | null>,
+  setProToolsSoloButtonMode: (mode: 'Latch' | 'XOR' | 'Momentary') =>
+    ipcRenderer.invoke('app:setProToolsSoloButtonMode', mode) as Promise<boolean>,
+  openAccessibilitySettings: () => ipcRenderer.invoke('app:openAccessibilitySettings') as Promise<void>,
+  getAppVersion: () => ipcRenderer.invoke('app:getAppVersion') as Promise<string>,
+  setAlwaysOnTop: (flag: boolean) => ipcRenderer.invoke('window:setAlwaysOnTop', flag) as Promise<void>,
+  isAccessibilityTrusted: () => ipcRenderer.invoke('app:isAccessibilityTrusted') as Promise<boolean>,
+});
+
+contextBridge.exposeInMainWorld('notifications', {
+  load: () => ipcRenderer.invoke('notifications:load'),
+  save: (config: { iMessageEnabled: boolean; phoneNumber: string }) =>
+    ipcRenderer.invoke('notifications:save', config),
+});
+
+contextBridge.exposeInMainWorld('stemTemplates', {
+  load: () => ipcRenderer.invoke('stemTemplates:load'),
+  save: (data: { templates: unknown[]; autoApplyOnSessionLoad: boolean }) =>
+    ipcRenderer.invoke('stemTemplates:save', data),
 });
 
 contextBridge.exposeInMainWorld('appLog', {
@@ -37,6 +61,8 @@ contextBridge.exposeInMainWorld('ptslSessionBatch', {
   load: () => ipcRenderer.invoke('sessionBatch:load'),
   save: (entries: unknown[]) => ipcRenderer.invoke('sessionBatch:save', entries),
   pickSessions: () => ipcRenderer.invoke('sessionBatch:pickSessions'),
+  hasBackup: () => ipcRenderer.invoke('sessionBatch:hasBackup') as Promise<boolean>,
+  loadBackup: () => ipcRenderer.invoke('sessionBatch:loadBackup'),
 });
 
 contextBridge.exposeInMainWorld('ptslSessionScanCache', {
@@ -134,7 +160,25 @@ declare global {
     };
     app: {
       pickFolder: (defaultPath?: string) => Promise<{ canceled: boolean; folderPath: string | null }>;
+      ensureFolder: (folderPath: string) => Promise<{ ok: boolean; error?: string }>;
       showItemInFolder: (filePath: string) => Promise<void>;
+      sendBounceCompleteNotification: (payload: { sessionName: string; phoneNumber: string }) =>
+        Promise<{ ok: boolean; error?: string }>;
+      proToolsSoloButtonModeSupported: () => Promise<boolean>;
+      getProToolsSoloButtonMode: () => Promise<'Latch' | 'XOR' | 'Momentary' | null>;
+      setProToolsSoloButtonMode: (mode: 'Latch' | 'XOR' | 'Momentary') => Promise<boolean>;
+      openAccessibilitySettings: () => Promise<void>;
+      getAppVersion: () => Promise<string>;
+      setAlwaysOnTop: (flag: boolean) => Promise<void>;
+      isAccessibilityTrusted: () => Promise<boolean>;
+    };
+    notifications: {
+      load: () => Promise<{ iMessageEnabled: boolean; phoneNumber: string }>;
+      save: (config: { iMessageEnabled: boolean; phoneNumber: string }) => Promise<{ ok?: boolean; error?: string }>;
+    };
+    stemTemplates: {
+      load: () => Promise<{ templates: unknown[]; autoApplyOnSessionLoad: boolean }>;
+      save: (data: { templates: unknown[]; autoApplyOnSessionLoad: boolean }) => Promise<{ ok?: boolean; error?: string }>;
     };
     appState: {
       load: () => Promise<{ selectedSessionId: string | null; sidebarWidth: number; rightWidth: number }>;

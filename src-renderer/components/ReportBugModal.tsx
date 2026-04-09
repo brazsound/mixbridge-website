@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useModalEscape } from '../hooks/useModalEscape';
 
 interface ReportBugModalProps {
   open: boolean;
@@ -34,14 +35,7 @@ export function ReportBugModal({
     }
   }, [description, onSubmit, onSuccess, onError, onClose]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  useModalEscape(onClose, open);
 
   if (!open) return null;
 
@@ -52,6 +46,9 @@ export function ReportBugModal({
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Report a bug"
         className="flex flex-col w-full max-w-md rounded-2xl overflow-hidden"
         style={{
           background: '#141416',

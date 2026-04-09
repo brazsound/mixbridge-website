@@ -1,12 +1,16 @@
-import React, { useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useRef } from 'react';
+import { useModalEscape } from '../hooks/useModalEscape';
 
-export interface ContextMenuItem {
+interface ContextMenuItem {
   label: string;
   onClick: () => void;
-  disabled?: boolean;
-  /** Red/destructive styling (e.g. Remove, Delete) */
   danger?: boolean;
+  disabled?: boolean;
+  icon?: React.ReactNode;
+  /** Renders a thin divider line above this item */
+  separator?: boolean;
+  /** Renders as a non-interactive section label instead of a button */
+  header?: boolean;
 }
 
 interface ContextMenuProps {
@@ -17,68 +21,71 @@ interface ContextMenuProps {
 }
 
 export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
-  const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useModalEscape(onClose, true);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         onClose();
       }
     };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', onDown, true);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', onDown, true);
     };
   }, [onClose]);
 
-  const content = (
+  // Adjust position so the menu doesn't overflow the viewport
+  const viewW = window.innerWidth;
+  const viewH = window.innerHeight;
+  const menuW = 190;
+  const menuH = items.length * 32 + 16;
+  const left = x + menuW > viewW ? Math.max(0, viewW - menuW - 4) : x;
+  const top = y + menuH > viewH ? Math.max(0, viewH - menuH - 4) : y;
+
+  return (
     <div
-      ref={ref}
-      className="fixed z-[9999] py-0.5 w-max rounded-lg shadow-xl"
-      style={{
-        left: x,
-        top: y,
-        background: 'rgba(28,28,30,0.98)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        backdropFilter: 'blur(12px)',
-      }}
+      ref={menuRef}
+      role="menu"
+      aria-label="Context menu"
+      className="menu-panel fixed z-[9999] py-1 min-w-[170px]"
+      style={{ left, top }}
     >
       {items.map((item, i) => (
-        <button
-          key={i}
-          type="button"
-          disabled={item.disabled}
-          onClick={() => {
-            if (!item.disabled) {
-              item.onClick();
-              onClose();
-            }
-          }}
-          className="w-full text-left px-2.5 py-1.5 text-[12px] transition-colors"
-          style={{
-            color: item.disabled ? 'var(--text-muted)' : item.danger ? '#ff6b6b' : 'var(--text)',
-            opacity: item.disabled ? 0.6 : 1,
-            cursor: item.disabled ? 'not-allowed' : 'pointer',
-          }}
-          onMouseEnter={(e) => {
-            if (!item.disabled) {
-              (e.currentTarget as HTMLElement).style.background = item.danger ? 'rgba(255,69,58,0.12)' : 'rgba(255,255,255,0.08)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'transparent';
-          }}
-        >
-          {item.label}
-        </button>
+        <div key={i}>
+          {item.separator && (
+            <div className="my-1 mx-2" style={{ height: '1px', background: 'var(--divider)' }} />
+          )}
+          {item.header ? (
+            <div
+              className="flex items-center gap-2 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {item.icon && <span className="shrink-0">{item.icon}</span>}
+              {item.label}
+            </div>
+          ) : (
+            <button
+              type="button"
+              role="menuitem"
+              disabled={item.disabled}
+              onClick={() => {
+                if (!item.disabled) {
+                  item.onClick();
+                  onClose();
+                }
+              }}
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ color: item.danger ? 'var(--danger)' : 'var(--text)' }}
+            >
+              {item.icon && <span className="shrink-0">{item.icon}</span>}
+              {item.label}
+            </button>
+          )}
+        </div>
       ))}
     </div>
   );
-
-  return createPortal(content, document.body);
 }

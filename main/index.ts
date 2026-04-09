@@ -1,7 +1,11 @@
 import 'dotenv/config';
-import { app, BrowserWindow, ipcMain, dialog, shell, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell, Menu, systemPreferences } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+
+const execFileAsync = promisify(execFile);
 import { PTSLClientWrapper } from './ptsl-client';
 import type {
   RegisterConnectionBody,
@@ -19,6 +23,21 @@ import type {
 } from './ptsl-commands';
 import { CommandId } from './ptsl-commands';
 import { supportLogger } from './logger';
+
+/**
+ * Write `content` to `filePath` atomically: write to a .tmp file first, then
+ * rename over the destination (atomic on the same filesystem). A single .bak
+ * copy of the previous file is kept for manual recovery.
+ */
+function atomicWriteFile(filePath: string, content: string): void {
+  const tmpPath = `${filePath}.tmp`;
+  const bakPath = `${filePath}.bak`;
+  fs.writeFileSync(tmpPath, content, 'utf-8');
+  if (fs.existsSync(filePath)) {
+    fs.copyFileSync(filePath, bakPath);
+  }
+  fs.renameSync(tmpPath, filePath);
+}
 import {
   setUpdater,
   checkForUpdates,
@@ -26,6 +45,12 @@ import {
   startDownload,
   quitAndInstall,
 } from './updater';
+import {
+  proToolsSoloButtonModeSupported,
+  getProToolsSoloButtonMode,
+  setProToolsSoloButtonMode,
+  type SoloButtonMode,
+} from './proToolsSoloMode';
 
 const ptsl = new PTSLClientWrapper();
 
@@ -394,9 +419,29 @@ ipcMain.handle('app:pickFolder', async (_event, defaultPath?: string) => {
   const result = await dialog.showOpenDialog(win ?? undefined, {
     title: 'Choose Bounce Folder',
     defaultPath: defaultPath || undefined,
-    properties: ['openDirectory'],
+    properties: ['openDirectory', 'createDirectory'],
   });
   return { canceled: result.canceled, folderPath: result.filePaths[0] ?? null };
+});
+
+ipcMain.handle('app:ensureFolder', async (_event, folderPath: string) => {
+  if (typeof folderPath !== 'string' || !folderPath.trim()) return { ok: false, error: 'Invalid path' };
+  const resolved = path.resolve(folderPath);
+  // Constrain to allowed roots: home directory and userData, to prevent renderer
+  // from creating arbitrary directories anywhere on the filesystem.
+  const allowed = [app.getPath('home'), app.getPath('userData')];
+  const isAllowed = allowed.some((root) => resolved.startsWith(root + path.sep) || resolved === root);
+  if (!isAllowed) {
+    supportLogger.logError(new Error('ensureFolder path outside allowed roots'), { action: 'app:ensureFolder' });
+    return { ok: false, error: 'Path is outside the allowed directory.' };
+  }
+  try {
+    fs.mkdirSync(resolved, { recursive: true });
+    return { ok: true };
+  } catch (e) {
+    supportLogger.logError(e, { action: 'app:ensureFolder', folderPath: '[path]' });
+    return { ok: false, error: (e as Error).message };
+  }
 });
 
 ipcMain.handle('app:showItemInFolder', async (_event, filePath: string) => {
@@ -407,6 +452,42 @@ ipcMain.handle('app:showItemInFolder', async (_event, filePath: string) => {
     supportLogger.logError(e, { action: 'showItemInFolder' });
     notifyReportableError({ action: 'showItemInFolder' });
   }
+});
+
+ipcMain.handle('app:proToolsSoloButtonModeSupported', () => proToolsSoloButtonModeSupported());
+
+ipcMain.handle('app:getProToolsSoloButtonMode', async () => getProToolsSoloButtonMode());
+
+ipcMain.handle('app:setProToolsSoloButtonMode', async (_event, mode: SoloButtonMode) => {
+  if (mode !== 'Latch' && mode !== 'XOR' && mode !== 'Momentary') return false;
+  return setProToolsSoloButtonMode(mode);
+});
+
+/** Opens System Settings → Privacy & Security → Accessibility (macOS). */
+ipcMain.handle('app:openAccessibilitySettings', () => {
+  if (process.platform !== 'darwin') return;
+  try {
+    shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility');
+  } catch (e) {
+    supportLogger.logError(e, { action: 'openAccessibilitySettings' });
+  }
+});
+
+ipcMain.handle('app:getAppVersion', () => app.getVersion());
+
+/** Whether Mix Bridge is allowed in System Settings → Accessibility (macOS UI automation). */
+ipcMain.handle('app:isAccessibilityTrusted', () => {
+  if (process.platform !== 'darwin') return true;
+  try {
+    return systemPreferences.isTrustedAccessibilityClient(false);
+  } catch {
+    return false;
+  }
+});
+
+ipcMain.handle('window:setAlwaysOnTop', (_e, flag: unknown) => {
+  if (typeof flag !== 'boolean') return;
+  mainWindow?.setAlwaysOnTop(flag);
 });
 
 // ── Support Log (for troubleshooting) ─────────────────────────────────────────
@@ -510,7 +591,7 @@ function saveWindowBounds(win: BrowserWindow): void {
 
 // ── Session Batch ─────────────────────────────────────────────────────────────
 
-const SESSION_BATCH_FILE = () => path.join(app.getPath('userData'), 'stem-bounce-session-batch.json');
+const SESSION_BATCH_FILE = () => path.join(app.getPath('userData'), 'mix-bridge-session-batch.json');
 
 ipcMain.handle('sessionBatch:load', () => {
   try {
@@ -524,9 +605,25 @@ ipcMain.handle('sessionBatch:load', () => {
   }
 });
 
+ipcMain.handle('sessionBatch:hasBackup', () => {
+  return fs.existsSync(`${SESSION_BATCH_FILE()}.bak`);
+});
+
+ipcMain.handle('sessionBatch:loadBackup', () => {
+  const bakPath = `${SESSION_BATCH_FILE()}.bak`;
+  try {
+    if (!fs.existsSync(bakPath)) return { entries: [], notFound: true };
+    const raw = fs.readFileSync(bakPath, 'utf-8');
+    const data = JSON.parse(raw) as { entries: unknown[] };
+    return { entries: data.entries ?? [] };
+  } catch {
+    return { entries: [], error: 'Could not read backup file' };
+  }
+});
+
 ipcMain.handle('sessionBatch:save', (_event, entries: unknown[]) => {
   try {
-    fs.writeFileSync(SESSION_BATCH_FILE(), JSON.stringify({ version: 1, entries }, null, 2), 'utf-8');
+    atomicWriteFile(SESSION_BATCH_FILE(), JSON.stringify({ version: 1, entries }, null, 2));
     return { ok: true };
   } catch (e) {
     supportLogger.logError(e, { action: 'sessionBatch:save' });
@@ -537,7 +634,7 @@ ipcMain.handle('sessionBatch:save', (_event, entries: unknown[]) => {
 
 // ── App State (selected session, layout) ─────────────────────────────────────
 
-const APP_STATE_FILE = () => path.join(app.getPath('userData'), 'stem-bounce-app-state.json');
+const APP_STATE_FILE = () => path.join(app.getPath('userData'), 'mix-bridge-app-state.json');
 
 interface AppStateData {
   version: number;
@@ -581,7 +678,7 @@ ipcMain.handle('appState:save', (_event, state: { selectedSessionId: string | nu
 
 // ── Session Scan Cache (per-session mix sources, tracks, memory locations) ────
 
-const SESSION_SCAN_CACHE_FILE = () => path.join(app.getPath('userData'), 'stem-bounce-session-scan-cache.json');
+const SESSION_SCAN_CACHE_FILE = () => path.join(app.getPath('userData'), 'mix-bridge-session-scan-cache.json');
 
 ipcMain.handle('sessionScanCache:load', () => {
   try {
@@ -614,7 +711,7 @@ ipcMain.handle('sessionScanCache:save', (_event, cache: Record<string, unknown>)
 
 // ── Presets ───────────────────────────────────────────────────────────────────
 
-const PRESETS_FILE = () => path.join(app.getPath('userData'), 'stem-bounce-presets.json');
+const PRESETS_FILE = () => path.join(app.getPath('userData'), 'mix-bridge-presets.json');
 
 interface PresetsFileData {
   version: number;
@@ -665,6 +762,132 @@ ipcMain.handle('presets:export', async (_event, slots: unknown[]) => {
   } catch (e) {
     supportLogger.logError(e, { action: 'presets:export' });
     notifyReportableError({ action: 'presets:export' });
+    return { error: (e as Error).message };
+  }
+});
+
+// ── Notifications (iMessage) ──────────────────────────────────────────────────
+
+const NOTIFICATIONS_CONFIG_FILE = () => path.join(app.getPath('userData'), 'notifications-config.json');
+
+interface NotificationsConfig {
+  iMessageEnabled: boolean;
+  phoneNumber: string;
+}
+
+ipcMain.handle('notifications:load', () => {
+  try {
+    const p = NOTIFICATIONS_CONFIG_FILE();
+    if (!fs.existsSync(p)) return { iMessageEnabled: false, phoneNumber: '' };
+    const raw = fs.readFileSync(p, 'utf-8');
+    const data = JSON.parse(raw) as NotificationsConfig;
+    return {
+      iMessageEnabled: data.iMessageEnabled ?? false,
+      phoneNumber: data.phoneNumber ?? '',
+    };
+  } catch (e) {
+    supportLogger.logError(e, { action: 'notifications:load' });
+    return { iMessageEnabled: false, phoneNumber: '' };
+  }
+});
+
+ipcMain.handle('notifications:save', (_event, config: NotificationsConfig) => {
+  try {
+    const data = {
+      iMessageEnabled: config.iMessageEnabled ?? false,
+      phoneNumber: (config.phoneNumber ?? '').trim(),
+    };
+    fs.writeFileSync(NOTIFICATIONS_CONFIG_FILE(), JSON.stringify(data, null, 2), 'utf-8');
+    return { ok: true };
+  } catch (e) {
+    supportLogger.logError(e, { action: 'notifications:save' });
+    return { error: (e as Error).message };
+  }
+});
+
+const IMESSAGE_APPLESCRIPT = `
+on run argv
+  set targetPhone to item 1 of argv
+  set targetMessage to item 2 of argv
+  tell application "Messages"
+    set targetService to 1st service whose service type = iMessage
+    set targetBuddy to buddy targetPhone of targetService
+    send targetMessage to targetBuddy
+  end tell
+end run
+`;
+
+ipcMain.handle('app:sendBounceCompleteNotification', async (_event, payload: { sessionName: string; phoneNumber: string }) => {
+  if (process.platform !== 'darwin') return { ok: false, error: 'iMessage is only available on macOS' };
+  const { sessionName, phoneNumber } = payload;
+  const trimmed = (phoneNumber ?? '').trim();
+  if (!trimmed) return { ok: false, error: 'No phone number configured' };
+  const message = `${sessionName} bounced completed!`;
+  try {
+    await execFileAsync('osascript', ['-e', IMESSAGE_APPLESCRIPT, trimmed, message]);
+    return { ok: true };
+  } catch (e) {
+    const err = e as Error;
+    supportLogger.logError(e, { action: 'app:sendBounceCompleteNotification' });
+    return { ok: false, error: err.message ?? 'Failed to send iMessage' };
+  }
+});
+
+// ── Stem templates ───────────────────────────────────────────────────────────
+
+const STEM_TEMPLATES_FILE = () => path.join(app.getPath('userData'), 'stem-templates.json');
+
+interface SerializedQueueItem {
+  type: string;
+  outputName: string;
+  trackName?: string;
+  trackNames?: string[];
+  rangeSource?: string;
+  markerNumber?: number;
+  markerName?: string;
+}
+
+interface StemTemplateData {
+  id: string;
+  name: string;
+  trackPatterns?: string[];
+  queueItems?: SerializedQueueItem[];
+  enabled: boolean;
+}
+
+interface StemTemplatesFileData {
+  version: number;
+  templates: StemTemplateData[];
+  autoApplyOnSessionLoad: boolean;
+}
+
+ipcMain.handle('stemTemplates:load', () => {
+  try {
+    const p = STEM_TEMPLATES_FILE();
+    if (!fs.existsSync(p)) return { templates: [], autoApplyOnSessionLoad: false };
+    const raw = fs.readFileSync(p, 'utf-8');
+    const data = JSON.parse(raw) as StemTemplatesFileData;
+    return {
+      templates: data.templates ?? [],
+      autoApplyOnSessionLoad: data.autoApplyOnSessionLoad ?? false,
+    };
+  } catch (e) {
+    supportLogger.logError(e, { action: 'stemTemplates:load' });
+    return { templates: [], autoApplyOnSessionLoad: false };
+  }
+});
+
+ipcMain.handle('stemTemplates:save', (_event, data: StemTemplatesFileData) => {
+  try {
+    const toSave = {
+      version: 1,
+      templates: data.templates ?? [],
+      autoApplyOnSessionLoad: data.autoApplyOnSessionLoad ?? false,
+    };
+    atomicWriteFile(STEM_TEMPLATES_FILE(), JSON.stringify(toSave, null, 2));
+    return { ok: true };
+  } catch (e) {
+    supportLogger.logError(e, { action: 'stemTemplates:save' });
     return { error: (e as Error).message };
   }
 });

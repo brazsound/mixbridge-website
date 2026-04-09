@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useModalEscape } from '../hooks/useModalEscape';
 import type { MixSourceOption } from '../hooks/useSessionInfo';
 
 interface MixSourcesModalProps {
@@ -47,14 +48,7 @@ export function MixSourcesModal({
     if (open) setPending(selected);
   }, [open, selected]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  useModalEscape(onClose, open);
 
   const renderer = available.find((s) => s.sourceTypeName === 'EMSType_Renderer');
   const outputs = available.filter((s) => s.sourceTypeName === 'EMSType_Output');
@@ -102,20 +96,23 @@ export function MixSourcesModal({
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Select Mix Sources"
         className="flex flex-col rounded-2xl shadow-2xl"
         style={{
           width: 'min(420px, 90vw)',
           height: '480px',
-          background: '#1c1c1e',
-          border: '1px solid rgba(255,255,255,0.12)',
+          background: 'var(--modal-surface)',
+          border: '1px solid var(--glass-border-hi)',
           boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
-          className="flex items-center gap-2 px-4 py-3 shrink-0"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+          className="flex items-center gap-2 px-5 py-4 shrink-0"
+          style={{ borderBottom: '1px solid var(--divider)' }}
         >
           <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
@@ -155,7 +152,7 @@ export function MixSourcesModal({
               className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg outline-none"
               style={{
                 background: 'rgba(0,0,0,0.35)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                border: '1px solid var(--divider-strong)',
                 color: 'var(--text)',
               }}
             />
@@ -205,10 +202,10 @@ export function MixSourcesModal({
                   key={`${s.sourceType}-${s.name}`}
                   className="flex items-center gap-2 py-2 px-2 rounded-lg cursor-pointer transition-colors"
                   style={{
-                    background: isSelected(s) ? 'rgba(59,130,246,0.12)' : 'transparent',
+                    background: isSelected(s) ? 'var(--accent-soft)' : 'transparent',
                   }}
                   onMouseEnter={(e) => {
-                    if (!isSelected(s)) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)';
+                    if (!isSelected(s)) (e.currentTarget as HTMLElement).style.background = 'var(--surface-hover)';
                   }}
                   onMouseLeave={(e) => {
                     if (!isSelected(s)) (e.currentTarget as HTMLElement).style.background = 'transparent';
@@ -226,7 +223,7 @@ export function MixSourcesModal({
                   </span>
                   <span
                     className="text-[10px] px-1.5 py-0.5 rounded shrink-0"
-                    style={{ color: 'var(--text-muted)', background: 'rgba(255,255,255,0.06)' }}
+                    style={{ color: 'var(--text-muted)', background: 'var(--surface-hover)' }}
                   >
                     {channelWidthFromName(s.name)}
                   </span>
@@ -254,27 +251,17 @@ export function MixSourcesModal({
 
         {/* Footer */}
         <div
-          className="flex items-center justify-end gap-2 px-4 py-3 shrink-0"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
+          className="flex items-center justify-end gap-2 px-5 py-4 shrink-0"
+          style={{ borderTop: '1px solid var(--divider)' }}
         >
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg"
-            style={{ color: 'var(--accent)' }}
-          >
+          <button type="button" onClick={onClose} className="btn-glass text-xs px-3 py-1.5">
             Cancel
           </button>
           <button
             type="button"
             onClick={handleConfirm}
             disabled={pending.length === 0}
-            className="text-xs font-semibold px-4 py-1.5 rounded-lg transition-all"
-            style={{
-              background: pending.length > 0 ? 'var(--accent)' : 'rgba(255,255,255,0.08)',
-              color: pending.length > 0 ? '#fff' : 'var(--text-muted)',
-              cursor: pending.length > 0 ? 'pointer' : 'not-allowed',
-            }}
+            className="btn-accent text-xs px-4 py-1.5 disabled:opacity-50"
           >
             Confirm ({pending.length})
           </button>

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 
-const STORAGE_KEY = 'stem-bounce-protools-prefs';
+const STORAGE_KEY = 'mix-bridge-protools-prefs';
 
 export type SessionRenameMode = 'custom' | 'prefix' | 'suffix';
 

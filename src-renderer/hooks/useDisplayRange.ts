@@ -45,22 +45,28 @@ export function useDisplayRange(
     let cancelled = false;
 
     (async () => {
-      const inRes = await window.ptsl.getTimeAsType(
-        { location: capturedRange.inLocation, time_type: capturedRange.timeTypeName },
-        rangeFormat
-      );
-      if (cancelled) return;
+      try {
+        const inRes = await window.ptsl.getTimeAsType(
+          { location: capturedRange.inLocation, time_type: capturedRange.timeTypeName },
+          rangeFormat
+        );
+        if (cancelled) return;
 
-      const outRes = await window.ptsl.getTimeAsType(
-        { location: capturedRange.outLocation, time_type: capturedRange.timeTypeName },
-        rangeFormat
-      );
-      if (cancelled) return;
+        const outRes = await window.ptsl.getTimeAsType(
+          { location: capturedRange.outLocation, time_type: capturedRange.timeTypeName },
+          rangeFormat
+        );
+        if (cancelled) return;
 
-      setDisplay({
-        inLocation: inRes.data?.location ?? capturedRange.inLocation,
-        outLocation: outRes.data?.location ?? capturedRange.outLocation,
-      });
+        setDisplay({
+          inLocation: inRes.data?.location ?? capturedRange.inLocation,
+          outLocation: outRes.data?.location ?? capturedRange.outLocation,
+        });
+      } catch {
+        if (!cancelled) {
+          setDisplay(null);
+        }
+      }
     })();
 
     return () => {

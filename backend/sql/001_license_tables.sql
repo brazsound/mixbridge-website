@@ -1,4 +1,4 @@
--- License & subscription tables for Stem Bounce
+-- License & subscription tables for Mix Bridge
 -- Run this in Supabase SQL Editor (or any PostgreSQL)
 
 -- Paddle subscriptions (populated by webhooks)

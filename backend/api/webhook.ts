@@ -48,9 +48,41 @@ async function getCustomerEmail(customerId: string): Promise<string> {
   }
 }
 
+const paddleWebhookSecret = process.env.PADDLE_WEBHOOK_SECRET;
+
+async function verifyPaddleSignature(rawBody: string, signatureHeader: string | null): Promise<boolean> {
+  if (!paddleWebhookSecret || !signatureHeader) return false;
+  const parts = Object.fromEntries(
+    signatureHeader.split(';').map((p) => p.split('=') as [string, string])
+  );
+  const ts = parts['ts'];
+  const h1 = parts['h1'];
+  if (!ts || !h1) return false;
+
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(paddleWebhookSecret);
+  const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sigInput = encoder.encode(`${ts}:${rawBody}`);
+  const sigBuffer = await crypto.subtle.sign('HMAC', key, sigInput);
+  const computed = Array.from(new Uint8Array(sigBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  return computed === h1;
+}
+
 export async function POST(request: Request) {
   try {
     const rawBody = await request.text();
+
+    if (paddleWebhookSecret) {
+      const signatureHeader = request.headers.get('Paddle-Signature');
+      const valid = await verifyPaddleSignature(rawBody, signatureHeader);
+      if (!valid) {
+        console.warn('Webhook signature verification failed');
+        return new Response('Unauthorized', { status: 401 });
+      }
+    }
+
     const payload = JSON.parse(rawBody) as PaddleNotification;
 
     const eventType = payload.event_type;

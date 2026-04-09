@@ -1,4 +1,5 @@
 import type { ProToolsPreferences, SessionRenameMode } from '../hooks/useProToolsPreferences';
+import { SettingsSwitch } from './SettingsSwitch';
 
 interface SettingsProToolsProps {
   prefs: ProToolsPreferences;
@@ -26,7 +27,7 @@ function Toggle({
   description: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+    <div className="flex items-start justify-between gap-4 py-3" style={{ borderBottom: '1px solid var(--divider)' }}>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>
           {label}
@@ -35,25 +36,7 @@ function Toggle({
           {description}
         </p>
       </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className="shrink-0 w-10 h-6 rounded-full transition-colors relative"
-        style={{
-          background: checked ? 'var(--accent)' : 'rgba(255,255,255,0.12)',
-          border: checked ? '1px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.15)',
-        }}
-      >
-        <span
-          className="absolute top-1/2 w-4 h-4 rounded-full bg-white transition-all shadow-sm"
-          style={{
-            left: checked ? 'calc(100% - 8px)' : '8px',
-            transform: 'translate(-50%, -50%)',
-          }}
-        />
-      </button>
+      <SettingsSwitch checked={checked} onChange={onChange} aria-label={label} />
     </div>
   );
 }
@@ -92,14 +75,14 @@ export function SettingsProTools({
 
       {onSetRenameSessionAfterBatch && onSetRenameSettings && (
         <>
-          <div className="mt-6 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="mt-6 pt-4" style={{ borderTop: '1px solid var(--divider)' }}>
             <p className="text-[11px] mb-3" style={{ color: 'var(--text-muted)' }}>
               After a batch run completes, optionally save the session with a new name (creates a new .ptx file in the same folder).
             </p>
             <Toggle
               checked={prefs.renameSessionAfterBatch}
               onChange={onSetRenameSessionAfterBatch}
-              label="Rename session after stems"
+              label="Rename session after bounce"
               description="Save As with a new name before closing each session."
             />
           </div>
@@ -118,9 +101,9 @@ export function SettingsProTools({
                       onClick={() => onSetRenameSettings({ renameMode: mode })}
                       className="px-3 py-1.5 text-xs rounded-lg transition-colors capitalize"
                       style={{
-                        background: prefs.renameMode === mode ? 'var(--accent)' : 'rgba(255,255,255,0.08)',
+                        background: prefs.renameMode === mode ? 'var(--accent)' : 'var(--surface-hover-strong)',
                         color: prefs.renameMode === mode ? '#fff' : 'var(--text-muted)',
-                        border: `1px solid ${prefs.renameMode === mode ? 'rgba(59,130,246,0.5)' : 'rgba(255,255,255,0.12)'}`,
+                        border: `1px solid ${prefs.renameMode === mode ? 'var(--accent-border-strong)' : 'var(--divider-strong)'}`,
                       }}
                     >
                       {mode === 'custom' ? 'Custom name' : mode}

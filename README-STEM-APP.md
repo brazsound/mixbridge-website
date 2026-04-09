@@ -1,4 +1,4 @@
-# Stem Bounce
+# Mix Bridge
 
 Desktop app that automates stem creation and bounces in **Pro Tools** using the Pro Tools Scripting SDK (PTSL). Built with Electron + React + TypeScript for Mac (Windows-ready).
 

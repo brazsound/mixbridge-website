@@ -136,6 +136,41 @@ export function buildExportPayload(settings: BounceSettings): ExportPayload {
   return { fileType, offlineBounce, audioInfoExport, locationInfo, mixSourceList, wantsCustomImportDest };
 }
 
+/** Get locationInfo for a specific queue item. Uses per-item customFolderPath when set. */
+export function getLocationInfoForItem(
+  item: QueueItem,
+  settings: BounceSettings,
+  sessionFolder: string
+): Record<string, unknown> {
+  if (item.customFolderPath) {
+    return {
+      file_destination: 'EM_FD_Directory',
+      directory: item.customFolderPath,
+      import_after_bounce: 'TB_False',
+    };
+  }
+  if (settings.destination === 'custom' && settings.customPath) {
+    return {
+      file_destination: 'EM_FD_Directory',
+      directory: settings.customPath,
+      import_after_bounce: 'TB_False',
+    };
+  }
+  return {
+    file_destination: 'EM_FD_SessionFolder',
+    directory: 'Bounced Files',
+    import_after_bounce:
+      settings.importAfterBounce &&
+      !(
+        settings.importDestType === 'clip_list' ||
+        (settings.importDestType === 'below_track' && !!settings.importDestTrackName) ||
+        (settings.importDestType === 'into_folder' && !!settings.importDestFolderName)
+      )
+        ? 'TB_True'
+        : 'TB_False',
+  };
+}
+
 // ── Execute a single bounce item ──────────────────────────────────────────────
 
 /** Convert range to samples if needed. Bars/Beats and Timecode can fail when opening a different session. */
@@ -159,6 +194,26 @@ async function ensureSamplesRange(capturedRange: CapturedRange): Promise<{ inLoc
   return { inLocation: inLoc, outLocation: outLoc };
 }
 
+/** `true` / `false` from PT; `null` if unknown — do not auto-unsolo after (avoids stripping user solos). */
+async function getTrackSoloedState(trackName: string): Promise<boolean | null> {
+  if (!window.ptsl?.getTrackList) return null;
+  try {
+    const res = await window.ptsl.getTrackList({});
+    const list = (res.data as { track_list?: { name: string; track_attributes?: { is_soloed?: boolean } }[] })
+      ?.track_list ?? [];
+    const t = list.find((x) => x.name === trackName);
+    if (!t) return null;
+    return Boolean(t.track_attributes?.is_soloed);
+  } catch {
+    return null;
+  }
+}
+
+/** When `legacyBatchStemIsolation` is true, batch stems clear all solos, solo one stem only (no user solos stacked). */
+export interface ExecuteBounceOptions {
+  legacyBatchStemIsolation?: boolean;
+}
+
 export async function executeBounceItem(
   item: QueueItem,
   payload: ExportPayload,
@@ -166,14 +221,32 @@ export async function executeBounceItem(
   settings: BounceSettings,
   allTrackNames: string[],
   /** When false, do not create a new folder/track — use existing (avoids creating one per bounce). */
-  isFirstImportInRun = true
+  isFirstImportInRun = true,
+  options?: ExecuteBounceOptions
 ): Promise<void> {
-  const { fileType, offlineBounce, audioInfoExport, locationInfo, mixSourceList, wantsCustomImportDest } = payload;
+  const { fileType, offlineBounce, audioInfoExport, mixSourceList, wantsCustomImportDest } = payload;
+
+  // Ensure per-item folder exists before bounce
+  if (item.customFolderPath && window.app?.ensureFolder) {
+    const res = await window.app.ensureFolder(item.customFolderPath);
+    if (!res.ok) throw new Error(`Could not create folder: ${res.error}`);
+  }
+
+  const pathRes = await window.ptsl!.getSessionPath();
+  const sessionFilePath = pathRes.data?.sessionFilePath ?? '';
+  const sessionFolder = sessionFilePath.replace(/\/[^/]+$/, '');
+  const locationInfo = getLocationInfoForItem(item, settings, sessionFolder);
 
   const { inLocation: inLocStr, outLocation: outLocStr } = await ensureSamplesRange(capturedRange);
   const inLoc = { location: inLocStr, time_type: 'TLType_Samples' };
   const outLoc = { location: outLocStr, time_type: 'TLType_Samples' };
 
+  /** After batch_stems (additive): unsolo only the stem track if we turned solo on (Latch keeps other solos). */
+  let undoBatchStemSolo: (() => Promise<void>) | null = null;
+  /** Legacy batch_stems handles MP3 inside the branch so solo state stays correct. */
+  let skipSharedMp3 = false;
+
+  try {
   if (item.type === 'bounce_normal') {
     const res = await window.ptsl.exportMix({
       file_name: item.outputName.replace(/[/\\:*?"<>|]/g, '_'),
@@ -190,20 +263,59 @@ export async function executeBounceItem(
   } else if (item.type === 'batch_stems') {
     const b = item as BatchStemsItem;
     const safeName = b.outputName.replace(/[/\\:*?"<>|]/g, '_');
-    await window.ptsl.setTrackSoloState({ track_names: allTrackNames, enabled: false });
-    await window.ptsl.setTrackSoloState({ track_names: [b.trackName], enabled: true });
-    const res = await window.ptsl.exportMix({
-      file_name: safeName,
-      file_type: fileType,
-      location_info: locationInfo,
-      audio_info: audioInfoExport,
-      offline_bounce: offlineBounce,
-      mix_source_list: mixSourceList,
-      start_time: inLoc,
-      end_time: outLoc,
-    });
-    await window.ptsl.setTrackSoloState({ track_names: allTrackNames, enabled: false });
-    if (!res.success) throw new Error(classifyBounceError(res.error));
+    if (options?.legacyBatchStemIsolation) {
+      await window.ptsl.setTrackSoloState({ track_names: allTrackNames, enabled: false });
+      await window.ptsl.setTrackSoloState({ track_names: [b.trackName], enabled: true });
+      const res = await window.ptsl.exportMix({
+        file_name: safeName,
+        file_type: fileType,
+        location_info: locationInfo,
+        audio_info: audioInfoExport,
+        offline_bounce: offlineBounce,
+        mix_source_list: mixSourceList,
+        start_time: inLoc,
+        end_time: outLoc,
+      });
+      if (!res.success) throw new Error(classifyBounceError(res.error));
+      if (settings.addMP3 && settings.fileType !== 3) {
+        const baseName = b.outputName.replace(/[/\\:*?"<>|]/g, '_');
+        const mp3Name = baseName.replace(/\.[^.]+$/, '') || baseName;
+        const mp3Payload = {
+          file_name: `${mp3Name}.mp3`,
+          file_type: 'EMFType_MP3',
+          location_info: locationInfo,
+          audio_info: audioInfoExport,
+          offline_bounce: offlineBounce,
+          mix_source_list: mixSourceList,
+          start_time: inLoc,
+          end_time: outLoc,
+          audio_encoding_options: {},
+        };
+        const mp3Res = await window.ptsl.exportMix(mp3Payload);
+        if (!mp3Res.success) throw new Error(classifyBounceError(mp3Res.error));
+      }
+      await window.ptsl.setTrackSoloState({ track_names: allTrackNames, enabled: false });
+      skipSharedMp3 = true;
+    } else {
+      const wasSoloedBefore = await getTrackSoloedState(b.trackName);
+      await window.ptsl.setTrackSoloState({ track_names: [b.trackName], enabled: true });
+      if (wasSoloedBefore === false) {
+        undoBatchStemSolo = async () => {
+          await window.ptsl!.setTrackSoloState({ track_names: [b.trackName], enabled: false });
+        };
+      }
+      const res = await window.ptsl.exportMix({
+        file_name: safeName,
+        file_type: fileType,
+        location_info: locationInfo,
+        audio_info: audioInfoExport,
+        offline_bounce: offlineBounce,
+        mix_source_list: mixSourceList,
+        start_time: inLoc,
+        end_time: outLoc,
+      });
+      if (!res.success) throw new Error(classifyBounceError(res.error));
+    }
 
   } else if (item.type === 'bounce_soloed') {
     const b = item as BounceSoloedItem;
@@ -238,7 +350,7 @@ export async function executeBounceItem(
   }
 
   // Add MP3: bounce MP3 alongside primary format when enabled and primary is not MP3
-  if (settings.addMP3 && settings.fileType !== 3) {
+  if (settings.addMP3 && settings.fileType !== 3 && !skipSharedMp3) {
     const outputName =
       item.type === 'batch_stems'
         ? (item as BatchStemsItem).outputName
@@ -264,11 +376,9 @@ export async function executeBounceItem(
 
   // Optional: import bounced file(s) back into session
   if (wantsCustomImportDest && window.ptsl?.importAudioBack && settings.mixSources.length > 0) {
-    const pathRes = await window.ptsl.getSessionPath();
-    const sessionFilePath = pathRes.data?.sessionFilePath ?? '';
-    const sessionFolder = sessionFilePath.replace(/\/[^/]+$/, '');
-    const bouncedFolder =
-      settings.destination === 'custom' && settings.customPath
+    const bouncedFolder = item.customFolderPath
+      ? item.customFolderPath
+      : settings.destination === 'custom' && settings.customPath
         ? settings.customPath
         : `${sessionFolder}/Bounced Files`;
     const ext = fileExtension(settings.fileType);
@@ -304,5 +414,8 @@ export async function executeBounceItem(
     if (importRes.error) {
       throw new Error(`Bounce succeeded but import failed: ${importRes.error}`);
     }
+  }
+  } finally {
+    if (undoBatchStemSolo) await undoBatchStemSolo();
   }
 }

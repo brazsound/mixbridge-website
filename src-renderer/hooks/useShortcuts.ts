@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 
-const STORAGE_KEY = 'stem-shortcuts';
+const STORAGE_KEY = 'mix-bridge-shortcuts';
 
 export type ShortcutAction =
   | 'mix'
@@ -10,7 +10,9 @@ export type ShortcutAction =
   | 'refresh'
   | 'undo'
   | 'redo'
-  | 'settings';
+  | 'settings'
+  | 'templateRename'
+  | 'templateOutputFolder';
 
 export interface Shortcuts {
   mix: string;
@@ -21,6 +23,8 @@ export interface Shortcuts {
   undo: string;
   redo: string;
   settings: string;
+  templateRename: string;
+  templateOutputFolder: string;
 }
 
 export const DEFAULT_SHORTCUTS: Shortcuts = {
@@ -32,6 +36,8 @@ export const DEFAULT_SHORTCUTS: Shortcuts = {
   undo: 'meta+z',
   redo: 'meta+shift+z',
   settings: 'meta+,',
+  templateRename: 'meta+shift+h',
+  templateOutputFolder: 'meta+shift+o',
 };
 
 function load(): Shortcuts {

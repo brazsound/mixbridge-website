@@ -3,6 +3,9 @@ import type { SessionEntry, SessionEntryStatus } from '../hooks/useSessionBatch'
 import type { CachedSessionScan } from '../hooks/useSessionScanCache';
 import type { ProToolsPreferences } from '../hooks/useProToolsPreferences';
 import { buildExportPayload, executeBounceItem } from '../utils/bounceExecutor';
+import { prepareSoloLatchForBounceRun, queueHasBatchStems } from '../utils/soloLatchAutomation';
+import { captureTrackSoloSnapshot, restoreTrackSoloSnapshot } from '../utils/soloTrackSnapshot';
+import { usePreBounceAccessibilityGate } from '../hooks/usePreBounceAccessibilityGate';
 
 interface SessionBatchRunnerProps {
   entries: SessionEntry[];
@@ -78,6 +81,9 @@ export function useSessionBatchRunner({
 
   const cancelRequestedRef = useRef(false);
   const pauseRequestedRef = useRef(false);
+  const legacyBatchStemRunRef = useRef(false);
+
+  const { requestGate, gateModal: sessionBatchGateModal } = usePreBounceAccessibilityGate();
 
   const runAll = useCallback(async () => {
     if (running || entries.length === 0) return;
@@ -88,6 +94,11 @@ export function useSessionBatchRunner({
       onResetStatuses();
       return;
     }
+
+    const combinedQueue = pendingEntries.flatMap((e) => e.queue);
+    const gate = await requestGate(combinedQueue);
+    if (gate === 'abort') return;
+    legacyBatchStemRunRef.current = gate === 'legacy';
 
     setRunning(true);
     setFinished(false);
@@ -178,10 +189,22 @@ export function useSessionBatchRunner({
           throw new Error('No mix sources selected — open this session and select outputs in Routing & Format.');
         }
         const payload = buildExportPayload(entry.settings);
-        for (let i = 0; i < entry.queue.length; i++) {
-          const item = entry.queue[i];
-          if (i > 0) await new Promise<void>((r) => setTimeout(r, 400));
-          await executeBounceItem(item, payload, entry.settings.capturedRange!, entry.settings, allTrackNames, i === 0);
+        const { restore: restoreSoloMode } = await prepareSoloLatchForBounceRun(entry.queue);
+        const batchSoloSnapshot =
+          queueHasBatchStems(entry.queue) && !legacyBatchStemRunRef.current
+            ? await captureTrackSoloSnapshot()
+            : null;
+        try {
+          for (let i = 0; i < entry.queue.length; i++) {
+            const item = entry.queue[i];
+            if (i > 0) await new Promise<void>((r) => setTimeout(r, 400));
+            await executeBounceItem(item, payload, entry.settings.capturedRange!, entry.settings, allTrackNames, i === 0, {
+              legacyBatchStemIsolation: legacyBatchStemRunRef.current,
+            });
+          }
+        } finally {
+          await restoreTrackSoloSnapshot(batchSoloSnapshot);
+          await restoreSoloMode();
         }
 
         // 5. Optionally rename (Save As) then save and close
@@ -224,7 +247,16 @@ export function useSessionBatchRunner({
 
     setRunning(false);
     setFinished(!cancelRequestedRef.current);
-  }, [entries, running, onUpdateStatus, onResetStatuses, onCacheSessionScan, suppressDialogs, sessionRenamePrefs]);
+  }, [
+    entries,
+    running,
+    onUpdateStatus,
+    onResetStatuses,
+    onCacheSessionScan,
+    suppressDialogs,
+    sessionRenamePrefs,
+    requestGate,
+  ]);
 
   const rerun = useCallback(() => {
     onResetStatuses();
@@ -251,7 +283,7 @@ export function useSessionBatchRunner({
     }
   }, [paused, runAll]);
 
-  return { running, finished, runError, paused, runAll, rerun, handleCancel, handlePause, handleResume };
+  return { running, finished, runError, paused, runAll, rerun, handleCancel, handlePause, handleResume, sessionBatchGateModal };
 }
 
 // ── UI component rendered inside the Batch view sidebar ──────────────────────

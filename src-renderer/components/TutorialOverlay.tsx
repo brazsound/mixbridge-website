@@ -105,7 +105,7 @@ export function TutorialOverlay() {
           maxWidth: 'calc(100vw - 32px)',
           top: bubblePosition?.top ?? 0,
           left: bubblePosition?.left ?? 0,
-          filter: 'drop-shadow(0 0 24px rgba(59,130,246,0.25))',
+          filter: 'drop-shadow(0 0 24px var(--accent-ring))',
           animation: exiting ? 'tutorialBubbleOut 0.15s ease-in forwards' : 'tutorialBubbleIn 0.2s ease-out',
         }}
       >

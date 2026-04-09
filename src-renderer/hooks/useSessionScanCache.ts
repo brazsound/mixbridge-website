@@ -19,6 +19,8 @@ export function useSessionScanCache() {
     window.ptslSessionScanCache.load().then((result) => {
       const c = (result.cache ?? {}) as Record<string, CachedSessionScan>;
       setCache(c);
+    }).catch((err: unknown) => {
+      console.error('useSessionScanCache: failed to load', err);
     });
   }, []);
 

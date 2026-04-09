@@ -5,6 +5,7 @@ import type { DefaultNaming } from '../hooks/useSettings';
 import type { Shortcuts, ShortcutAction } from '../hooks/useShortcuts';
 import type { ProToolsPreferences } from '../hooks/useProToolsPreferences';
 import type { SettingsTab } from './SettingsModal';
+import type { AppTheme } from '../hooks/useGeneralSettings';
 
 interface LicenseGateProps {
   children: React.ReactNode;
@@ -28,6 +29,12 @@ interface LicenseGateProps {
     renamePrefix?: string;
     renameSuffix?: string;
   }) => void;
+  autoAddSessionToBatch?: boolean;
+  onSetAutoAddSessionToBatch?: (v: boolean) => void;
+  theme?: AppTheme;
+  onSetTheme?: (t: AppTheme) => void;
+  alwaysOnTop?: boolean;
+  onSetAlwaysOnTop?: (v: boolean) => void;
 }
 
 export function LicenseGate({
@@ -47,6 +54,12 @@ export function LicenseGate({
   onSetIgnoreIOChange,
   onSetRenameSessionAfterBatch,
   onSetRenameSettings,
+  autoAddSessionToBatch = true,
+  onSetAutoAddSessionToBatch,
+  theme = 'dark',
+  onSetTheme,
+  alwaysOnTop = false,
+  onSetAlwaysOnTop,
 }: LicenseGateProps) {
   const { hasAccess, loading, refresh, activateWithEmail, openCheckout } = useLicense();
   const [showSettings, setShowSettings] = useState(false);
@@ -185,6 +198,12 @@ export function LicenseGate({
           onSetIgnoreIOChange={onSetIgnoreIOChange}
           onSetRenameSessionAfterBatch={onSetRenameSessionAfterBatch}
           onSetRenameSettings={onSetRenameSettings}
+          autoAddSessionToBatch={autoAddSessionToBatch}
+          onSetAutoAddSessionToBatch={onSetAutoAddSessionToBatch}
+          theme={theme}
+          onSetTheme={onSetTheme}
+          alwaysOnTop={alwaysOnTop}
+          onSetAlwaysOnTop={onSetAlwaysOnTop}
         />
       </>
     );

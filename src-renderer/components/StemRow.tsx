@@ -11,6 +11,8 @@ interface StemRowProps {
   isDragOver: boolean;
   runStatus?: RunStatus;
   onUpdateName: (name: string) => void;
+  onUpdateFolder: (path: string) => void;
+  onClearFolder: () => void;
   onRemove: () => void;
   onBounceOne?: () => void;
   canBounceOne?: boolean;
@@ -25,40 +27,46 @@ interface StemRowProps {
   onExternalEditConsumed?: () => void;
   /** Called when the user presses Tab inside the name input. */
   onTabToNext?: () => void;
+  /** When true, show checkbox for multi-select. */
+  selectionMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (shiftKey: boolean) => void;
+  /** Display name for default output folder when item has no customFolderPath */
+  defaultOutputFolderDisplay?: string;
 }
 
 const TYPE_CONFIG = {
   bounce_normal: {
     label: 'MIX',
-    color: '#34d399',
+    dot: '#34d399',
     bg: 'rgba(52,211,153,0.10)',
     border: 'rgba(52,211,153,0.28)',
     text: '#6ee7b7',
   },
   batch_stems: {
     label: 'STEM',
-    color: '#a855f7',
+    dot: '#a855f7',
     bg: 'rgba(168,85,247,0.12)',
     border: 'rgba(168,85,247,0.3)',
     text: '#d8b4fe',
   },
   bounce_soloed: {
     label: 'SOLO',
-    color: '#facc15',
+    dot: '#facc15',
     bg: 'rgba(250,204,21,0.10)',
     border: 'rgba(250,204,21,0.3)',
     text: '#fde68a',
   },
   bounce_muted: {
     label: 'MUTE',
-    color: '#ef4444',
+    dot: '#ef4444',
     bg: 'rgba(239,68,68,0.10)',
     border: 'rgba(239,68,58,0.28)',
     text: '#fca5a5',
   },
   bounce_range: {
     label: 'RANGE',
-    color: '#38bdf8',
+    dot: '#38bdf8',
     bg: 'rgba(56,189,248,0.10)',
     border: 'rgba(56,189,248,0.28)',
     text: '#bae6fd',
@@ -72,6 +80,8 @@ export function StemRow({
   isDragOver,
   runStatus,
   onUpdateName,
+  onUpdateFolder,
+  onClearFolder,
   onRemove,
   onBounceOne,
   canBounceOne = false,
@@ -83,11 +93,17 @@ export function StemRow({
   externalEdit,
   onExternalEditConsumed,
   onTabToNext,
+  selectionMode,
+  selected = false,
+  onToggleSelect,
+  defaultOutputFolderDisplay = 'Bounced Files',
 }: StemRowProps) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState(item.outputName);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     if (externalEdit) {
@@ -136,25 +152,30 @@ export function StemRow({
     else setDraftName(item.outputName);
   };
 
-  const borderColor = isError
-    ? 'rgba(255,69,58,0.5)'
+  // Derive border and background from run state
+  const rowBorder = isError
+    ? 'rgba(255,69,58,0.45)'
     : isDone
-    ? 'rgba(50,215,75,0.35)'
+    ? 'rgba(50,215,75,0.3)'
     : isRunning
-    ? 'rgba(10,132,255,0.55)'
+    ? 'rgba(10,132,255,0.5)'
     : isDragOver
-    ? 'rgba(10,132,255,0.6)'
-    : 'rgba(255,255,255,0.08)';
+    ? 'rgba(10,132,255,0.55)'
+    : isHovered && !editing
+    ? 'var(--divider-strong)'
+    : 'var(--divider)';
 
-  const bgColor = isError
-    ? 'rgba(255,69,58,0.06)'
+  const rowBg = isError
+    ? 'rgba(255,69,58,0.05)'
     : isDone
     ? 'rgba(50,215,75,0.04)'
     : isRunning
-    ? 'rgba(10,132,255,0.06)'
+    ? 'rgba(10,132,255,0.05)'
     : isDragOver
-    ? 'rgba(10,132,255,0.08)'
-    : 'rgba(255,255,255,0.04)';
+    ? 'rgba(10,132,255,0.07)'
+    : isHovered && !editing
+    ? 'var(--surface-hover)'
+    : 'var(--surface-pressed)';
 
   const isDraggable = !isRunning && !editing;
 
@@ -162,23 +183,24 @@ export function StemRow({
     <div
       {...(dataTutorial ? { 'data-tutorial': dataTutorial } : {})}
       draggable={isDraggable}
-      onDragStart={isDraggable ? () => onDragStart(index) : undefined}
-      onDragOver={isDraggable ? (e) => onDragOver(e, index) : undefined}
-      onDrop={isDraggable ? () => onDrop(index) : undefined}
-      onDragEnd={isDraggable ? onDragEnd : undefined}
+      onDragStart={isDraggable ? (e) => { e.dataTransfer.effectAllowed = 'move'; setIsDragging(true); onDragStart(index); } : undefined}
+      onDragOver={isDraggable ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; onDragOver(e, index); } : undefined}
+      onDrop={isDraggable ? (e) => { e.preventDefault(); setIsDragging(false); onDrop(index); } : undefined}
+      onDragEnd={isDraggable ? () => { setIsDragging(false); onDragEnd(); } : undefined}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
         setContextMenu({ x: e.clientX, y: e.clientY });
       }}
       style={{
-        background: bgColor,
-        border: `1px solid ${borderColor}`,
-        borderRadius: '12px',
-        transition: 'border-color 0.15s, background 0.15s, transform 0.1s',
+        background: rowBg,
+        border: `1px solid ${rowBorder}`,
+        borderRadius: 'var(--radius-xl)',
+        transition: 'border-color var(--transition-fast), background var(--transition-fast)',
         overflow: 'hidden',
-        transform: isDragOver ? 'scale(1.01)' : 'scale(1)',
-        cursor: isRunning || editing ? 'default' : 'grab',
+        cursor: isRunning || editing ? 'default' : isDragging ? 'grabbing' : 'grab',
       }}
     >
       {contextMenu && (
@@ -203,7 +225,8 @@ export function StemRow({
           onClose={() => setContextMenu(null)}
         />
       )}
-      {/* Running shimmer bar */}
+
+      {/* Running progress shimmer */}
       {isRunning && (
         <div
           className="animate-pulse"
@@ -214,14 +237,33 @@ export function StemRow({
         />
       )}
 
+      {/* Main row — flex layout replaces the old CSS grid */}
       <div className="flex items-center gap-2 px-3 py-2.5">
+        {/* Selection checkbox */}
+        {selectionMode && onToggleSelect && (
+          <button
+            type="button"
+            onClick={(e) => onToggleSelect(e.shiftKey)}
+            className="shrink-0 w-4 h-4 rounded flex items-center justify-center transition-colors"
+            style={{
+              background: selected ? 'var(--accent)' : 'rgba(255,255,255,0.08)',
+              border: `1px solid ${selected ? 'var(--accent)' : 'rgba(255,255,255,0.2)'}`,
+            }}
+          >
+            {selected && (
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </button>
+        )}
+
         {/* Drag handle */}
         <div
-          className="shrink-0 flex flex-col gap-0.5 py-0.5"
+          className="shrink-0 rounded py-0.5 transition-colors hover:bg-[var(--surface-hover-strong)]"
           style={{
-            cursor: isDraggable ? 'grab' : 'default',
+            cursor: isDraggable ? (isDragging ? 'grabbing' : 'grab') : 'default',
             color: isDraggable ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.08)',
-            transition: 'color 0.15s',
           }}
           title={isDraggable ? 'Drag to reorder' : undefined}
         >
@@ -238,7 +280,7 @@ export function StemRow({
           onClick={() => hasDetail && setExpanded((e) => !e)}
           tabIndex={hasDetail ? 0 : -1}
           aria-hidden={!hasDetail}
-          className="shrink-0 transition-colors"
+          className="shrink-0 rounded p-0.5 transition-colors hover:bg-[var(--surface-hover-strong)]"
           style={{ color: hasDetail ? 'var(--text-muted)' : 'transparent', cursor: hasDetail ? 'pointer' : 'default' }}
         >
           <svg
@@ -264,7 +306,7 @@ export function StemRow({
           {cfg.label}
         </span>
 
-        {/* Name + subtitle */}
+        {/* Name + subtitle — flex-1 takes remaining space */}
         <div className="flex-1 min-w-0">
           {editing && !isRunning ? (
             <input
@@ -286,10 +328,7 @@ export function StemRow({
                 }
               }}
               className="w-full bg-transparent text-sm focus:outline-none"
-              style={{
-                color: 'var(--text)',
-                borderBottom: '1px solid var(--accent)',
-              }}
+              style={{ color: 'var(--text)', borderBottom: '1px solid var(--accent)' }}
             />
           ) : (
             <button
@@ -297,10 +336,10 @@ export function StemRow({
               onClick={() => !isRunning && setEditing(true)}
               title={isRunning ? undefined : 'Click to rename'}
               disabled={isRunning}
-              className="text-left w-full disabled:cursor-default group"
+              className="text-left w-full disabled:cursor-default rounded px-1 -mx-1 py-0.5 -my-0.5 transition-colors hover:bg-[var(--surface-hover)]"
             >
               <span
-                className="text-sm truncate block leading-tight transition-colors"
+                className="text-sm truncate block leading-tight"
                 style={{ color: 'var(--text)' }}
               >
                 {item.outputName}
@@ -317,15 +356,67 @@ export function StemRow({
           )}
         </div>
 
-        {/* Status icons / remove */}
-        <div className="shrink-0 flex items-center gap-3">
-          {isRunning && (
-            <svg
-              className="w-4 h-4 animate-spin"
-              style={{ color: 'var(--accent)' }}
-              fill="none"
-              viewBox="0 0 24 24"
+        {/* Folder destination — fixed width for alignment */}
+        {/* Outer is a div (not button) because it contains a button for clearing the folder */}
+        <div
+          role="button"
+          tabIndex={isRunning ? -1 : 0}
+          onClick={async () => {
+            if (isRunning) return;
+            const res = await window.app?.pickFolder(item.customFolderPath || undefined);
+            if (!res?.canceled && res?.folderPath) onUpdateFolder(res.folderPath);
+          }}
+          onKeyDown={async (e) => {
+            if (isRunning) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              const res = await window.app?.pickFolder(item.customFolderPath || undefined);
+              if (!res?.canceled && res?.folderPath) onUpdateFolder(res.folderPath);
+            }
+          }}
+          title={
+            isRunning
+              ? undefined
+              : item.customFolderPath
+              ? `Click to change output folder — ${item.customFolderPath}`
+              : `Click to choose output folder (default: ${defaultOutputFolderDisplay})`
+          }
+          aria-label={item.customFolderPath ? `Output folder: ${item.customFolderPath}` : 'Choose output folder'}
+          aria-disabled={isRunning}
+          className={`w-[108px] shrink-0 flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-colors ${isRunning ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-[var(--surface-hover-strong)]'}`}
+          style={{
+            color: item.customFolderPath ? 'var(--accent)' : 'var(--text-muted)',
+            background: item.customFolderPath ? 'var(--accent-soft)' : 'var(--surface-pressed)',
+            border: `1px solid ${item.customFolderPath ? 'var(--accent-border)' : 'var(--divider)'}`,
+          }}
+        >
+          <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+          <span className="text-[10px] truncate flex-1 min-w-0 text-left">
+            {item.customFolderPath ? item.customFolderPath.split('/').pop() || item.customFolderPath : defaultOutputFolderDisplay}
+          </span>
+          {item.customFolderPath && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClearFolder();
+              }}
+              title="Use default folder"
+              className="shrink-0 p-0.5 rounded transition-colors hover:bg-[var(--surface-hover-strong)]"
             >
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Status + actions */}
+        <div className="shrink-0 flex items-center gap-2">
+          {isRunning && (
+            <svg className="w-4 h-4 animate-spin" style={{ color: 'var(--accent)' }} fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
             </svg>
@@ -346,7 +437,7 @@ export function StemRow({
               onClick={onBounceOne}
               disabled={!canBounceOne || queueRunning}
               title={!canBounceOne ? 'Capture range and select mix sources first' : queueRunning ? 'Wait for current bounce to finish' : 'Bounce only this stem'}
-              className="p-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="p-1 rounded transition-colors hover:bg-[var(--surface-hover-strong)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               style={{ color: canBounceOne && !queueRunning ? 'var(--accent)' : 'var(--text-muted)' }}
             >
               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
@@ -359,10 +450,8 @@ export function StemRow({
               type="button"
               onClick={onRemove}
               title="Remove"
-              className="p-1 transition-colors"
+              className="p-1 rounded transition-colors hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]"
               style={{ color: 'var(--text-muted)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -375,12 +464,12 @@ export function StemRow({
       {/* Expanded track list */}
       {expanded && hasDetail && (
         <div
-          className="px-10 pb-3 pt-1.5"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+          className="px-10 pb-3 pt-2"
+          style={{ borderTop: '1px solid var(--divider)' }}
         >
           <p
-            className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-            style={{ color: 'var(--text-muted)', letterSpacing: '0.07em' }}
+            className="panel-header-title mb-2"
+            style={{ letterSpacing: '0.07em' }}
           >
             {expandLabel}
           </p>
@@ -390,8 +479,8 @@ export function StemRow({
                 key={t}
                 className="text-[11px] px-2 py-0.5 rounded-full"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'var(--surface-pressed)',
+                  border: '1px solid var(--divider)',
                   color: 'var(--text-secondary)',
                 }}
               >
@@ -408,10 +497,7 @@ export function StemRow({
           className="px-3 pb-3 pt-0"
           style={{ borderTop: '1px solid rgba(255,69,58,0.15)' }}
         >
-          <p
-            className="text-[11px] leading-snug break-words"
-            style={{ color: '#ff8a80' }}
-          >
+          <p className="text-[11px] leading-snug break-words" style={{ color: '#ff8a80' }}>
             {runStatus.error}
           </p>
         </div>

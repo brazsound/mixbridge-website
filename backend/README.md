@@ -53,6 +53,14 @@ To grant free access to someone:
 INSERT INTO free_access_emails (email, note) VALUES ('friend@example.com', 'beta tester');
 ```
 
+### 6. Web Portal (optional)
+
+For the website account portal (magic link sign-in, device management):
+
+1. Supabase Dashboard → Authentication → Providers → enable **Email**
+2. Authentication → URL Configuration → add Redirect URLs: `http://localhost:5174/account` (dev), `https://your-domain.com/account` (prod)
+3. Website env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_LICENSE_API_URL`
+
 ## API
 
 ### POST /api/validate
@@ -69,3 +77,15 @@ Returns:
 - `{ "status": "free", "access": true }` — email is on allowlist
 - `{ "subscription_id": "sub_xxx", "status": "active" }` — has Paddle subscription
 - `403` — no access
+
+## Web Portal API (magic link auth)
+
+For the website account portal. Requires `Authorization: Bearer <supabase_access_token>`.
+
+### POST /api/web/list-activations
+
+No body required. Returns activations for the authenticated user's email.
+
+### POST /api/web/deactivate
+
+Body: `{ "device_id": "xxx" }` — deactivates a device from the user's subscription.

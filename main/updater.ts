@@ -10,7 +10,7 @@ import { gt } from 'semver';
 import { autoUpdater } from 'electron-updater';
 import type { UpdateInfo, ProgressInfo } from 'electron-updater';
 
-const SKIP_FILE = () => path.join(app.getPath('userData'), 'stem-bounce-update-skip.json');
+const SKIP_FILE = () => path.join(app.getPath('userData'), 'mix-bridge-update-skip.json');
 
 interface SkipData {
   lastSkippedVersion: string;

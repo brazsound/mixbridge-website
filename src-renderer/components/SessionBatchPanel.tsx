@@ -12,10 +12,10 @@ interface SessionBatchPanelProps {
 }
 
 const STATUS_CONFIG = {
-  pending: { label: 'Pending', color: 'rgba(255,255,255,0.4)', bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.12)' },
-  running: { label: 'Running', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', border: 'rgba(59,130,246,0.35)' },
-  done:    { label: 'Done',    color: '#32d74b', bg: 'rgba(50,215,75,0.10)', border: 'rgba(50,215,75,0.3)' },
-  error:   { label: 'Error',   color: '#ff453a', bg: 'rgba(255,69,58,0.10)', border: 'rgba(255,69,58,0.3)' },
+  pending: { label: 'Pending', color: 'var(--text-muted)', bg: 'var(--surface-hover)', border: 'var(--divider-strong)' },
+  running: { label: 'Running', color: 'var(--accent)', bg: 'var(--accent-soft)', border: 'var(--accent-border)' },
+  done:    { label: 'Done',    color: 'var(--success)', bg: 'var(--success-soft)', border: 'rgba(50,215,75,0.3)' },
+  error:   { label: 'Error',   color: 'var(--danger)', bg: 'var(--danger-soft)', border: 'rgba(255,69,58,0.3)' },
 } as const;
 
 function SessionEntryRow({
@@ -52,8 +52,8 @@ function SessionEntryRow({
       onDrop={isDraggable ? () => onDrop(index) : undefined}
       onDragEnd={isDraggable ? onDragEnd : undefined}
       style={{
-        background: isDragOver ? 'rgba(59,130,246,0.08)' : 'rgba(255,255,255,0.04)',
-        border: `1px solid ${isDragOver ? 'rgba(59,130,246,0.55)' : 'rgba(255,255,255,0.08)'}`,
+        background: isDragOver ? 'var(--accent-soft)' : 'var(--surface-pressed)',
+        border: `1px solid ${isDragOver ? 'var(--accent-border-strong)' : 'var(--divider)'}`,
         borderRadius: '12px',
         overflow: 'hidden',
         transform: isDragOver ? 'scale(1.01)' : 'scale(1)',
@@ -100,7 +100,7 @@ function SessionEntryRow({
             {entry.ptxPath}
           </p>
           {entry.status === 'error' && entry.errorMessage && (
-            <p className="text-[11px] leading-snug mt-1 break-words" style={{ color: '#ff8a80' }}>
+            <p className="text-[11px] leading-snug mt-1 break-words" style={{ color: 'var(--danger)' }}>
               {entry.errorMessage}
             </p>
           )}
@@ -221,7 +221,7 @@ export function SessionBatchPanel({
             onClick={onAddViaFilePicker}
             disabled={running}
             className="btn-glass text-xs"
-            style={{ borderColor: 'rgba(59,130,246,0.35)' }}
+            style={{ borderColor: 'var(--accent-border)' }}
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -235,7 +235,7 @@ export function SessionBatchPanel({
       {entries.length > 0 && (doneCount > 0 || errorCount > 0) && (
         <div
           className="shrink-0 flex items-center gap-3 px-3 py-2 rounded-xl mb-3 text-xs"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+          style={{ background: 'var(--surface-pressed)', border: '1px solid var(--divider)' }}
         >
           <span style={{ color: 'var(--text-muted)' }}>{entries.length} sessions</span>
           {doneCount > 0 && (

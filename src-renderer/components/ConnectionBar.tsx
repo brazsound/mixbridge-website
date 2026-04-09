@@ -21,29 +21,31 @@ export function ConnectionBar({
 }: ConnectionBarProps) {
   return (
     <header
-      className="window-drag flex items-center justify-between px-5 py-2 select-none"
+      className="window-drag flex items-center justify-between select-none"
       style={{
+        padding: '0 var(--panel-p-sm)',
+        height: '42px',
         background: 'rgba(255,255,255,0.03)',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid var(--divider)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
       }}
     >
       {/* App title */}
-      <div className="window-no-drag flex items-center gap-2.5 window-title-offset">
+      <div className="window-no-drag flex items-center gap-2 window-title-offset">
         <div
-          className="w-2 h-2 rounded-full transition-all duration-500"
+          className="w-1.5 h-1.5 rounded-full transition-all duration-500 shrink-0"
           style={{
             background: connected
               ? 'var(--success)'
               : loading
               ? 'var(--warning)'
               : 'rgba(255,255,255,0.2)',
-            boxShadow: connected ? '0 0 6px var(--success)' : 'none',
+            boxShadow: connected ? '0 0 5px var(--success)' : 'none',
           }}
         />
         <span
-          className="text-sm font-semibold tracking-tight"
+          className="text-[13px] font-semibold"
           style={{ color: 'var(--text)', letterSpacing: '-0.02em' }}
         >
           Mix Bridge
@@ -55,15 +57,15 @@ export function ConnectionBar({
         {/* Session / status pill */}
         {connected ? (
           <div
-            data-tutorial="connect"
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
             style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--surface-pressed)',
+              border: '1px solid var(--divider)',
             }}
+            data-tutorial="connect"
           >
             <span
-              className="text-[11px] font-medium whitespace-nowrap"
+              className="text-[11px] font-medium whitespace-nowrap max-w-[180px] truncate"
               style={{ color: 'var(--text-secondary)' }}
               title={sessionName ?? undefined}
             >
@@ -76,27 +78,17 @@ export function ConnectionBar({
             data-tutorial="connect"
             onClick={error && onRetry && !loading ? onRetry : undefined}
             disabled={loading || !onRetry}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors hover:bg-[var(--surface-hover-strong)] hover:border-[var(--divider-strong)] disabled:cursor-default disabled:hover:bg-transparent disabled:hover:border-[var(--divider)]"
             style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--surface-pressed)',
+              border: '1px solid var(--divider)',
               cursor: error && onRetry && !loading ? 'pointer' : 'default',
             }}
-            title={error ? `${error} Click to retry.` : 'Open Pro Tools with a session loaded. The app will auto-connect.'}
-            onMouseEnter={(e) => {
-              if (error && onRetry && !loading) {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)';
-                (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.05)';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)';
-            }}
+            title={error ? 'Could not connect to Pro Tools. Make sure Pro Tools is running with a session open, then click to retry.' : 'Open Pro Tools with a session loaded. The app will auto-connect.'}
           >
             <span
               className="text-[11px] text-left"
-              style={{ color: error ? '#ff8a80' : 'var(--text-muted)' }}
+              style={{ color: error ? 'var(--danger)' : 'var(--text-muted)' }}
             >
               {loading ? 'Connecting…' : error ? 'Could not connect — Retry' : 'Not connected'}
             </span>
@@ -108,14 +100,11 @@ export function ConnectionBar({
           type="button"
           onClick={onSettingsClick}
           title={settingsShortcut ? `Settings (${settingsShortcut})` : 'Settings'}
-          className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150"
+          data-active={showingSettings}
+          className="btn-icon w-8 h-8 rounded-lg"
           style={{
-            background: showingSettings
-              ? 'rgba(10,132,255,0.18)'
-              : 'rgba(255,255,255,0.06)',
-            border: showingSettings
-              ? '1px solid rgba(10,132,255,0.4)'
-              : '1px solid rgba(255,255,255,0.10)',
+            background: showingSettings ? 'var(--accent-soft-mid)' : 'transparent',
+            border: `1px solid ${showingSettings ? 'var(--accent-border)' : 'transparent'}`,
             color: showingSettings ? 'var(--accent)' : 'var(--text-muted)',
           }}
         >
@@ -129,7 +118,6 @@ export function ConnectionBar({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </button>
-
       </div>
     </header>
   );
