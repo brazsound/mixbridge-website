@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 function AppMockup() {
   const rows = [
@@ -143,6 +144,9 @@ function AppMockup() {
 }
 
 export function Hero() {
+  const { user, loading: authLoading } = useAuth();
+  const showAccountCta = !authLoading && !user;
+
   return (
     <header className="relative min-h-screen flex flex-col items-center justify-center px-6 py-24 overflow-hidden">
       {/* Background glow */}
@@ -189,15 +193,17 @@ export function Hero() {
         <a href="#download" className="btn-accent">
           Download for Mac
         </a>
-        <Link
-          to="/account"
-          className="text-sm font-medium transition-colors"
-          style={{ color: 'var(--text-secondary)' }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
-        >
-          Sign in to your account →
-        </Link>
+        {showAccountCta && (
+          <Link
+            to="/account"
+            className="text-sm font-medium transition-colors"
+            style={{ color: 'var(--text-secondary)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+          >
+            Create account or sign in →
+          </Link>
+        )}
       </div>
 
       {/* Proof pills */}
