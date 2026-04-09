@@ -481,10 +481,6 @@ export function AccountPage() {
           </button>
         </div>
 
-        <div className="space-y-6 mb-8">
-          <AccountProfileSection />
-        </div>
-
         {fetchError && (
           <div
             className="mb-6 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
@@ -497,7 +493,7 @@ export function AccountPage() {
         {dataLoading ? (
           <p className="text-text-muted">Loading license…</p>
         ) : !fetchError && accountData ? (
-          <div className="space-y-6">
+          <div className="space-y-6 mb-8">
             <div className="glass-card p-6">
               <h2 className="font-medium mb-4">Subscription</h2>
               {accountData.error === NO_LICENSE_FOR_EMAIL ? (
@@ -616,6 +612,8 @@ export function AccountPage() {
             </div>
           </div>
         ) : null}
+
+        <AccountProfileSection />
       </div>
     </div>
   );
