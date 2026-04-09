@@ -138,7 +138,7 @@ export function Pricing() {
                   }
                 }}
               >
-                Get early access
+                get early access
               </Link>
             </div>
           ))}
@@ -147,7 +147,7 @@ export function Pricing() {
         <p className="text-center text-text-muted text-sm">
           Billing not yet open.{' '}
           <Link to="/account" className="underline underline-offset-2 hover:text-text-secondary transition-colors">
-            Sign in to your account
+            sign in to your account
           </Link>{' '}
           to hold your spot — pricing goes live soon.
         </p>

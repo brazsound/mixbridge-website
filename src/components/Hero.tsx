@@ -40,7 +40,7 @@ function AppMockup() {
         style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
         <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>
-          Bounce queue
+          bounce queue
         </span>
         <span className="text-xs" style={{ color: 'rgba(10,132,255,0.8)' }}>
           2 / 5 done
@@ -126,7 +126,7 @@ function AppMockup() {
         style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
       >
         <span className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>
-          Est. 4 min remaining
+          Est. 4 min Remaining
         </span>
         <div
           className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md"
@@ -196,19 +196,19 @@ export function Hero() {
         {showAccountCta && (
           <Link
             to="/account"
-            className="text-sm font-medium transition-colors"
+            className="text-sm font-semibold normal-case transition-colors"
             style={{ color: 'var(--text-secondary)' }}
             onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
           >
-            create account or sign in →
+            Create Account or Sign In →
           </Link>
         )}
       </div>
 
       {/* Proof pills */}
       <div className="flex flex-wrap justify-center gap-3 mt-10">
-        {['Multi-session queue', 'WAV · MP3 · AIFF', 'Session templates', 'Runs in the background'].map((pill) => (
+        {['multi-session queue', 'WAV · MP3 · AIFF', 'session templates', 'runs in the background'].map((pill) => (
           <span
             key={pill}
             className="text-xs px-3 py-1.5 rounded-full"
