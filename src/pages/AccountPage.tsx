@@ -5,6 +5,10 @@ import { Link } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_LICENSE_API_URL ?? '';
 
+/** Matches backend `list-activations` when the signed-in email has no NFR or Paddle row */
+const NO_LICENSE_FOR_EMAIL =
+  'No active subscription or free access found for this email.';
+
 interface AccountData {
   activations: Array<{
     device_id: string;
@@ -41,6 +45,7 @@ export function AccountPage() {
   const [authHashError, setAuthHashError] = useState<string | null>(null);
   const [signInSent, setSignInSent] = useState(false);
   const [accountData, setAccountData] = useState<AccountData | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
   const [keyCopied, setKeyCopied] = useState(false);
 
@@ -53,9 +58,17 @@ export function AccountPage() {
   }, []);
 
   useEffect(() => {
-    if (!session?.access_token || !API_URL) return;
+    if (!session?.access_token || !API_URL) {
+      setFetchError(
+        !API_URL
+          ? 'License server URL is not configured for this site build.'
+          : null
+      );
+      return;
+    }
 
     setDataLoading(true);
+    setFetchError(null);
     fetch(`${API_URL.replace(/\/$/, '')}/api/web/list-activations`, {
       method: 'POST',
       headers: {
@@ -64,19 +77,35 @@ export function AccountPage() {
       },
       body: JSON.stringify({}),
     })
-      .then((res) => res.json())
-      .then((data) => {
-        setAccountData(data);
+      .then(async (res) => {
+        let data: AccountData;
+        try {
+          data = (await res.json()) as AccountData;
+        } catch {
+          setAccountData(null);
+          setFetchError('Invalid response from the license server.');
+          return;
+        }
+        if (!res.ok) {
+          setAccountData(null);
+          setFetchError(data.error ?? `Could not load account (${res.status}). Try signing out and back in.`);
+          return;
+        }
+        setAccountData({
+          activations: data.activations ?? [],
+          status: data.status ?? null,
+          tier: data.tier ?? null,
+          activation_used: data.activation_used ?? 0,
+          activation_limit: data.activation_limit ?? 0,
+          license_key: data.license_key ?? null,
+          error: data.error,
+        });
       })
       .catch(() => {
-        setAccountData({
-          activations: [],
-          status: null,
-          tier: null,
-          activation_used: 0,
-          activation_limit: 0,
-          error: 'Failed to load account data',
-        });
+        setAccountData(null);
+        setFetchError(
+          'Could not reach the license server. Check your connection, disable strict blocking for this page, or try again in a moment.'
+        );
       })
       .finally(() => setDataLoading(false));
   }, [session?.access_token]);
@@ -174,18 +203,39 @@ export function AccountPage() {
 
         <p className="text-text-secondary mb-6">{user.email}</p>
 
+        {fetchError && (
+          <div
+            className="mb-6 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+            role="alert"
+          >
+            {fetchError}
+          </div>
+        )}
+
         {dataLoading ? (
           <p className="text-text-muted">Loading…</p>
-        ) :         accountData ? (
+        ) : !fetchError && accountData ? (
           <div className="space-y-6">
             <div className="glass-card p-6">
               <h2 className="font-medium mb-4">Subscription</h2>
-              {accountData.error ? (
+              {accountData.error === NO_LICENSE_FOR_EMAIL ? (
                 <div
-                  className="rounded-lg px-4 py-3 text-sm"
+                  className="rounded-lg px-4 py-3 text-sm space-y-2"
                   style={{ background: 'rgba(255,200,0,0.07)', border: '1px solid rgba(255,200,0,0.15)', color: '#ffd560' }}
                 >
-                  No active license found for this email. If you have a license key, activate the app directly and it will appear here.
+                  <p>
+                    No license is linked to <strong className="text-text">{user.email}</strong> in our system.
+                  </p>
+                  <p className="text-text-secondary" style={{ color: 'rgba(245,245,247,0.65)' }}>
+                    Use the <strong className="text-text">same email</strong> you used for NFR or checkout. If the app activated under a different address, sign out here and sign in with that email.
+                  </p>
+                </div>
+              ) : accountData.error ? (
+                <div
+                  className="rounded-lg px-4 py-3 text-sm text-amber-200"
+                  style={{ background: 'rgba(255,200,0,0.07)', border: '1px solid rgba(255,200,0,0.15)' }}
+                >
+                  {accountData.error}
                 </div>
               ) : !accountData.status ? (
                 <div
