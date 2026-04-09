@@ -201,7 +201,7 @@ export function Hero() {
             onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
           >
-            Create account or sign in →
+            create account or sign in →
           </Link>
         )}
       </div>
