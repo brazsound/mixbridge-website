@@ -254,7 +254,7 @@ export function AccountPage() {
                   <p>
                     Status:{' '}
                     <span className="text-text capitalize">
-                      {accountData.status === 'free' ? 'Free access' : accountData.status}
+                      {accountData.status === 'free' ? 'NFR' : accountData.status}
                     </span>
                   </p>
                   {accountData.tier && (

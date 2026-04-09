@@ -339,7 +339,7 @@ export function AdminPage() {
               </svg>
             </div>
             <p className="text-text-muted text-sm">No NFR users yet.</p>
-            <p className="text-text-muted text-xs mt-1">Add an email above to grant free access.</p>
+            <p className="text-text-muted text-xs mt-1">Add an email above to grant an NFR license.</p>
           </div>
         )}
 
