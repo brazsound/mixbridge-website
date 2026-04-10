@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 type FeedbackType = 'general' | 'bug' | 'feature';
 
 const inputClass =
-  'w-full px-4 py-3 rounded-lg bg-black/30 border border-white/10 text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent';
+  'w-full px-4 py-2.5 rounded-[var(--radius)] bg-white/[0.03] border text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/30 transition-colors border-[rgba(255,255,255,0.08)]';
 
 const types: { value: FeedbackType; label: string }[] = [
   { value: 'general', label: 'General' },
@@ -38,7 +38,7 @@ export function AccountFeedback() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-1">Feedback</h1>
+      <h1 className="text-2xl font-semibold tracking-tight mb-1">Feedback</h1>
       <p className="text-text-muted text-sm mb-8">
         Share your thoughts and help us improve Mix Bridge.
       </p>
@@ -72,9 +72,10 @@ export function AccountFeedback() {
                     key={t.value}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors border ${
                       type === t.value
-                        ? 'border-accent/40 bg-accent/8 text-accent'
-                        : 'border-white/10 bg-white/[0.03] text-text-secondary hover:bg-white/[0.06]'
+                        ? 'border-accent/30 bg-accent/8 text-accent'
+                        : 'text-text-muted hover:bg-white/[0.04] hover:text-text-secondary'
                     }`}
+                    style={{ borderColor: type === t.value ? undefined : 'var(--border)', background: type === t.value ? undefined : 'var(--surface)' }}
                   >
                     <input
                       type="radio"

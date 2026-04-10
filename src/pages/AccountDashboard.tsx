@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
 const inputClass =
-  'w-full px-4 py-3 rounded-lg bg-black/30 border border-white/10 text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent';
+  'w-full px-4 py-2.5 rounded-[var(--radius)] bg-white/[0.03] border text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/30 transition-colors border-[rgba(255,255,255,0.08)]';
 
 const API_URL = import.meta.env.VITE_LICENSE_API_URL ?? '';
 
@@ -110,15 +110,15 @@ export function AccountDashboard() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-1">Dashboard</h1>
+      <h1 className="text-2xl font-semibold tracking-tight mb-1">Dashboard</h1>
       <p className="text-text-muted text-sm mb-8">
         Welcome back, <span className="text-text-secondary">{user?.email}</span>
       </p>
 
       {showRecoveryPassword && user && (
         <div
-          className="glass-card p-6 mb-6 border border-accent/30"
-          style={{ background: 'rgba(10,132,255,0.06)' }}
+          className="glass-card p-6 mb-6"
+          style={{ background: 'var(--accent-subtle)', border: '1px solid rgba(110,86,207,0.2)' }}
         >
           <h2 className="font-medium mb-1">Set your password</h2>
           {recoveryDone ? (
@@ -168,18 +168,18 @@ export function AccountDashboard() {
               <Link to="/account/subscription" className="text-xs text-accent hover:underline">Details</Link>
             </div>
             {accountData.error === NO_LICENSE_FOR_EMAIL ? (
-              <div className="rounded-lg px-4 py-3 text-sm space-y-2" style={{ background: 'rgba(255,200,0,0.07)', border: '1px solid rgba(255,200,0,0.15)', color: '#ffd560' }}>
+              <div className="rounded-lg px-4 py-3 text-sm space-y-2" style={{ background: 'rgba(255,200,0,0.05)', border: '1px solid rgba(255,200,0,0.12)', color: '#ffd560' }}>
                 <p>No license linked to <strong className="text-text">{user?.email}</strong>.</p>
                 <p className="text-text-secondary text-xs" style={{ color: 'rgba(245,245,247,0.65)' }}>
                   Use the same email you used for NFR or checkout.
                 </p>
               </div>
             ) : accountData.error ? (
-              <div className="rounded-lg px-4 py-3 text-sm text-amber-200" style={{ background: 'rgba(255,200,0,0.07)', border: '1px solid rgba(255,200,0,0.15)' }}>
+              <div className="rounded-lg px-4 py-3 text-sm text-amber-200" style={{ background: 'rgba(255,200,0,0.05)', border: '1px solid rgba(255,200,0,0.12)' }}>
                 {accountData.error}
               </div>
             ) : !accountData.status ? (
-              <div className="rounded-lg px-4 py-4 flex flex-col gap-2" style={{ background: 'rgba(10,132,255,0.06)', border: '1px solid rgba(10,132,255,0.15)' }}>
+              <div className="rounded-lg px-4 py-4 flex flex-col gap-2" style={{ background: 'var(--accent-subtle)', border: '1px solid rgba(110,86,207,0.15)' }}>
                 <p className="text-sm font-medium text-text">No active license</p>
                 <p className="text-sm text-text-secondary">Billing opens soon. Check back to purchase when live.</p>
               </div>
@@ -237,13 +237,13 @@ export function AccountDashboard() {
                 Enter this key with your email when activating Mix Bridge on a new Mac.
               </p>
               <div className="flex items-center gap-3">
-                <code className="flex-1 px-4 py-3 rounded-lg bg-black/30 border border-white/10 text-text font-mono tracking-widest text-center text-lg select-all">
+                <code className="flex-1 px-4 py-3 rounded-lg bg-white/[0.03] border text-text font-mono tracking-widest text-center text-lg select-all" style={{ borderColor: 'var(--border)' }}>
                   {accountData.license_key}
                 </code>
                 <button
                   onClick={() => { void navigator.clipboard.writeText(accountData.license_key!); setKeyCopied(true); setTimeout(() => setKeyCopied(false), 2000); }}
                   className="shrink-0 px-4 py-3 rounded-lg text-sm font-medium transition-colors"
-                  style={{ background: keyCopied ? 'var(--accent)' : 'rgba(255,255,255,0.06)', color: keyCopied ? 'white' : 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  style={{ background: keyCopied ? 'var(--accent)' : 'var(--surface)', color: keyCopied ? 'white' : 'var(--text-secondary)', border: '1px solid var(--border)' }}
                 >
                   {keyCopied ? 'Copied!' : 'Copy'}
                 </button>

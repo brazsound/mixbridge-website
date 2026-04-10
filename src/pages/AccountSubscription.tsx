@@ -54,7 +54,7 @@ export function AccountSubscription() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-1">Subscription</h1>
+      <h1 className="text-2xl font-semibold tracking-tight mb-1">Subscription</h1>
       <p className="text-text-muted text-sm mb-8">
         Your current plan and billing information.
       </p>
@@ -116,7 +116,7 @@ export function AccountSubscription() {
                   <div
                     key={tier.name}
                     className="glass-card p-5 flex flex-col"
-                    style={isCurrent ? { border: '1px solid rgba(10,132,255,0.4)' } : undefined}
+                    style={isCurrent ? { border: '1px solid rgba(110,86,207,0.35)' } : undefined}
                   >
                     <h3 className="font-semibold mb-1">{tier.name}</h3>
                     <div className="flex items-baseline gap-1 mb-3">
@@ -127,11 +127,11 @@ export function AccountSubscription() {
                       Up to {tier.devices} Mac{tier.devices > 1 ? 's' : ''}
                     </p>
                     {isCurrent ? (
-                      <span className="mt-auto text-center py-2 rounded-lg text-sm font-medium" style={{ background: 'rgba(10,132,255,0.1)', color: 'var(--accent)', border: '1px solid rgba(10,132,255,0.25)' }}>
+                      <span className="mt-auto text-center py-2 rounded-lg text-sm font-medium" style={{ background: 'var(--accent-subtle)', color: 'var(--accent)', border: '1px solid rgba(110,86,207,0.2)' }}>
                         Current plan
                       </span>
                     ) : (
-                      <span className="mt-auto text-center py-2 rounded-lg text-sm font-medium text-text-muted" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <span className="mt-auto text-center py-2 rounded-lg text-sm font-medium text-text-muted" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                         Coming soon
                       </span>
                     )}

@@ -54,7 +54,7 @@ export function AccountDownload() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-1">Download Mix Bridge</h1>
+      <h1 className="text-2xl font-semibold tracking-tight mb-1">Download Mix Bridge</h1>
       <p className="text-text-muted text-sm mb-8">
         Get the latest version or browse previous releases.
       </p>
@@ -110,7 +110,7 @@ export function AccountDownload() {
                   </li>
                 ))}
               </ul>
-              <div className="mt-4 pt-4 border-t border-white/10">
+              <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
                 <h3 className="text-xs font-medium text-text-muted mb-2">Pro Tools Compatibility</h3>
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 text-sm">
@@ -139,7 +139,7 @@ export function AccountDownload() {
                     <div key={rel.id} className="glass-card px-5 py-4 flex items-center justify-between gap-4">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)' }}>
+                          <span className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                             {rel.tag_name}
                           </span>
                           <span className="text-text-muted text-xs">{formatDate(rel.published_at)}</span>
@@ -155,7 +155,7 @@ export function AccountDownload() {
                           href={dmg.browser_download_url}
                           download
                           className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                          style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}
+                          style={{ background: 'var(--surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
                         >
                           macOS
                         </a>

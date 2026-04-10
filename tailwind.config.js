@@ -3,13 +3,16 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+      },
       colors: {
-        bg: '#060609',
-        accent: '#0a84ff',
-        'accent-hover': '#0070e8',
-        text: '#f5f5f7',
-        'text-muted': 'rgba(245, 245, 247, 0.44)',
-        'text-secondary': 'rgba(245, 245, 247, 0.72)',
+        bg: '#0a0a0f',
+        accent: '#6e56cf',
+        'accent-hover': '#7c66dc',
+        text: '#ededef',
+        'text-muted': 'rgba(237, 237, 239, 0.38)',
+        'text-secondary': 'rgba(237, 237, 239, 0.65)',
       },
     },
   },

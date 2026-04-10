@@ -30,8 +30,8 @@ export function HowItWorks() {
     <section className="px-6 py-24 md:py-32">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-semibold mb-4">How it works</h2>
-          <p className="text-text-secondary max-w-lg mx-auto leading-relaxed">
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">How it works</h2>
+          <p className="text-text-secondary text-sm max-w-lg mx-auto leading-relaxed">
             Three steps. No scripting, no learning curve, no Pro Tools workflows to memorize.
           </p>
         </div>
@@ -40,35 +40,26 @@ export function HowItWorks() {
           {steps.map((step, i) => (
             <div
               key={step.number}
-              className={`flex flex-col ${
-                i % 2 === 1 ? 'md:flex-row-reverse' : 'md:flex-row'
-              } gap-8 md:gap-12 items-center`}
+              className={`flex flex-col ${i % 2 === 1 ? 'md:flex-row-reverse' : 'md:flex-row'} gap-8 md:gap-12 items-center`}
             >
               <div className="flex-1 space-y-4">
                 <div className="flex items-center gap-3">
                   <span
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shrink-0"
-                    style={{
-                      background: 'rgba(10,132,255,0.12)',
-                      color: '#0a84ff',
-                      border: '1px solid rgba(10,132,255,0.25)',
-                    }}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-medium shrink-0"
+                    style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}
                   >
                     {step.number}
                   </span>
-                  <h3 className="text-xl font-semibold">{step.title}</h3>
+                  <h3 className="text-lg font-medium">{step.title}</h3>
                 </div>
-                <p className="text-text-secondary leading-relaxed">{step.description}</p>
+                <p className="text-text-muted text-sm leading-relaxed">{step.description}</p>
               </div>
               <div className="flex-1 w-full">
                 <img
                   src={step.image}
                   alt={step.alt}
                   className="rounded-xl w-full"
-                  style={{
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
-                  }}
+                  style={{ border: '1px solid var(--border)' }}
                   loading="lazy"
                 />
               </div>

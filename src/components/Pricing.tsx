@@ -54,35 +54,26 @@ const checkIcon = (
 
 export function Pricing() {
   return (
-    <section
-      id="pricing"
-      className="px-6 py-24 md:py-32"
-      style={{ background: 'rgba(0,0,0,0.25)' }}
-    >
+    <section id="pricing" className="px-6 py-24 md:py-32" style={{ background: 'rgba(0,0,0,0.2)' }}>
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-semibold mb-4">
-            Simple pricing
-          </h2>
-          <p className="text-text-secondary max-w-md mx-auto leading-relaxed">
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">Simple pricing</h2>
+          <p className="text-text-secondary text-sm max-w-md mx-auto leading-relaxed">
             One licence per account. Activate on up to your plan's device count.
-            Deactivate and move to a new Mac anytime — no extra charge.
+            Deactivate and move to a new Mac anytime.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-5 mb-10">
+        <div className="grid md:grid-cols-3 gap-4 mb-10">
           {tiers.map((tier) => (
             <div
               key={tier.name}
-              className="glass-card p-7 flex flex-col relative"
-              style={tier.highlight ? {
-                border: '1px solid rgba(10,132,255,0.4)',
-                boxShadow: '0 0 40px rgba(10,132,255,0.08)',
-              } : undefined}
+              className="glass-card p-6 flex flex-col relative"
+              style={tier.highlight ? { border: '1px solid rgba(110,86,207,0.35)' } : undefined}
             >
               {tier.highlight && (
                 <div
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap"
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 text-[11px] font-medium px-3 py-1 rounded-full whitespace-nowrap"
                   style={{ background: 'var(--accent)', color: '#fff' }}
                 >
                   Most popular
@@ -90,7 +81,7 @@ export function Pricing() {
               )}
 
               <div className="mb-5">
-                <h3 className="font-semibold text-lg mb-3">{tier.name}</h3>
+                <h3 className="font-medium text-base mb-3">{tier.name}</h3>
                 <div className="flex items-baseline gap-1 mb-1">
                   <span className="text-3xl font-semibold">${tier.price}</span>
                   <span className="text-text-muted text-sm">/ year</span>
@@ -104,7 +95,7 @@ export function Pricing() {
 
               <ul className="space-y-2.5 mb-6 flex-1">
                 {tier.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2.5 text-sm text-text-secondary">
+                  <li key={f} className="flex items-center gap-2.5 text-sm text-text-muted">
                     <span style={{ color: 'var(--accent)', flexShrink: 0 }}>{checkIcon}</span>
                     {f}
                   </li>
@@ -113,11 +104,11 @@ export function Pricing() {
 
               <Link
                 to="/account"
-                className={`w-full text-center py-2.5 rounded-xl text-sm font-medium transition-colors block ${
+                className={`w-full text-center py-2.5 rounded-[var(--radius)] text-sm font-medium transition-colors block ${
                   tier.highlight ? 'btn-accent' : 'pricing-card-secondary'
                 }`}
               >
-                get early access
+                Get Early Access
               </Link>
             </div>
           ))}
@@ -126,7 +117,7 @@ export function Pricing() {
         <p className="text-center text-text-muted text-sm">
           Billing not yet open.{' '}
           <Link to="/account" className="underline underline-offset-2 hover:text-text-secondary transition-colors">
-            sign in to your account
+            Sign in to your account
           </Link>{' '}
           to hold your spot — pricing goes live soon.
         </p>

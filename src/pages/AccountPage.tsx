@@ -3,7 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Nav } from '@/components/Nav';
 
 const inputClass =
-  'w-full px-4 py-3 rounded-lg bg-black/30 border border-white/10 text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent';
+  'w-full px-4 py-2.5 rounded-[var(--radius)] bg-white/[0.03] border text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/30 transition-colors'
+  + ' ' + 'border-[rgba(255,255,255,0.08)]';
 
 function parseAuthHashError(): string | null {
   const raw = window.location.hash.replace(/^#/, '');
@@ -83,9 +84,9 @@ export function AccountAuthGate() {
   return (
     <div className="min-h-screen bg-bg text-text">
       <Nav />
-      <div className="pt-32 px-6 max-w-md mx-auto pb-20">
-        <h1 className="text-2xl font-semibold mb-2">Account</h1>
-        <p className="text-text-secondary mb-8">Manage your license and devices from anywhere.</p>
+      <div className="pt-28 px-6 max-w-md mx-auto pb-20">
+        <h1 className="text-2xl font-semibold tracking-tight mb-2">Account</h1>
+        <p className="text-text-muted text-sm mb-8">Manage your license and devices from anywhere.</p>
 
         {authHashError && (
           <div className="mb-6 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100" role="alert">
@@ -116,10 +117,10 @@ export function AccountAuthGate() {
           </div>
         ) : (
           <div className="glass-card p-6 space-y-6">
-            <div className="flex rounded-lg p-0.5 bg-black/25 border border-white/10">
+            <div className="flex rounded-lg p-0.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
               {(['signin', 'signup'] as const).map((key) => (
                 <button key={key} type="button" onClick={() => { setAuthPanel(key); setSignInError(null); setShowForgotPassword(false); setForgotMessage(null); setShowMagicLink(false); }}
-                  className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${authPanel === key ? 'bg-white/10 text-text' : 'text-text-muted hover:text-text-secondary'}`}>
+                  className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${authPanel === key ? 'bg-white/[0.07] text-text' : 'text-text-muted hover:text-text-secondary'}`}>
                   {key === 'signin' ? 'Sign in' : 'Create account'}
                 </button>
               ))}

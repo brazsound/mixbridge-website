@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 
 const inputClass =
-  'w-full px-4 py-3 rounded-lg bg-black/30 border border-white/10 text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent';
+  'w-full px-4 py-2.5 rounded-[var(--radius)] bg-white/[0.03] border text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/30 transition-colors border-[rgba(255,255,255,0.08)]';
 
 type SettingsModal = 'name' | 'email' | 'password';
 
@@ -48,8 +48,8 @@ function ModalShell({ title, onClose, children }: ModalShellProps) {
   }, [onKeyDown]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.65)' }} role="presentation" onClick={onClose}>
-      <div ref={dialogRef} className="glass-card p-6 w-full max-w-md max-h-[min(90vh,640px)] overflow-y-auto shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }} role="presentation" onClick={onClose}>
+      <div ref={dialogRef} className="glass-card p-6 w-full max-w-md max-h-[min(90vh,640px)] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-4 mb-5">
           <h2 id="settings-modal-title" className="font-medium text-lg">{title}</h2>
           <button type="button" onClick={onClose} className="text-text-muted hover:text-text text-sm shrink-0 px-2 py-1 -mr-2 -mt-1 rounded-lg transition-colors" aria-label="Close">Close</button>
@@ -61,7 +61,8 @@ function ModalShell({ title, onClose, children }: ModalShellProps) {
 }
 
 const menuBtnClass =
-  'w-full sm:w-auto text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border border-white/10 bg-white/[0.04] text-text-secondary hover:bg-white/[0.07] hover:text-text hover:border-white/15';
+  'w-full sm:w-auto text-left px-4 py-2 rounded-[var(--radius)] text-sm font-medium transition-colors text-text-muted hover:bg-white/[0.04] hover:text-text-secondary'
+  + ' ' + 'border border-[rgba(255,255,255,0.08)] bg-[var(--surface)]';
 
 export function AccountSettings() {
   const { user, updateProfile, updatePassword, setPasswordWithoutCurrent, updateEmail, resetPasswordForEmail } = useAuth();
@@ -158,33 +159,33 @@ export function AccountSettings() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-1">Account & Security</h1>
+      <h1 className="text-2xl font-semibold tracking-tight mb-1">Account & Security</h1>
       <p className="text-text-muted text-sm mb-8">Manage your profile, email, and password.</p>
 
       {/* Account information */}
       <div className="glass-card p-6 max-w-lg mb-6">
         <h2 className="font-medium mb-4">Account Information</h2>
         <div className="space-y-4">
-          <div className="flex items-center justify-between py-2 border-b border-white/[0.06]">
+          <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid var(--border)' }}>
             <div>
-              <p className="text-text-muted text-xs mb-0.5">Name</p>
+              <p className="text-text-muted text-[11px] mb-0.5">Name</p>
               <p className="text-sm text-text">
                 {(user?.user_metadata as { full_name?: string })?.full_name || user?.email}
               </p>
             </div>
             <button type="button" onClick={() => openModal('name')} className="text-xs text-accent hover:underline">Edit</button>
           </div>
-          <div className="flex items-center justify-between py-2 border-b border-white/[0.06]">
+          <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid var(--border)' }}>
             <div>
-              <p className="text-text-muted text-xs mb-0.5">Email</p>
+              <p className="text-text-muted text-[11px] mb-0.5">Email</p>
               <p className="text-sm text-text">{user?.email}</p>
             </div>
             <button type="button" onClick={() => openModal('email')} className="text-xs text-accent hover:underline">Edit</button>
           </div>
-          <div className="flex items-center justify-between py-2">
+          <div className="flex items-center justify-between py-2.5">
             <div>
-              <p className="text-text-muted text-xs mb-0.5">Password</p>
-              <p className="text-sm text-text-secondary">Create or change your password</p>
+              <p className="text-text-muted text-[11px] mb-0.5">Password</p>
+              <p className="text-sm text-text-muted">Create or change your password</p>
             </div>
             <button type="button" onClick={() => openModal('password')} className="text-xs text-accent hover:underline">Manage</button>
           </div>
@@ -255,7 +256,7 @@ export function AccountSettings() {
                 <button type="button" disabled={resetLinkBusy} onClick={() => void handlePasswordResetEmail()} className={menuBtnClass}>{resetLinkBusy ? 'Sending\u2026' : 'Email me a reset link instead'}</button>
               </div>
             </form>
-            <div className="border-t border-white/10 pt-6">
+            <div className="pt-6" style={{ borderTop: '1px solid var(--border)' }}>
               <form onSubmit={handlePassword} className="space-y-3">
                 <h3 className="text-sm font-medium text-text-secondary">Change existing password</h3>
                 <p className="text-text-muted text-xs">Enter your current password, then your new password (at least 6 characters).</p>

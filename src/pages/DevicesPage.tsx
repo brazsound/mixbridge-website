@@ -72,7 +72,7 @@ export function DevicesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-1">Devices</h1>
+      <h1 className="text-2xl font-semibold tracking-tight mb-1">Devices</h1>
       <p className="text-text-muted text-sm mb-8">
         {used} of {limit} device{limit !== 1 ? 's' : ''} activated{tier ? ` (${tier})` : ''}
       </p>

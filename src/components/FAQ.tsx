@@ -52,19 +52,17 @@ function FAQAccordion({ item }: { item: FAQItem }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div
-      className="border-b border-white/10"
-    >
+    <div style={{ borderBottom: '1px solid var(--border)' }}>
       <button
         type="button"
         className="w-full flex items-start justify-between gap-4 py-5 text-left"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <span className="font-medium text-sm md:text-base text-text">{item.question}</span>
+        <span className="font-medium text-sm text-text">{item.question}</span>
         <svg
-          width="16"
-          height="16"
+          width="14"
+          height="14"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -72,14 +70,14 @@ function FAQAccordion({ item }: { item: FAQItem }) {
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden
-          className={`shrink-0 mt-1 text-text-muted transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`shrink-0 mt-0.5 text-text-muted transition-transform ${open ? 'rotate-180' : ''}`}
         >
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
       {open && (
         <div className="pb-5 -mt-1">
-          <p className="text-text-secondary text-sm leading-relaxed">{item.answer}</p>
+          <p className="text-text-muted text-sm leading-relaxed">{item.answer}</p>
         </div>
       )}
     </div>
@@ -91,8 +89,8 @@ export function FAQ() {
     <section id="faq" className="px-6 py-24 md:py-32">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-semibold mb-4">Frequently asked questions</h2>
-          <p className="text-text-secondary leading-relaxed">
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">Frequently asked questions</h2>
+          <p className="text-text-secondary text-sm leading-relaxed">
             Everything you need to know before downloading.
           </p>
         </div>
