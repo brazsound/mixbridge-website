@@ -5,7 +5,6 @@ import { Nav } from './components/Nav';
 import { Hero } from './components/Hero';
 import { HowItWorks } from './components/HowItWorks';
 import { Features } from './components/Features';
-import { Comparison } from './components/Comparison';
 import { Pricing } from './components/Pricing';
 import { FAQ } from './components/FAQ';
 import { Download } from './components/Download';
@@ -28,7 +27,6 @@ function HomePage() {
       <Hero />
       <HowItWorks />
       <Features />
-      <Comparison />
       <Pricing />
       <FAQ />
       <Download />
