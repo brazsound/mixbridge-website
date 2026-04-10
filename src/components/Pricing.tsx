@@ -113,30 +113,9 @@ export function Pricing() {
 
               <Link
                 to="/account"
-                className="w-full text-center py-2.5 rounded-xl text-sm font-medium transition-colors"
-                style={tier.highlight ? {
-                  background: 'var(--accent)',
-                  color: '#fff',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  display: 'block',
-                } : {
-                  background: 'rgba(255,255,255,0.06)',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  display: 'block',
-                }}
-                onMouseEnter={(e) => {
-                  if (!tier.highlight) {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.09)';
-                    e.currentTarget.style.color = 'var(--text)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!tier.highlight) {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                  }
-                }}
+                className={`w-full text-center py-2.5 rounded-xl text-sm font-medium transition-colors block ${
+                  tier.highlight ? 'btn-accent' : 'pricing-card-secondary'
+                }`}
               >
                 get early access
               </Link>

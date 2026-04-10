@@ -14,7 +14,7 @@ export function Footer() {
           </p>
         </div>
 
-        <div className="flex gap-6 text-sm font-medium">
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-medium">
           <Link
             to="/account"
             className="text-text-secondary hover:text-text transition-colors"
@@ -35,6 +35,18 @@ export function Footer() {
           >
             GitHub
           </a>
+          <Link
+            to="/privacy"
+            className="text-text-secondary hover:text-text transition-colors"
+          >
+            Privacy
+          </Link>
+          <Link
+            to="/terms"
+            className="text-text-secondary hover:text-text transition-colors"
+          >
+            Terms
+          </Link>
         </div>
       </div>
     </footer>

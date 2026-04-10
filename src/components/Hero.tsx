@@ -196,10 +196,7 @@ export function Hero() {
         {showAccountCta && (
           <Link
             to="/account"
-            className="text-sm font-semibold normal-case transition-colors"
-            style={{ color: 'var(--text-secondary)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text)')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+            className="text-sm font-semibold normal-case transition-colors hero-secondary-cta"
           >
             Create Account or Sign In →
           </Link>
