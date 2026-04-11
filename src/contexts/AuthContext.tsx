@@ -2,6 +2,11 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
+// Capture the URL hash immediately at module load time, before Supabase
+// processes and clears it. This is the only reliable way to detect invite
+// and recovery flows since the hash is gone by the time event callbacks fire.
+const INITIAL_HASH = typeof window !== 'undefined' ? window.location.hash : '';
+
 interface AuthContextValue {
   user: User | null;
   session: Session | null;
@@ -49,12 +54,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      // Detect invite flow: Supabase fires SIGNED_IN with type=invite in the URL hash
-      if (event === 'SIGNED_IN') {
-        const hash = window.location.hash;
-        if (hash.includes('type=invite') || hash.includes('type=signup')) {
-          setNeedsPasswordSetup(true);
-        }
+      // Detect invite flow using the hash captured at module load time
+      // (window.location.hash is already cleared by Supabase when this fires)
+      if (event === 'SIGNED_IN' && (INITIAL_HASH.includes('type=invite') || INITIAL_HASH.includes('type=signup'))) {
+        setNeedsPasswordSetup(true);
       }
     });
 
