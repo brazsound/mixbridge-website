@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Nav } from '@/components/Nav';
 
@@ -524,10 +525,12 @@ function ActionsMenu({
   onOpenGrant: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [banLoading, setBanLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   const isBanned = !!(account.banned_until && new Date(account.banned_until) > new Date());
 
@@ -538,6 +541,14 @@ function ActionsMenu({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  const openMenu = () => {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    }
+    setOpen((v) => !v);
+  };
 
   const toggleBan = async () => {
     setBanLoading(true);
@@ -570,7 +581,7 @@ function ActionsMenu({
   );
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref}>
       {confirmDelete ? (
         <div className="flex items-center gap-2">
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Delete account?</span>
@@ -583,14 +594,21 @@ function ActionsMenu({
       ) : (
         <>
           <button
-            onClick={() => setOpen((v) => !v)}
+            ref={btnRef}
+            onClick={openMenu}
             className="px-2 py-1 rounded-lg text-sm transition-colors hover:bg-white/[0.06]"
             style={{ color: 'var(--text-muted)' }}>
             ···
           </button>
-          {open && (
-            <div className="absolute right-0 top-full mt-1 z-40 w-44 rounded-xl p-1 shadow-2xl"
-              style={{ background: 'var(--bg)', border: '1px solid rgba(255,255,255,0.12)' }}>
+          {open && menuPos && createPortal(
+            <div
+              className="fixed z-[9999] w-44 rounded-xl p-1 shadow-2xl"
+              style={{
+                top: menuPos.top,
+                right: menuPos.right,
+                background: 'var(--bg)',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}>
               {account.license_type === 'none' && item('Grant license', onOpenGrant)}
               {item('Send reset link', onOpenReset)}
               {item('Devices', onOpenDevices)}
@@ -598,7 +616,8 @@ function ActionsMenu({
               {item('Send email', onOpenEmail)}
               {item(banLoading ? '…' : isBanned ? 'Unban' : 'Ban', () => void toggleBan(), !isBanned)}
               {account.license_type !== 'paid' && item('Delete account', () => setConfirmDelete(true), true)}
-            </div>
+            </div>,
+            document.body
           )}
         </>
       )}
