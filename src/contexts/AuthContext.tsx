@@ -38,42 +38,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
 
-      // getSession() returns a cached JWT — metadata may be stale.
-      // Use getUser() to fetch the latest metadata from the server.
+      // Fetch fresh metadata from the server (getSession returns cached JWT).
       if (session) {
-        const { data: { user: freshUser } } = await supabase.auth.getUser();
-        if (freshUser) {
+        supabase.auth.getUser().then(({ data: { user: freshUser } }) => {
+          if (!mounted || !freshUser) return;
           setUser(freshUser);
           if (freshUser.user_metadata?.needs_password_setup) {
             setNeedsPasswordSetup(true);
           }
-        }
+        }).catch(() => { /* network error — use cached session */ });
       }
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session) {
-        const { data: { user: freshUser } } = await supabase.auth.getUser();
-        if (freshUser) {
+        supabase.auth.getUser().then(({ data: { user: freshUser } }) => {
+          if (!mounted || !freshUser) return;
           setUser(freshUser);
           if (freshUser.user_metadata?.needs_password_setup) {
             setNeedsPasswordSetup(true);
           }
-        }
+        }).catch(() => {});
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signInWithEmail = useCallback(async (email: string) => {
