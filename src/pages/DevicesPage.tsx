@@ -78,7 +78,7 @@ export function DevicesPage() {
       </p>
 
       {loading ? (
-        <p className="text-text-muted">Loading\u2026</p>
+        <p className="text-text-muted">Loading…</p>
       ) : error ? (
         <p className="text-amber-400 text-sm">{error}</p>
       ) : activations.length === 0 ? (
@@ -97,8 +97,8 @@ export function DevicesPage() {
                   <path d="M8 21h8M12 17v4" />
                 </svg>
                 <div>
-                  <p className="font-medium text-sm">{a.display_name || a.device_id.slice(0, 16) + '\u2026'}</p>
-                  <p className="text-text-muted text-xs">{formatDate(a.activated_at)} \u00B7 {a.device_id.slice(0, 8)}\u2026</p>
+                  <p className="font-medium text-sm">{a.display_name || a.device_id.slice(0, 16) + '…'}</p>
+                  <p className="text-text-muted text-xs">{formatDate(a.activated_at)} · {a.device_id.slice(0, 8)}…</p>
                 </div>
               </div>
               <button
@@ -106,7 +106,7 @@ export function DevicesPage() {
                 disabled={deactivating === a.device_id}
                 className="px-3 py-1.5 text-xs rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-colors"
               >
-                {deactivating === a.device_id ? 'Deactivating\u2026' : 'Deactivate'}
+                {deactivating === a.device_id ? 'Deactivating…' : 'Deactivate'}
               </button>
             </li>
           ))}

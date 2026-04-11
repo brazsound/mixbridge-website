@@ -60,7 +60,7 @@ export function AccountDownload() {
       </p>
 
       {loading ? (
-        <p className="text-text-muted">Loading releases\u2026</p>
+        <p className="text-text-muted">Loading releases…</p>
       ) : error ? (
         <p className="text-amber-400 text-sm">{error}</p>
       ) : (

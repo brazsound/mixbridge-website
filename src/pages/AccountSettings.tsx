@@ -218,7 +218,7 @@ export function AccountSettings() {
             {profileErr && <p className="text-amber-400 text-sm">{profileErr}</p>}
             {profileMsg && <p className="text-emerald-400/90 text-sm">{profileMsg}</p>}
             <div className="flex flex-wrap gap-2 pt-2">
-              <button type="submit" disabled={profileBusy} className="btn-accent text-sm py-2 px-4">{profileBusy ? 'Saving\u2026' : 'Save name'}</button>
+              <button type="submit" disabled={profileBusy} className="btn-accent text-sm py-2 px-4">{profileBusy ? 'Saving…' : 'Save name'}</button>
               <button type="button" onClick={closeModal} className={menuBtnClass}>Done</button>
             </div>
           </form>
@@ -233,7 +233,7 @@ export function AccountSettings() {
             {emailErr && <p className="text-amber-400 text-sm">{emailErr}</p>}
             {emailMsg && <p className="text-emerald-400/90 text-sm">{emailMsg}</p>}
             <div className="flex flex-wrap gap-2 pt-2">
-              <button type="submit" disabled={emailBusy} className="btn-accent text-sm py-2 px-4">{emailBusy ? 'Updating\u2026' : 'Update email'}</button>
+              <button type="submit" disabled={emailBusy} className="btn-accent text-sm py-2 px-4">{emailBusy ? 'Updating…' : 'Update email'}</button>
               <button type="button" onClick={closeModal} className={menuBtnClass}>Done</button>
             </div>
           </form>
@@ -252,8 +252,8 @@ export function AccountSettings() {
               {firstPwdMsg && <p className="text-emerald-400/90 text-sm">{firstPwdMsg}</p>}
               {resetLinkMsg && <p className="text-emerald-400/90 text-sm">{resetLinkMsg}</p>}
               <div className="flex flex-wrap gap-2 pt-1">
-                <button type="submit" disabled={firstPwdBusy} className="btn-accent text-sm py-2 px-4">{firstPwdBusy ? 'Saving\u2026' : 'Save password'}</button>
-                <button type="button" disabled={resetLinkBusy} onClick={() => void handlePasswordResetEmail()} className={menuBtnClass}>{resetLinkBusy ? 'Sending\u2026' : 'Email me a reset link instead'}</button>
+                <button type="submit" disabled={firstPwdBusy} className="btn-accent text-sm py-2 px-4">{firstPwdBusy ? 'Saving…' : 'Save password'}</button>
+                <button type="button" disabled={resetLinkBusy} onClick={() => void handlePasswordResetEmail()} className={menuBtnClass}>{resetLinkBusy ? 'Sending…' : 'Email me a reset link instead'}</button>
               </div>
             </form>
             <div className="pt-6" style={{ borderTop: '1px solid var(--border)' }}>
@@ -266,7 +266,7 @@ export function AccountSettings() {
                 {passwordErr && <p className="text-amber-400 text-sm">{passwordErr}</p>}
                 {passwordMsg && <p className="text-emerald-400/90 text-sm">{passwordMsg}</p>}
                 <div className="flex flex-wrap gap-2 pt-2">
-                  <button type="submit" disabled={passwordBusy} className="btn-accent text-sm py-2 px-4">{passwordBusy ? 'Updating\u2026' : 'Update password'}</button>
+                  <button type="submit" disabled={passwordBusy} className="btn-accent text-sm py-2 px-4">{passwordBusy ? 'Updating…' : 'Update password'}</button>
                   <button type="button" onClick={closeModal} className={menuBtnClass}>Done</button>
                 </div>
               </form>

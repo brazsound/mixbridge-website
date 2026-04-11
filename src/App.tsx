@@ -37,7 +37,7 @@ function HomePage() {
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="pt-24 flex justify-center"><p className="text-text-muted">Loading\u2026</p></div>;
+  if (loading) return <div className="pt-24 flex justify-center"><p className="text-text-muted">Loading…</p></div>;
   if (!user) return <AccountAuthGate />;
   return <>{children}</>;
 }

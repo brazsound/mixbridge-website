@@ -107,7 +107,7 @@ export function AccountFeedback() {
                 id="feedback-message"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Tell us what you think\u2026"
+                placeholder="Tell us what you think…"
                 rows={6}
                 className={inputClass + ' resize-y'}
                 required
@@ -117,7 +117,7 @@ export function AccountFeedback() {
             {error && <p className="text-amber-400 text-sm">{error}</p>}
 
             <button type="submit" disabled={sending} className="btn-accent text-sm py-2.5 px-5">
-              {sending ? 'Opening\u2026' : 'Submit Feedback'}
+              {sending ? 'Opening…' : 'Submit Feedback'}
             </button>
           </form>
         )}

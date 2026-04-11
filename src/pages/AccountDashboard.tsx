@@ -142,7 +142,7 @@ export function AccountDashboard() {
                 </div>
                 {recoveryErr && <p className="text-amber-400 text-sm">{recoveryErr}</p>}
                 <div className="flex flex-wrap gap-2">
-                  <button type="submit" disabled={recoveryBusy} className="btn-accent text-sm py-2 px-4">{recoveryBusy ? 'Saving\u2026' : 'Save password'}</button>
+                  <button type="submit" disabled={recoveryBusy} className="btn-accent text-sm py-2 px-4">{recoveryBusy ? 'Saving…' : 'Save password'}</button>
                   <button type="button" className="text-sm text-text-muted hover:text-text-secondary px-3 py-2" onClick={dismissRecoveryBanner}>Dismiss</button>
                 </div>
               </form>
@@ -158,7 +158,7 @@ export function AccountDashboard() {
       )}
 
       {dataLoading ? (
-        <p className="text-text-muted">Loading license\u2026</p>
+        <p className="text-text-muted">Loading license…</p>
       ) : !fetchError && accountData ? (
         <div className="grid gap-5 md:grid-cols-2">
           {/* License card */}
@@ -219,7 +219,7 @@ export function AccountDashboard() {
                       <rect x="2" y="3" width="20" height="14" rx="2" />
                       <path d="M8 21h8M12 17v4" />
                     </svg>
-                    <span className="text-text truncate">{a.display_name || a.device_id.slice(0, 12) + '\u2026'}</span>
+                    <span className="text-text truncate">{a.display_name || a.device_id.slice(0, 12) + '…'}</span>
                   </li>
                 ))}
                 {accountData.activations.length > 3 && (
