@@ -43,10 +43,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
 
   useEffect(() => {
+    const isInviteFlow = INITIAL_HASH.includes('type=invite') || INITIAL_HASH.includes('type=signup');
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      // If page loaded with an invite hash and a session is already present,
+      // show the password setup modal immediately (covers already-logged-in case)
+      if (isInviteFlow && session?.user) {
+        setNeedsPasswordSetup(true);
+      }
     });
 
     const {
@@ -54,9 +61,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      // Detect invite flow using the hash captured at module load time
-      // (window.location.hash is already cleared by Supabase when this fires)
-      if (event === 'SIGNED_IN' && (INITIAL_HASH.includes('type=invite') || INITIAL_HASH.includes('type=signup'))) {
+      // Covers the case where the user was signed out before clicking the invite link
+      if (isInviteFlow && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
         setNeedsPasswordSetup(true);
       }
     });
