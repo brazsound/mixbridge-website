@@ -1527,7 +1527,7 @@ export function AdminPage() {
   const [tab, setTab] = useState<Tab>('dashboard');
 
   // Cached account counts for dashboard
-  const [accountCounts, setAccountCounts] = useState({ total: 0, none: 0, comp: 0, paid: 0 });
+  const [accountCounts] = useState({ total: 0, none: 0, comp: 0, paid: 0 });
 
   useEffect(() => {
     if (!session?.access_token) return;
