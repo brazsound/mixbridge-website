@@ -67,13 +67,14 @@ function ModalShell({ title, onClose, children }: ModalShellProps) {
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.65)' }}
+      style={{ background: 'rgba(0,0,0,0.45)' }}
       role="presentation"
       onClick={onClose}
     >
       <div
         ref={dialogRef}
-        className="glass-card p-6 w-full max-w-md max-h-[min(90vh,640px)] overflow-y-auto shadow-2xl"
+        className="w-full max-w-md max-h-[min(90vh,640px)] overflow-y-auto rounded-2xl p-6 shadow-2xl"
+        style={{ background: 'var(--bg)', border: '1px solid rgba(255,255,255,0.1)' }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="account-settings-modal-title"

@@ -48,8 +48,8 @@ function ModalShell({ title, onClose, children }: ModalShellProps) {
   }, [onKeyDown]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }} role="presentation" onClick={onClose}>
-      <div ref={dialogRef} className="glass-card p-6 w-full max-w-md max-h-[min(90vh,640px)] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }} role="presentation" onClick={onClose}>
+      <div ref={dialogRef} className="w-full max-w-md max-h-[min(90vh,640px)] overflow-y-auto rounded-2xl p-6 shadow-2xl" style={{ background: 'var(--bg)', border: '1px solid rgba(255,255,255,0.1)' }} role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-4 mb-5">
           <h2 id="settings-modal-title" className="font-medium text-lg">{title}</h2>
           <button type="button" onClick={onClose} className="text-text-muted hover:text-text text-sm shrink-0 px-2 py-1 -mr-2 -mt-1 rounded-lg transition-colors" aria-label="Close">Close</button>
