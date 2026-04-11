@@ -646,7 +646,7 @@ function ActionsMenu({
             document.body
           )}
         </>
-      )}
+      ))}
     </div>
   );
 }
