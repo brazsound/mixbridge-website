@@ -1,10 +1,8 @@
-import { Nav } from '@/components/Nav';
 import { Footer } from '@/components/Footer';
 
 export function TermsPage() {
   return (
     <>
-      <Nav />
       <main className="pt-32 pb-20 px-6">
         <article className="max-w-2xl mx-auto prose-invert">
           <h1 className="text-3xl font-semibold mb-2">Terms of Service</h1>

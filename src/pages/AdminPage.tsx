@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Nav } from '@/components/Nav';
 
 const API = (import.meta.env.VITE_LICENSE_API_URL ?? '').replace(/\/$/, '');
 
@@ -1833,7 +1832,6 @@ export function AdminPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-bg text-text">
-        <Nav />
         <div className="pt-32 flex justify-center"><p style={{ color: 'var(--text-muted)' }}>Loading…</p></div>
       </div>
     );
@@ -1842,7 +1840,6 @@ export function AdminPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-bg text-text">
-        <Nav />
         <div className="pt-32 px-6 max-w-md mx-auto">
           <h1 className="text-2xl font-semibold mb-2">Admin</h1>
           <p className="text-sm mb-8" style={{ color: 'var(--text-secondary)' }}>Sign in with your admin credentials.</p>
@@ -1868,7 +1865,6 @@ export function AdminPage() {
   if (forbidden) {
     return (
       <div className="min-h-screen bg-bg text-text">
-        <Nav />
         <div className="pt-32 px-6 max-w-md mx-auto text-center">
           <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)' }} aria-hidden>
@@ -1887,7 +1883,6 @@ export function AdminPage() {
 
   return (
     <div className="min-h-screen bg-bg text-text">
-      <Nav />
       <div className="pt-24 px-6 max-w-7xl mx-auto pb-20">
 
         {/* Header */}

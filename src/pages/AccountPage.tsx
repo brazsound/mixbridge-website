@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Nav } from '@/components/Nav';
-
 const inputClass =
   'w-full px-4 py-2.5 rounded-[var(--radius)] bg-white/[0.03] border text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/30 transition-colors'
   + ' ' + 'border-[rgba(255,255,255,0.08)]';
@@ -83,7 +81,6 @@ export function AccountAuthGate() {
 
   return (
     <div className="min-h-screen bg-bg text-text">
-      <Nav />
       <div className="pt-28 px-6 max-w-md mx-auto pb-20">
         <h1 className="text-2xl font-semibold tracking-tight mb-2">Account</h1>
         <p className="text-text-muted text-sm mb-8">Manage your license and devices from anywhere.</p>

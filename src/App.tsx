@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useState } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './contexts/AuthContext';
+import { Nav } from './components/Nav';
 import { Hero } from './components/Hero';
 import { HowItWorks } from './components/HowItWorks';
 import { Features } from './components/Features';
@@ -136,6 +137,7 @@ function AppInner() {
   const { needsPasswordSetup } = useAuth();
   return (
     <>
+      <Nav />
       {needsPasswordSetup && <SetPasswordModal />}
       <Routes>
         <Route path="/" element={<HomePage />} />
