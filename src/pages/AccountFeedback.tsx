@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 type FeedbackType = 'general' | 'bug' | 'feature';
 
@@ -26,14 +27,26 @@ export function AccountFeedback() {
     setError(null);
     setSending(true);
 
-    const subject = encodeURIComponent(`[Mix Bridge ${type}] Feedback from ${user?.email ?? 'user'}`);
-    const body = encodeURIComponent(`Type: ${type}\nFrom: ${user?.email ?? 'unknown'}\n\n${message}`);
-    window.location.href = `mailto:support@brazsound.com?subject=${subject}&body=${body}`;
-
-    await new Promise((r) => setTimeout(r, 500));
-    setSending(false);
-    setSent(true);
-    setMessage('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const apiUrl = (import.meta.env.VITE_LICENSE_API_URL as string ?? '').replace(/\/$/, '');
+      const res = await fetch(`${apiUrl}/api/web/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ type, message: message.trim() }),
+      });
+      const json = await res.json() as { ok?: boolean; error?: string };
+      if (!res.ok) throw new Error(json.error ?? 'Failed to send feedback.');
+      setSent(true);
+      setMessage('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -52,7 +65,7 @@ export function AccountFeedback() {
         {sent ? (
           <div className="space-y-4">
             <p className="text-emerald-400/90 text-sm">
-              Your email client should have opened with the feedback pre-filled. Send it and we will get back to you.
+              Thanks! Your feedback has been sent. We'll get back to you if needed.
             </p>
             <button
               type="button"
