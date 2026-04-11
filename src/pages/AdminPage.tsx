@@ -526,17 +526,17 @@ function ActionsMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
-  const [banLoading, setBanLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
-
-  const isBanned = !!(account.banned_until && new Date(account.banned_until) > new Date());
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      const insideBtn = btnRef.current?.contains(target);
+      const insideMenu = menuRef.current?.contains(target);
+      if (!insideBtn && !insideMenu) setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -550,18 +550,6 @@ function ActionsMenu({
     setOpen((v) => !v);
   };
 
-  const toggleBan = async () => {
-    setBanLoading(true);
-    await apiReq(token, 'user-actions', 'POST', {
-      action: isBanned ? 'unban' : 'ban',
-      auth_id: account.auth_id,
-      email: account.email,
-    });
-    setBanLoading(false);
-    setOpen(false);
-    onRefresh();
-  };
-
   const deleteUser = async () => {
     setDeleteLoading(true);
     await apiReq(token, 'user-actions', 'POST', { action: 'delete_user', auth_id: account.auth_id, email: account.email });
@@ -573,7 +561,7 @@ function ActionsMenu({
 
   const item = (label: string, onClick: () => void, danger = false) => (
     <button
-      onClick={() => { onClick(); setOpen(false); }}
+      onMouseDown={(e) => { e.preventDefault(); onClick(); setOpen(false); }}
       className="w-full text-left px-3 py-2 text-sm transition-colors hover:bg-white/[0.06] rounded-lg"
       style={{ color: danger ? '#f87171' : 'var(--text-secondary)' }}>
       {label}
@@ -581,7 +569,7 @@ function ActionsMenu({
   );
 
   return (
-    <div ref={ref}>
+    <div>
       {confirmDelete ? (
         <div className="flex items-center gap-2">
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Delete account?</span>
@@ -602,6 +590,7 @@ function ActionsMenu({
           </button>
           {open && menuPos && createPortal(
             <div
+              ref={menuRef}
               className="fixed z-[9999] w-44 rounded-xl p-1 shadow-2xl"
               style={{
                 top: menuPos.top,
@@ -614,7 +603,6 @@ function ActionsMenu({
               {item('Devices', onOpenDevices)}
               {(account.license_type === 'complimentary' || account.license_type === 'paid') && item('License actions', onOpenLicense)}
               {item('Send email', onOpenEmail)}
-              {item(banLoading ? '…' : isBanned ? 'Unban' : 'Ban', () => void toggleBan(), !isBanned)}
               {account.license_type !== 'paid' && item('Delete account', () => setConfirmDelete(true), true)}
             </div>,
             document.body
