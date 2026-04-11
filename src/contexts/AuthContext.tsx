@@ -2,10 +2,10 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
-// Capture the URL hash immediately at module load time, before Supabase
-// processes and clears it. This is the only reliable way to detect invite
-// and recovery flows since the hash is gone by the time event callbacks fire.
-const INITIAL_HASH = typeof window !== 'undefined' ? window.location.hash : '';
+// Read the hash captured by the inline script in index.html, which runs
+// before any JS modules load (and before Supabase clears the hash).
+const INITIAL_HASH: string =
+  (typeof window !== 'undefined' && (window as Window & { __initialHash?: string }).__initialHash) || '';
 
 interface AuthContextValue {
   user: User | null;

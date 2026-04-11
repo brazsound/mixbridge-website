@@ -28,6 +28,8 @@
     <link rel="canonical" href="https://www.mixbridge.net/" />
   </head>
   <body>
+    <!-- Capture hash before Supabase JS loads and clears it -->
+    <script>window.__initialHash = window.location.hash;</script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
