@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { fetchWithRetry } from '@/lib/fetchWithRetry';
 
 const API_URL = import.meta.env.VITE_LICENSE_API_URL ?? '';
 
@@ -30,11 +31,14 @@ export function AccountSubscription() {
       if (!API_URL) setError('License server URL is not configured.');
       return;
     }
-    fetch(`${API_URL.replace(/\/$/, '')}/api/web/list-activations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({}),
-    })
+    fetchWithRetry(
+      `${API_URL.replace(/\/$/, '')}/api/web/list-activations`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({}),
+      },
+    )
       .then(async (res) => {
         const json = await res.json();
         if (!res.ok) { setError(json.error ?? 'Could not load subscription.'); return; }

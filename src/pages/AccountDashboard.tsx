@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { fetchWithRetry } from '@/lib/fetchWithRetry';
 
 const inputClass =
   'w-full px-4 py-2.5 rounded-[var(--radius)] bg-white/[0.03] border text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/30 transition-colors border-[rgba(255,255,255,0.08)]';
@@ -30,6 +31,7 @@ export function AccountDashboard() {
   const [accountData, setAccountData] = useState<AccountData | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [keyCopied, setKeyCopied] = useState(false);
 
   const [showRecoveryPassword, setShowRecoveryPassword] = useState(false);
@@ -59,12 +61,18 @@ export function AccountDashboard() {
     }
 
     setDataLoading(true);
+    setRetrying(false);
     setFetchError(null);
-    fetch(`${API_URL.replace(/\/$/, '')}/api/web/list-activations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({}),
-    })
+    // Brief delay lets the browser finish loading all assets after a fresh deploy
+    const retryTimer = setTimeout(() => setRetrying(true), 1200);
+    fetchWithRetry(
+      `${API_URL.replace(/\/$/, '')}/api/web/list-activations`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({}),
+      },
+    )
       .then(async (res) => {
         let data: AccountData;
         try { data = (await res.json()) as AccountData; }
@@ -84,7 +92,7 @@ export function AccountDashboard() {
         setAccountData(null);
         setFetchError('Could not reach the license server. Check your connection or try again in a moment.');
       })
-      .finally(() => setDataLoading(false));
+      .finally(() => { clearTimeout(retryTimer); setRetrying(false); setDataLoading(false); });
   }, [session?.access_token]);
 
   const handleRecoveryPassword = async (e: React.FormEvent) => {
@@ -158,7 +166,7 @@ export function AccountDashboard() {
       )}
 
       {dataLoading ? (
-        <p className="text-text-muted">Loading license…</p>
+        <p className="text-text-muted">{retrying ? 'Connecting…' : 'Loading license…'}</p>
       ) : !fetchError && accountData ? (
         <div className="grid gap-5 md:grid-cols-2">
           {/* License card */}

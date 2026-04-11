@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { fetchWithRetry } from '@/lib/fetchWithRetry';
 
 const API_URL = import.meta.env.VITE_LICENSE_API_URL ?? '';
 
@@ -27,11 +28,14 @@ export function DevicesPage() {
     }
 
     setError(null);
-    fetch(`${API_URL.replace(/\/$/, '')}/api/web/list-activations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({}),
-    })
+    fetchWithRetry(
+      `${API_URL.replace(/\/$/, '')}/api/web/list-activations`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({}),
+      },
+    )
       .then(async (res) => {
         let data: { activations?: Activation[]; tier?: string | null; activation_used?: number; activation_limit?: number; error?: string };
         try { data = await res.json(); }
