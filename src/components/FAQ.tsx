@@ -9,17 +9,17 @@ const faqs: FAQItem[] = [
   {
     question: 'Does Mix Bridge work with Pro Tools 2024?',
     answer:
-      'Yes. Mix Bridge uses the official Pro Tools Scripting Library (PTSL), so it supports any Pro Tools version that includes PTSL — Pro Tools 2023.12 and later, including all 2024 and 2025 releases.',
+      'Yes. Mix Bridge uses the official Pro Tools Scripting Library (PTSL), so it supports any Pro Tools version that includes PTSL: Pro Tools 2023.12 and later, including all 2024 and 2025 releases.',
   },
   {
     question: 'How is this different from SoundFlow scripts?',
     answer:
-      "SoundFlow runs keyboard-shortcut macros and screen-scraping. Mix Bridge talks to Pro Tools directly through its scripting API (PTSL), which means it doesn\u2019t depend on window positions, menu layouts, or screen resolution. It also handles multi-session batching natively \u2014 something that\u2019s extremely difficult with macro-based tools.",
+      "SoundFlow runs keyboard-shortcut macros and screen-scraping. Mix Bridge talks to Pro Tools directly through its scripting API (PTSL), which means it doesn't depend on window positions, menu layouts, or screen resolution. It also handles multi-session batching natively, something that's extremely difficult with macro-based tools.",
   },
   {
     question: 'Can I use Mix Bridge on multiple Macs?',
     answer:
-      'Yes. The Solo plan covers 1 Mac, Pro covers up to 3, and Team covers up to 10. You can deactivate a device from your account page and move the seat to a different Mac at any time — no extra charge.',
+      'Yes. The Solo plan covers 1 Mac, Pro covers up to 3, and Team covers up to 10. You can deactivate a device from your account page and move the seat to a different Mac at any time, at no extra charge.',
   },
   {
     question: 'Is it a subscription?',
@@ -29,7 +29,7 @@ const faqs: FAQItem[] = [
   {
     question: 'What audio formats are supported?',
     answer:
-      'WAV, MP3, and AIFF — the same formats Pro Tools supports for offline bounce. You can set sample rate and bit depth per queue item.',
+      'WAV, MP3, and AIFF, the same formats Pro Tools supports for offline bounce. You can set sample rate and bit depth per queue item.',
   },
   {
     question: 'Does it work with Dolby Atmos sessions?',
@@ -44,7 +44,7 @@ const faqs: FAQItem[] = [
   {
     question: 'Does Mix Bridge require an internet connection?',
     answer:
-      'Only for activation and licence verification. Once activated, Mix Bridge works fully offline — your sessions and bounces never leave your machine.',
+      'Only for activation and licence verification. Once activated, Mix Bridge works fully offline. Your sessions and bounces never leave your machine.',
   },
 ];
 

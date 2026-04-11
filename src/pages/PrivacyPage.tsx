@@ -22,9 +22,9 @@ export function PrivacyPage() {
             <div>
               <h2 className="text-text font-medium text-base mb-2">What we collect</h2>
               <ul className="list-disc list-inside space-y-1">
-                <li><strong className="text-text">Account data</strong> — email address, display name, and hashed password when you create an account.</li>
-                <li><strong className="text-text">Device identifiers</strong> — a hardware-derived ID used solely for licence activation. We store a display name for the device if you provide one.</li>
-                <li><strong className="text-text">Usage analytics</strong> — we may collect anonymous, aggregated usage statistics (e.g. bounce counts) to improve the product. No audio content is ever transmitted.</li>
+                <li><strong className="text-text">Account data:</strong> email address, display name, and hashed password when you create an account.</li>
+                <li><strong className="text-text">Device identifiers:</strong> a hardware-derived ID used solely for licence activation. We store a display name for the device if you provide one.</li>
+                <li><strong className="text-text">Usage analytics:</strong> we may collect anonymous, aggregated usage statistics (e.g. bounce counts) to improve the product. No audio content is ever transmitted.</li>
               </ul>
             </div>
 

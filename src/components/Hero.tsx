@@ -24,7 +24,7 @@ function AppMockup() {
           <span className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgba(255,189,46,0.5)' }} />
           <span className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgba(40,200,64,0.5)' }} />
         </div>
-        <span className="text-[11px] ml-2 text-text-muted">Mix Bridge — Session 3 of 5</span>
+        <span className="text-[11px] ml-2 text-text-muted">Mix Bridge · Session 3 of 5</span>
       </div>
 
       <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: '1px solid var(--border)' }}>

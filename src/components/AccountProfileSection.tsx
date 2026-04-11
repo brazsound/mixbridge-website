@@ -379,7 +379,7 @@ export function AccountProfileSection() {
                 </button>
               </div>
               <p className="text-text-muted text-[11px] leading-relaxed">
-                If saving fails (for example your project requires a reset flow), use the reset link — it opens the same
+                If saving fails (for example your project requires a reset flow), use the reset link. It opens the same
                 page so you can set a password.
               </p>
             </form>

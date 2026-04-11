@@ -42,7 +42,7 @@ const features = [
       </svg>
     ),
     title: 'Timeline and marker ranges',
-    description: 'Capture your bounce range directly from Pro Tools — use the Edit Selection, a pair of markers, or the whole timeline.',
+    description: 'Capture your bounce range directly from Pro Tools: use the Edit Selection, a pair of markers, or the whole timeline.',
   },
   {
     icon: (
@@ -51,7 +51,7 @@ const features = [
       </svg>
     ),
     title: 'Runs quietly in the background',
-    description: 'Launch Mix Bridge once and it stays ready. Undo a bounce, fix something in your session, and re-run — it keeps up.',
+    description: 'Launch Mix Bridge once and it stays ready. Undo a bounce, fix something in your session, and re-run. It keeps up.',
   },
 ];
 

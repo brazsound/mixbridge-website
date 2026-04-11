@@ -66,12 +66,12 @@ interface Stats {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string | null | undefined) {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function formatDateTime(iso: string | null | undefined) {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
@@ -648,8 +648,8 @@ function DashboardTab({ token, accountsTotal, noLicense, complimentary, paid }: 
     { label: 'No license', value: noLicense },
     { label: 'Complimentary', value: complimentary },
     { label: 'Paid', value: paid },
-    { label: 'Devices (this week)', value: stats?.devices_activated_this_week ?? '—' },
-    { label: 'Open bug reports', value: stats?.open_bug_reports ?? '—' },
+    { label: 'Devices (this week)', value: stats?.devices_activated_this_week ?? '-' },
+    { label: 'Open bug reports', value: stats?.open_bug_reports ?? '-' },
   ];
 
   return (
@@ -952,12 +952,12 @@ function AccountsTab({ token }: { token: string }) {
                             {copiedKey === a.email ? '✓' : 'Copy'}
                           </button>
                         </div>
-                      ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                      ) : <span style={{ color: 'var(--text-muted)' }}>-</span>}
                     </td>
                     <td className="px-4 py-3.5 text-center" style={{ color: 'var(--text-secondary)' }}>
                       {a.license_type !== 'none'
-                        ? <span className={(a.activations_used ?? 0) >= (a.activation_limit ?? 999) ? 'text-amber-400' : ''}>{a.activations_used ?? 0} / {a.activation_limit ?? '—'}</span>
-                        : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                        ? <span className={(a.activations_used ?? 0) >= (a.activation_limit ?? 999) ? 'text-amber-400' : ''}>{a.activations_used ?? 0} / {a.activation_limit ?? '-'}</span>
+                        : <span style={{ color: 'var(--text-muted)' }}>-</span>}
                     </td>
                     <td className="px-4 py-3.5 text-xs whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>{formatDate(a.signed_up_at)}</td>
                     <td className="px-5 py-3.5">
@@ -1275,9 +1275,9 @@ function AuditLogTab({ token }: { token: string }) {
                     <td className="px-5 py-3 text-xs whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>{formatDateTime(e.created_at)}</td>
                     <td className="px-5 py-3 text-xs" style={{ color: 'var(--text-secondary)' }}>{e.admin_email}</td>
                     <td className="px-5 py-3 text-xs font-medium" style={{ color: 'var(--text)' }}>{e.action.replace(/_/g, ' ')}</td>
-                    <td className="px-5 py-3 text-xs" style={{ color: 'var(--text-secondary)' }}>{e.target_email ?? '—'}</td>
+                    <td className="px-5 py-3 text-xs" style={{ color: 'var(--text-secondary)' }}>{e.target_email ?? '-'}</td>
                     <td className="px-5 py-3 text-xs font-mono max-w-[200px] truncate" style={{ color: 'var(--text-muted)' }}>
-                      {e.details ? JSON.stringify(e.details) : '—'}
+                      {e.details ? JSON.stringify(e.details) : '-'}
                     </td>
                   </tr>
                 ))}
@@ -1461,7 +1461,7 @@ function NfrTab({ token }: { token: string }) {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
-                          <code className="text-xs font-mono tracking-wider" style={{ color: 'var(--text-secondary)' }}>{u.license_key || '—'}</code>
+                          <code className="text-xs font-mono tracking-wider" style={{ color: 'var(--text-secondary)' }}>{u.license_key || '-'}</code>
                           {u.license_key && (
                             <button onClick={() => { void navigator.clipboard.writeText(u.license_key); setCopiedKey(u.email); setTimeout(() => setCopiedKey(null), 2000); }}
                               className="text-xs transition-colors hover:opacity-80" style={{ color: 'var(--text-muted)' }}>

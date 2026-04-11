@@ -19,7 +19,7 @@ const steps = [
     number: '3',
     title: 'Walk away',
     description:
-      'Hit Run and let Mix Bridge work through the queue — even across multiple sessions. Come back to finished files.',
+      'Hit Run and let Mix Bridge work through the queue, even across multiple sessions. Come back to finished files.',
     image: '/screenshots/07-sessions-batch-run.png',
     alt: 'Mix Bridge batch run view showing multiple sessions being processed automatically',
   },

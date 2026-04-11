@@ -119,7 +119,7 @@ export function Pricing() {
           <Link to="/account" className="underline underline-offset-2 hover:text-text-secondary transition-colors">
             Sign in to your account
           </Link>{' '}
-          to hold your spot — pricing goes live soon.
+          to hold your spot. Pricing goes live soon.
         </p>
       </div>
     </section>
