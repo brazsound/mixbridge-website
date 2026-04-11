@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
 type FeedbackType = 'general' | 'bug' | 'feature';
@@ -14,7 +13,6 @@ const types: { value: FeedbackType; label: string }[] = [
 ];
 
 export function AccountFeedback() {
-  const { user } = useAuth();
   const [type, setType] = useState<FeedbackType>('general');
   const [message, setMessage] = useState('');
   const [sent, setSent] = useState(false);
