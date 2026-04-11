@@ -100,9 +100,9 @@ export function AccountDownload() {
               <h2 className="font-medium mb-4">System Requirements</h2>
               <ul className="space-y-3">
                 {[
-                  { icon: '\uF8FF', label: 'macOS', value: '13 Ventura or later' },
-                  { icon: '\u266B', label: 'Pro Tools', value: '2025.6 or later (PTSL)' },
-                  { icon: '\u2699', label: 'Chip', value: 'Apple Silicon or Intel' },
+                  { icon: '', label: 'macOS', value: '13 Ventura or later' },
+                  { icon: '♫', label: 'Pro Tools', value: '2025.6 or later (PTSL)' },
+                  { icon: '⚙', label: 'Chip', value: 'Apple Silicon or Intel' },
                 ].map((req) => (
                   <li key={req.label} className="flex items-center justify-between text-sm">
                     <span className="text-text-muted">{req.label}</span>
@@ -120,7 +120,7 @@ export function AccountDownload() {
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#fbbf24' }} />
-                    <span className="text-text-secondary">2023.12 \u2013 2025.3</span>
+                    <span className="text-text-secondary">2023.12 - 2025.3</span>
                     <span className="text-xs text-text-muted ml-auto">Compatible</span>
                   </div>
                 </div>

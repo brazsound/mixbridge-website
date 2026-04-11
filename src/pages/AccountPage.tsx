@@ -134,7 +134,7 @@ export function AccountAuthGate() {
                 </div>
                 <div>
                   <label htmlFor="si-password" className="block text-sm font-medium mb-2">Password</label>
-                  <input id="si-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" className={inputClass} required autoComplete="current-password" />
+                  <input id="si-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className={inputClass} required autoComplete="current-password" />
                 </div>
                 {signInError && <p className="text-amber-400 text-sm">{signInError}</p>}
                 <button type="submit" className="btn-accent w-full">Sign in</button>
@@ -145,7 +145,7 @@ export function AccountAuthGate() {
 
             {authPanel === 'signin' && showMagicLink && !signInSent && (
               <form onSubmit={handleMagicLink} className="space-y-4">
-                <p className="text-text-muted text-sm">{"We'll email you a one-time link\u2014no password needed."}</p>
+                <p className="text-text-muted text-sm">We'll email you a one-time link. No password needed.</p>
                 <div>
                   <label htmlFor="magic-email" className="block text-sm font-medium mb-2">Email</label>
                   <input id="magic-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className={inputClass} required autoComplete="email" />
@@ -183,7 +183,7 @@ export function AccountAuthGate() {
                 </div>
                 <div>
                   <label htmlFor="su-confirm" className="block text-sm font-medium mb-2">Confirm password</label>
-                  <input id="su-confirm" type="password" value={signUpConfirm} onChange={(e) => setSignUpConfirm(e.target.value)} placeholder="\u2022\u2022\u2022\u2022\u2022\u2022" className={inputClass} required minLength={6} autoComplete="new-password" />
+                  <input id="su-confirm" type="password" value={signUpConfirm} onChange={(e) => setSignUpConfirm(e.target.value)} placeholder="••••••" className={inputClass} required minLength={6} autoComplete="new-password" />
                 </div>
                 {signInError && <p className="text-amber-400 text-sm">{signInError}</p>}
                 <button type="submit" className="btn-accent w-full">Create account</button>
