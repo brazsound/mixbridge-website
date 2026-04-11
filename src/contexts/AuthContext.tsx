@@ -38,22 +38,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      if (session?.user?.user_metadata?.needs_password_setup) {
-        setNeedsPasswordSetup(true);
+
+      // getSession() returns a cached JWT — metadata may be stale.
+      // Use getUser() to fetch the latest metadata from the server.
+      if (session) {
+        const { data: { user: freshUser } } = await supabase.auth.getUser();
+        if (freshUser) {
+          setUser(freshUser);
+          if (freshUser.user_metadata?.needs_password_setup) {
+            setNeedsPasswordSetup(true);
+          }
+        }
       }
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user?.user_metadata?.needs_password_setup) {
-        setNeedsPasswordSetup(true);
+
+      if (session) {
+        const { data: { user: freshUser } } = await supabase.auth.getUser();
+        if (freshUser) {
+          setUser(freshUser);
+          if (freshUser.user_metadata?.needs_password_setup) {
+            setNeedsPasswordSetup(true);
+          }
+        }
       }
     });
 
