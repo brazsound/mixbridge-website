@@ -1545,13 +1545,24 @@ export function AdminPage() {
   const [forbidden, setForbidden] = useState(false);
   const [tab, setTab] = useState<Tab>('dashboard');
 
-  // Cached account counts for dashboard
-  const [accountCounts] = useState({ total: 0, none: 0, comp: 0, paid: 0 });
+  const [accountCounts, setAccountCounts] = useState({ total: 0, none: 0, comp: 0, paid: 0 });
 
   useEffect(() => {
     if (!session?.access_token) return;
     void fetch(`${API}/api/admin/nfr`, { headers: { Authorization: `Bearer ${session.access_token}` } })
       .then((r) => { if (r.status === 403) setForbidden(true); });
+    void fetch(`${API}/api/admin/accounts`, { headers: { Authorization: `Bearer ${session.access_token}` } })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d: { accounts?: Account[] } | null) => {
+        if (!d?.accounts) return;
+        const counts = { total: d.accounts.length, none: 0, comp: 0, paid: 0 };
+        for (const a of d.accounts) {
+          if (a.license_type === 'none') counts.none++;
+          else if (a.license_type === 'complimentary') counts.comp++;
+          else if (a.license_type === 'paid') counts.paid++;
+        }
+        setAccountCounts(counts);
+      });
   }, [session?.access_token]);
 
   const handleSignIn = async (e: React.FormEvent) => {
