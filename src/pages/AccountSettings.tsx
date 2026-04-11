@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const inputClass =
   'w-full px-4 py-2.5 rounded-[var(--radius)] bg-white/[0.03] border text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/30 transition-colors border-[rgba(255,255,255,0.08)]';
 
-type SettingsModal = 'name' | 'email' | 'password';
+type SettingsModal = 'name' | 'email' | 'password' | 'delete';
 
 interface ModalShellProps {
   title: string;
@@ -63,7 +63,7 @@ const menuBtnClass =
   + ' ' + 'border border-[rgba(255,255,255,0.08)] bg-[var(--surface)]';
 
 export function AccountSettings() {
-  const { user, updateProfile, updatePassword, setPasswordWithoutCurrent, updateEmail, resetPasswordForEmail } = useAuth();
+  const { user, updateProfile, updatePassword, setPasswordWithoutCurrent, updateEmail, resetPasswordForEmail, deleteAccount } = useAuth();
   const [modal, setModal] = useState<SettingsModal | null>(null);
 
   const [fullName, setFullName] = useState('');
@@ -99,6 +99,10 @@ export function AccountSettings() {
   const [resetLinkMsg, setResetLinkMsg] = useState<string | null>(null);
   const [resetLinkBusy, setResetLinkBusy] = useState(false);
 
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
+  const [deleteErr, setDeleteErr] = useState<string | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+
   const openModal = (m: SettingsModal) => {
     setModal(m);
     setProfileErr(null); setEmailErr(null); setPasswordErr(null); setPasswordMsg(null);
@@ -106,8 +110,26 @@ export function AccountSettings() {
       setFirstPwdErr(null); setFirstPwdMsg(null); setFirstPassword(''); setFirstPasswordConfirm('');
       setResetLinkMsg(null); setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
     }
+    if (m === 'delete') {
+      setDeleteConfirmEmail(''); setDeleteErr(null);
+    }
   };
   const closeModal = () => setModal(null);
+
+  const handleDeleteAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (deleteConfirmEmail.trim().toLowerCase() !== user?.email?.toLowerCase()) {
+      setDeleteErr('Email does not match. Please type your exact email address.');
+      return;
+    }
+    setDeleteErr(null);
+    setDeleteBusy(true);
+    const { error } = await deleteAccount();
+    setDeleteBusy(false);
+    if (error) { setDeleteErr(error); return; }
+    // Account deleted — navigate away
+    window.location.href = '/';
+  };
 
   const handleProfile = async (e: React.FormEvent) => {
     e.preventDefault(); setProfileErr(null); setProfileMsg(null); setProfileBusy(true);
@@ -199,9 +221,7 @@ export function AccountSettings() {
         <button
           type="button"
           className="px-4 py-2 rounded-lg text-sm font-medium border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors"
-          onClick={() => {
-            window.location.href = 'mailto:support@brazsound.com?subject=Account+deletion+request&body=Please+delete+my+Mix+Bridge+account+associated+with+' + encodeURIComponent(user?.email ?? '');
-          }}
+          onClick={() => openModal('delete')}
         >
           Delete account
         </button>
@@ -235,6 +255,47 @@ export function AccountSettings() {
               <button type="button" onClick={closeModal} className={menuBtnClass}>Done</button>
             </div>
           </form>
+        </ModalShell>
+      )}
+
+      {modal === 'delete' && (
+        <ModalShell title="Delete account" onClose={closeModal}>
+          <div className="space-y-4">
+            <div className="rounded-xl px-4 py-3 text-sm space-y-1" style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}>
+              <p className="font-medium text-red-400">This cannot be undone.</p>
+              <p className="text-text-muted text-xs leading-relaxed">
+                Your account, license, and all activated devices will be permanently removed. You will lose access immediately.
+              </p>
+            </div>
+            <form onSubmit={handleDeleteAccount} className="space-y-3">
+              <div>
+                <label htmlFor="delete-confirm-email" className="block text-sm font-medium mb-2">
+                  Type your email to confirm
+                </label>
+                <input
+                  id="delete-confirm-email"
+                  type="email"
+                  value={deleteConfirmEmail}
+                  onChange={(e) => { setDeleteConfirmEmail(e.target.value); setDeleteErr(null); }}
+                  placeholder={user?.email ?? 'your@email.com'}
+                  className={inputClass}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </div>
+              {deleteErr && <p className="text-red-400 text-sm">{deleteErr}</p>}
+              <div className="flex flex-wrap gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={deleteBusy || deleteConfirmEmail.trim().toLowerCase() !== user?.email?.toLowerCase()}
+                  className="px-4 py-2 rounded-lg text-sm font-medium border border-red-500/50 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {deleteBusy ? 'Deleting…' : 'Delete my account permanently'}
+                </button>
+                <button type="button" onClick={closeModal} className={menuBtnClass}>Cancel</button>
+              </div>
+            </form>
+          </div>
         </ModalShell>
       )}
 

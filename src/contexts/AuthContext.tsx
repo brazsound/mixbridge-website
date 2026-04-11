@@ -19,6 +19,7 @@ interface AuthContextValue {
   setPasswordWithoutCurrent: (newPassword: string) => Promise<{ error?: string }>;
   updateEmail: (newEmail: string) => Promise<{ error?: string }>;
   resetPasswordForEmail: (email: string) => Promise<{ error?: string }>;
+  deleteAccount: () => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -151,6 +152,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    const token = currentSession?.access_token;
+    if (!token) return { error: 'No active session.' };
+
+    const apiUrl = import.meta.env.VITE_LICENSE_API_URL ?? '';
+    if (!apiUrl) return { error: 'Account service is not configured.' };
+
+    try {
+      const res = await fetch(`${apiUrl.replace(/\/$/, '')}/api/web/delete-account`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) return { error: json.error ?? 'Failed to delete account.' };
+      await supabase.auth.signOut();
+      return {};
+    } catch {
+      return { error: 'Could not reach the server. Check your connection.' };
+    }
+  }, []);
+
   const value: AuthContextValue = {
     user,
     session,
@@ -163,6 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setPasswordWithoutCurrent,
     updateEmail,
     resetPasswordForEmail,
+    deleteAccount,
     signOut,
   };
 
