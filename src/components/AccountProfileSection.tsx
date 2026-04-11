@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
+import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const inputClass =
@@ -17,52 +17,36 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), texta
 function ModalShell({ title, onClose, children }: ModalShellProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<Element | null>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
 
   useEffect(() => {
     triggerRef.current = document.activeElement;
-  }, []);
-
-  const onKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-        return;
-      }
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    // Focus the first input — avoids landing focus on a button
+    requestAnimationFrame(() => {
+      const input = dialogRef.current?.querySelector<HTMLElement>('input:not([disabled]), textarea:not([disabled])');
+      (input ?? dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE))?.focus();
+    });
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onCloseRef.current(); return; }
       if (e.key === 'Tab' && dialogRef.current) {
         const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE));
         if (focusable.length === 0) return;
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
       }
-    },
-    [onClose]
-  );
-
-  useEffect(() => {
+    };
     document.addEventListener('keydown', onKeyDown);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    requestAnimationFrame(() => {
-      const el = dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE);
-      el?.focus();
-    });
-
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = prev;
-      if (triggerRef.current instanceof HTMLElement) {
-        triggerRef.current.focus();
-      }
+      if (triggerRef.current instanceof HTMLElement) triggerRef.current.focus();
     };
-  }, [onKeyDown]);
+  }, []); // runs only on mount/unmount — stable
 
   return (
     <div
@@ -80,19 +64,9 @@ function ModalShell({ title, onClose, children }: ModalShellProps) {
         aria-labelledby="account-settings-modal-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <h2 id="account-settings-modal-title" className="font-medium text-lg">
-            {title}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-text-muted hover:text-text text-sm shrink-0 px-2 py-1 -mr-2 -mt-1 rounded-lg transition-colors"
-            aria-label="Close"
-          >
-            Close
-          </button>
-        </div>
+        <h2 id="account-settings-modal-title" className="font-medium text-lg mb-5">
+          {title}
+        </h2>
         {children}
       </div>
     </div>

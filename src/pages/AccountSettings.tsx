@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
+import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const inputClass =
@@ -17,12 +17,20 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), texta
 function ModalShell({ title, onClose, children }: ModalShellProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<Element | null>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
 
-  useEffect(() => { triggerRef.current = document.activeElement; }, []);
-
-  const onKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { onClose(); return; }
+  useEffect(() => {
+    triggerRef.current = document.activeElement;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    // Focus the first input, not the first focusable (avoids focusing a button)
+    requestAnimationFrame(() => {
+      const input = dialogRef.current?.querySelector<HTMLElement>('input:not([disabled]), textarea:not([disabled])');
+      (input ?? dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE))?.focus();
+    });
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onCloseRef.current(); return; }
       if (e.key === 'Tab' && dialogRef.current) {
         const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE));
         if (focusable.length === 0) return;
@@ -31,29 +39,19 @@ function ModalShell({ title, onClose, children }: ModalShellProps) {
         if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
         else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
       }
-    },
-    [onClose]
-  );
-
-  useEffect(() => {
+    };
     document.addEventListener('keydown', onKeyDown);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    requestAnimationFrame(() => { dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus(); });
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = prev;
       if (triggerRef.current instanceof HTMLElement) triggerRef.current.focus();
     };
-  }, [onKeyDown]);
+  }, []); // runs only on mount/unmount — stable
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }} role="presentation" onClick={onClose}>
       <div ref={dialogRef} className="w-full max-w-md max-h-[min(90vh,640px)] overflow-y-auto rounded-2xl p-6 shadow-2xl" style={{ background: 'var(--bg)', border: '1px solid rgba(255,255,255,0.1)' }} role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <h2 id="settings-modal-title" className="font-medium text-lg">{title}</h2>
-          <button type="button" onClick={onClose} className="text-text-muted hover:text-text text-sm shrink-0 px-2 py-1 -mr-2 -mt-1 rounded-lg transition-colors" aria-label="Close">Close</button>
-        </div>
+        <h2 id="settings-modal-title" className="font-medium text-lg mb-5">{title}</h2>
         {children}
       </div>
     </div>
