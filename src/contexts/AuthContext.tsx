@@ -6,6 +6,8 @@ interface AuthContextValue {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  /** True when user arrived via an invite link and must set a password before proceeding. */
+  needsPasswordSetup: boolean;
   signInWithEmail: (email: string) => Promise<{ error?: string }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error?: string }>;
   signUpWithPassword: (email: string, password: string) => Promise<{ error?: string; needsEmailConfirmation?: boolean }>;
@@ -33,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -43,9 +46,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      // Detect invite flow: Supabase fires SIGNED_IN with type=invite in the URL hash
+      if (event === 'SIGNED_IN') {
+        const hash = window.location.hash;
+        if (hash.includes('type=invite') || hash.includes('type=signup')) {
+          setNeedsPasswordSetup(true);
+        }
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -125,6 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) return { error: error.message };
+    setNeedsPasswordSetup(false);
     return {};
   }, []);
 
@@ -185,6 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
+    needsPasswordSetup,
     signInWithEmail,
     signInWithPassword,
     signUpWithPassword,
