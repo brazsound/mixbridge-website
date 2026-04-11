@@ -1551,9 +1551,240 @@ function NfrTab({ token }: { token: string }) {
   );
 }
 
+// ── Releases Tab ──────────────────────────────────────────────────────────────
+
+interface Release {
+  id: string;
+  version: string;
+  released_at: string;
+  download_url: string | null;
+  changelog: string | null;
+  is_prerelease: boolean;
+  is_published: boolean;
+}
+
+const emptyRelease = (): Omit<Release, 'id' | 'is_prerelease' | 'is_published'> & { is_prerelease: boolean; is_published: boolean } => ({
+  version: '',
+  released_at: new Date().toISOString().slice(0, 10),
+  download_url: '',
+  changelog: '',
+  is_prerelease: false,
+  is_published: true,
+});
+
+function ReleasesTab({ token }: { token: string }) {
+  const [releases, setReleases] = useState<Release[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Release | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState(emptyRelease());
+  const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const load = () => {
+    setLoading(true); setErr(null);
+    fetch(`${API}/api/admin/releases`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d: { releases?: Release[]; error?: string }) => {
+        if (d.error) { setErr(d.error); return; }
+        setReleases(d.releases ?? []);
+      })
+      .catch(() => setErr('Could not load releases.'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const openCreate = () => { setForm(emptyRelease()); setSaveErr(null); setCreating(true); setEditing(null); };
+  const openEdit = (r: Release) => {
+    setForm({ version: r.version, released_at: r.released_at.slice(0, 10), download_url: r.download_url ?? '', changelog: r.changelog ?? '', is_prerelease: r.is_prerelease, is_published: r.is_published });
+    setSaveErr(null); setEditing(r); setCreating(false);
+  };
+  const closeForm = () => { setCreating(false); setEditing(null); };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault(); setSaveErr(null); setSaving(true);
+    const payload = { ...form, released_at: new Date(form.released_at).toISOString() };
+    try {
+      const res = await fetch(
+        editing ? `${API}/api/admin/releases` : `${API}/api/admin/releases`,
+        {
+          method: editing ? 'PATCH' : 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(editing ? { id: editing.id, ...payload } : payload),
+        }
+      );
+      const d = await res.json() as { error?: string };
+      if (!res.ok) { setSaveErr(d.error ?? 'Save failed.'); return; }
+      closeForm(); load();
+    } catch { setSaveErr('Network error.'); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this release? This cannot be undone.')) return;
+    setDeleteId(id);
+    try {
+      await fetch(`${API}/api/admin/releases?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      load();
+    } catch { setErr('Delete failed.'); }
+    finally { setDeleteId(null); }
+  };
+
+  const togglePublish = async (r: Release) => {
+    await fetch(`${API}/api/admin/releases`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id: r.id, is_published: !r.is_published }),
+    });
+    load();
+  };
+
+  const inputCls = 'w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/50' as const;
+  const inputStyle = { background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text)' };
+
+  const FormPanel = (
+    <div className="glass-card p-6 mb-6">
+      <h3 className="font-medium mb-4">{creating ? 'New Release' : `Edit v${editing?.version}`}</h3>
+      <form onSubmit={handleSave} className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-text-muted mb-1">Version *</label>
+            <input className={inputCls} style={inputStyle} placeholder="1.0.0" value={form.version}
+              onChange={(e) => setForm((f) => ({ ...f, version: e.target.value }))} required />
+          </div>
+          <div>
+            <label className="block text-xs text-text-muted mb-1">Release date *</label>
+            <input type="date" className={inputCls} style={inputStyle} value={form.released_at}
+              onChange={(e) => setForm((f) => ({ ...f, released_at: e.target.value }))} required />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs text-text-muted mb-1">Download URL (.dmg)</label>
+          <input className={inputCls} style={inputStyle} placeholder="https://..." value={form.download_url ?? ''}
+            onChange={(e) => setForm((f) => ({ ...f, download_url: e.target.value }))} />
+        </div>
+        <div>
+          <label className="block text-xs text-text-muted mb-1">Changelog (Markdown)</label>
+          <textarea
+            className={inputCls} style={{ ...inputStyle, resize: 'vertical' }}
+            rows={10}
+            placeholder={'## New Features\n- Added something great\n\n## Fixes\n- Fixed a bug'}
+            value={form.changelog ?? ''}
+            onChange={(e) => setForm((f) => ({ ...f, changelog: e.target.value }))}
+          />
+          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+            Use <code>## Heading</code>, <code>### Subheading</code>, and <code>- bullet</code> for formatting.
+          </p>
+        </div>
+        <div className="flex items-center gap-6">
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" checked={form.is_prerelease} onChange={(e) => setForm((f) => ({ ...f, is_prerelease: e.target.checked }))} />
+            <span style={{ color: 'var(--text-secondary)' }}>Pre-release</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" checked={form.is_published} onChange={(e) => setForm((f) => ({ ...f, is_published: e.target.checked }))} />
+            <span style={{ color: 'var(--text-secondary)' }}>Published (visible to users)</span>
+          </label>
+        </div>
+        {saveErr && <p className="text-red-400 text-sm">{saveErr}</p>}
+        <div className="flex gap-2 pt-1">
+          <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            style={{ background: 'var(--accent)', color: '#fff' }}>
+            {saving ? 'Saving…' : (creating ? 'Publish Release' : 'Save Changes')}
+          </button>
+          <button type="button" onClick={closeForm} className="px-4 py-2 rounded-lg text-sm transition-colors"
+            style={{ color: 'var(--text-muted)' }}>
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-lg font-semibold">Releases</h2>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Manage app versions and changelogs shown on the download page.</p>
+        </div>
+        {!creating && !editing && (
+          <button onClick={openCreate} className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{ background: 'var(--accent)', color: '#fff' }}>
+            + New Release
+          </button>
+        )}
+      </div>
+
+      {(creating || editing) && FormPanel}
+
+      {loading ? (
+        <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
+      ) : err ? (
+        <p className="text-red-400 text-sm">{err}</p>
+      ) : releases.length === 0 ? (
+        <div className="glass-card p-8 text-center">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No releases yet. Click "New Release" to publish your first version.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {releases.map((r) => (
+            <div key={r.id} className="glass-card px-5 py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>v{r.version}</span>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {new Date(r.released_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </span>
+                    {r.is_prerelease && (
+                      <span className="px-1.5 py-0.5 rounded text-xs" style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24' }}>Pre-release</span>
+                    )}
+                    <span className="px-1.5 py-0.5 rounded text-xs" style={r.is_published
+                      ? { background: 'rgba(52,211,153,0.15)', color: '#34d399' }
+                      : { background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}>
+                      {r.is_published ? 'Published' : 'Hidden'}
+                    </span>
+                  </div>
+                  {r.download_url
+                    ? <p className="text-xs mt-1 truncate max-w-sm" style={{ color: 'var(--text-muted)' }}>{r.download_url}</p>
+                    : <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>No download URL</p>
+                  }
+                  {r.changelog && (
+                    <p className="text-xs mt-1 truncate max-w-sm" style={{ color: 'var(--text-muted)' }}>
+                      {r.changelog.split('\n')[0].replace(/^#+\s*/, '')}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => togglePublish(r)} className="px-2.5 py-1 rounded text-xs transition-colors"
+                    style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-muted)' }}>
+                    {r.is_published ? 'Unpublish' : 'Publish'}
+                  </button>
+                  <button onClick={() => openEdit(r)} className="px-2.5 py-1 rounded text-xs transition-colors"
+                    style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-muted)' }}>
+                    Edit
+                  </button>
+                  <button onClick={() => handleDelete(r.id)} disabled={deleteId === r.id} className="px-2.5 py-1 rounded text-xs transition-colors disabled:opacity-50"
+                    style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}>
+                    {deleteId === r.id ? '…' : 'Delete'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Page Shell ────────────────────────────────────────────────────────────────
 
-type Tab = 'dashboard' | 'accounts' | 'bugs' | 'audit' | 'licenses';
+type Tab = 'dashboard' | 'accounts' | 'bugs' | 'audit' | 'licenses' | 'releases';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -1561,6 +1792,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'bugs', label: 'Bug Reports' },
   { id: 'audit', label: 'Audit Log' },
   { id: 'licenses', label: 'Complimentary Licenses' },
+  { id: 'releases', label: 'Releases' },
 ];
 
 export function AdminPage() {
@@ -1701,6 +1933,7 @@ export function AdminPage() {
         {tab === 'bugs' && <BugReportsTab token={token} />}
         {tab === 'audit' && <AuditLogTab token={token} />}
         {tab === 'licenses' && <NfrTab token={token} />}
+        {tab === 'releases' && <ReleasesTab token={token} />}
       </div>
     </div>
   );
