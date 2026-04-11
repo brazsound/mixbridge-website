@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
+import { useAuth } from '@/contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_LICENSE_API_URL ?? '';
 
@@ -128,7 +129,9 @@ function ChangelogPanel({ release, defaultOpen = false }: { release: Release; de
 }
 
 export function AccountDownload() {
+  const { session } = useAuth();
   const [releases, setReleases] = useState<Release[]>([]);
+  const [betaOptIn, setBetaOptIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -139,27 +142,40 @@ export function AccountDownload() {
       return;
     }
     let cancelled = false;
-    fetchWithRetry(`${API_URL.replace(/\/$/, '')}/api/releases`)
+    const headers: Record<string, string> = {};
+    if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+    fetchWithRetry(`${API_URL.replace(/\/$/, '')}/api/releases`, { headers })
       .then(async (res) => {
-        const data = (await res.json()) as { releases?: Release[]; error?: string };
+        const data = (await res.json()) as { releases?: Release[]; beta_opt_in?: boolean; error?: string };
         if (!cancelled) {
           if (!res.ok) { setError(data.error ?? 'Could not load releases.'); return; }
           setReleases(data.releases ?? []);
+          setBetaOptIn(data.beta_opt_in ?? false);
         }
       })
       .catch(() => { if (!cancelled) setError('Could not reach the download server. Try again later.'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [session?.access_token]);
 
   const latest = releases[0];
   const previous = releases.slice(1);
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight mb-1">Download Mix Bridge</h1>
+      <div className="flex items-start justify-between gap-4 mb-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Download Mix Bridge</h1>
+        {betaOptIn && (
+          <span className="shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium mt-1"
+            style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)', color: '#fbbf24' }}>
+            Beta Program
+          </span>
+        )}
+      </div>
       <p className="text-text-muted text-sm mb-8">
-        Get the latest version or browse previous releases.
+        {betaOptIn
+          ? 'You have access to pre-release builds. Manage this in Account & Security settings.'
+          : 'Get the latest version or browse previous releases.'}
       </p>
 
       {loading ? (

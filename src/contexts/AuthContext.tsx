@@ -19,6 +19,7 @@ interface AuthContextValue {
   setPasswordWithoutCurrent: (newPassword: string) => Promise<{ error?: string }>;
   updateEmail: (newEmail: string) => Promise<{ error?: string }>;
   resetPasswordForEmail: (email: string) => Promise<{ error?: string }>;
+  updateBetaOptIn: (enabled: boolean) => Promise<{ error?: string }>;
   deleteAccount: () => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 }
@@ -152,6 +153,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
+  const updateBetaOptIn = useCallback(async (enabled: boolean) => {
+    const { error } = await supabase.auth.updateUser({ data: { beta_opt_in: enabled } });
+    if (error) return { error: error.message };
+    return {};
+  }, []);
+
   const deleteAccount = useCallback(async () => {
     const { data: { session: currentSession } } = await supabase.auth.getSession();
     const token = currentSession?.access_token;
@@ -186,6 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setPasswordWithoutCurrent,
     updateEmail,
     resetPasswordForEmail,
+    updateBetaOptIn,
     deleteAccount,
     signOut,
   };

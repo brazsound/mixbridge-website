@@ -63,7 +63,7 @@ const menuBtnClass =
   + ' ' + 'border border-[rgba(255,255,255,0.08)] bg-[var(--surface)]';
 
 export function AccountSettings() {
-  const { user, updateProfile, updatePassword, setPasswordWithoutCurrent, updateEmail, resetPasswordForEmail, deleteAccount } = useAuth();
+  const { user, updateProfile, updatePassword, setPasswordWithoutCurrent, updateEmail, resetPasswordForEmail, updateBetaOptIn, deleteAccount } = useAuth();
   const [modal, setModal] = useState<SettingsModal | null>(null);
 
   const [fullName, setFullName] = useState('');
@@ -98,6 +98,19 @@ export function AccountSettings() {
   const [firstPwdBusy, setFirstPwdBusy] = useState(false);
   const [resetLinkMsg, setResetLinkMsg] = useState<string | null>(null);
   const [resetLinkBusy, setResetLinkBusy] = useState(false);
+
+  const betaOptIn = (user?.user_metadata as { beta_opt_in?: boolean } | undefined)?.beta_opt_in === true;
+  const [betaBusy, setBetaBusy] = useState(false);
+  const [betaMsg, setBetaMsg] = useState<string | null>(null);
+
+  const handleBetaToggle = async () => {
+    setBetaBusy(true); setBetaMsg(null);
+    const { error } = await updateBetaOptIn(!betaOptIn);
+    setBetaBusy(false);
+    if (error) { setBetaMsg(error); return; }
+    setBetaMsg(!betaOptIn ? 'You are now enrolled in the Beta Program.' : 'You have left the Beta Program.');
+    setTimeout(() => setBetaMsg(null), 3000);
+  };
 
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
   const [deleteErr, setDeleteErr] = useState<string | null>(null);
@@ -210,6 +223,40 @@ export function AccountSettings() {
             <button type="button" onClick={() => openModal('password')} className="text-xs text-accent hover:underline">Manage</button>
           </div>
         </div>
+      </div>
+
+      {/* Beta Program */}
+      <div className="glass-card p-6 max-w-lg mb-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <h2 className="font-medium mb-1">Beta Program</h2>
+            <p className="text-text-muted text-sm">
+              Get early access to pre-release versions before they are publicly available. Beta builds may have bugs or incomplete features.
+            </p>
+            {betaMsg && (
+              <p className="text-emerald-400/90 text-sm mt-2">{betaMsg}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={betaOptIn}
+            disabled={betaBusy}
+            onClick={() => void handleBetaToggle()}
+            className="relative shrink-0 w-11 h-6 rounded-full transition-colors duration-200 disabled:opacity-50 mt-0.5"
+            style={{ background: betaOptIn ? 'var(--accent)' : 'rgba(255,255,255,0.12)' }}
+          >
+            <span
+              className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+              style={{ transform: betaOptIn ? 'translateX(20px)' : 'translateX(0)' }}
+            />
+          </button>
+        </div>
+        {betaOptIn && (
+          <div className="mt-3 px-3 py-2 rounded-lg text-xs" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', color: '#fbbf24' }}>
+            You are enrolled. Pre-release versions will appear on your Download page.
+          </div>
+        )}
       </div>
 
       {/* Danger zone */}
