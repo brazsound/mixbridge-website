@@ -527,6 +527,7 @@ function ActionsMenu({
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDeleteFinal, setConfirmDeleteFinal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -555,6 +556,7 @@ function ActionsMenu({
     await apiReq(token, 'user-actions', 'POST', { action: 'delete_user', auth_id: account.auth_id, email: account.email });
     setDeleteLoading(false);
     setConfirmDelete(false);
+    setConfirmDeleteFinal(false);
     setOpen(false);
     onRefresh();
   };
@@ -570,16 +572,52 @@ function ActionsMenu({
 
   return (
     <div>
-      {confirmDelete ? (
+      {/* Final confirmation modal */}
+      {confirmDeleteFinal && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className="w-full max-w-sm rounded-2xl p-6 shadow-2xl" style={{ background: 'var(--bg)', border: '1px solid rgba(255,255,255,0.12)' }}>
+            <div className="mb-4 flex items-center justify-center w-12 h-12 rounded-full mx-auto" style={{ background: 'rgba(248,113,113,0.12)' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            </div>
+            <h3 className="text-center text-base font-semibold mb-1" style={{ color: 'var(--text)' }}>This cannot be undone</h3>
+            <p className="text-center text-sm mb-2" style={{ color: 'var(--text-muted)' }}>
+              You are permanently deleting:
+            </p>
+            <p className="text-center text-sm font-medium mb-5 px-2 py-2 rounded-lg" style={{ color: '#f87171', background: 'rgba(248,113,113,0.08)', wordBreak: 'break-all' }}>
+              {account.email}
+            </p>
+            <p className="text-center text-xs mb-5" style={{ color: 'var(--text-muted)' }}>
+              Their account, auth credentials, and all activations will be removed from the system.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setConfirmDeleteFinal(false); setConfirmDelete(false); }}
+                className="flex-1 py-2.5 rounded-xl text-sm transition-colors"
+                style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                Cancel
+              </button>
+              <button
+                onClick={() => void deleteUser()} disabled={deleteLoading}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+                style={{ background: '#ef4444', color: '#fff' }}>
+                {deleteLoading ? 'Deleting…' : 'Yes, delete permanently'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {confirmDelete && !confirmDeleteFinal ? (
         <div className="flex items-center gap-2">
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Delete account?</span>
-          <button onClick={() => void deleteUser()} disabled={deleteLoading}
-            className="text-xs font-medium transition-colors disabled:opacity-40" style={{ color: '#f87171' }}>
-            {deleteLoading ? 'Deleting…' : 'Confirm'}
+          <button onClick={() => setConfirmDeleteFinal(true)}
+            className="text-xs font-medium transition-colors" style={{ color: '#f87171' }}>
+            Confirm
           </button>
           <button onClick={() => setConfirmDelete(false)} className="text-xs" style={{ color: 'var(--text-muted)' }}>Cancel</button>
         </div>
-      ) : (
+      ) : (!confirmDeleteFinal && (
         <>
           <button
             ref={btnRef}
