@@ -2,11 +2,6 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
-// Read the hash captured by the inline script in index.html, which runs
-// before any JS modules load (and before Supabase clears the hash).
-const INITIAL_HASH: string =
-  (typeof window !== 'undefined' && (window as Window & { __initialHash?: string }).__initialHash) || '';
-
 interface AuthContextValue {
   user: User | null;
   session: Session | null;
@@ -43,26 +38,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
 
   useEffect(() => {
-    const isInviteFlow = INITIAL_HASH.includes('type=invite') || INITIAL_HASH.includes('type=signup');
-
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      // If page loaded with an invite hash and a session is already present,
-      // show the password setup modal immediately (covers already-logged-in case)
-      if (isInviteFlow && session?.user) {
+      if (session?.user?.user_metadata?.needs_password_setup) {
         setNeedsPasswordSetup(true);
       }
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      // Covers the case where the user was signed out before clicking the invite link
-      if (isInviteFlow && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
+      if (session?.user?.user_metadata?.needs_password_setup) {
         setNeedsPasswordSetup(true);
       }
     });
@@ -142,7 +132,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (newPassword.length < MIN_PASSWORD_LENGTH) {
       return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` };
     }
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    // Set password and clear the setup flag in one call
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+      data: { needs_password_setup: false },
+    });
     if (error) return { error: error.message };
     setNeedsPasswordSetup(false);
     return {};
