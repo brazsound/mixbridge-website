@@ -38,7 +38,7 @@ function Avatar({ url, name, size = 32 }: { url: string | null; name: string; si
   );
 }
 
-function AccountDropdown({ onClose }: { onClose: () => void }) {
+function AccountDropdown({ onClose, triggerRef }: { onClose: () => void; triggerRef: React.RefObject<HTMLButtonElement | null> }) {
   const { user, avatarUrl, signOut } = useAuth();
   const navigate = useNavigate();
   const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
@@ -47,7 +47,10 @@ function AccountDropdown({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+      // Don't close if clicking inside the dropdown or on the trigger button itself
+      if (ref.current?.contains(e.target as Node)) return;
+      if (triggerRef.current?.contains(e.target as Node)) return;
+      onClose();
     };
     const escHandler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('mousedown', handler);
@@ -56,7 +59,7 @@ function AccountDropdown({ onClose }: { onClose: () => void }) {
       document.removeEventListener('mousedown', handler);
       document.removeEventListener('keydown', escHandler);
     };
-  }, [onClose]);
+  }, [onClose, triggerRef]);
 
   const handleNav = (to: string) => { navigate(to); onClose(); };
   const handleSignOut = async () => { onClose(); await signOut(); navigate('/'); };
@@ -120,6 +123,7 @@ export function Nav() {
   const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const displayName = (user?.user_metadata as { full_name?: string })?.full_name || user?.email || '';
 
@@ -138,10 +142,9 @@ export function Nav() {
           {user ? (
             <div className="relative">
               <button
+                ref={triggerRef}
                 type="button"
-                // Use onMouseDown + preventDefault so the dropdown's outside-click
-                // handler (which listens on mousedown) doesn't fire before this toggle.
-                onMouseDown={(e) => { e.preventDefault(); setDropdownOpen((v) => !v); }}
+                onClick={() => setDropdownOpen((v) => !v)}
                 className="flex items-center gap-2 transition-opacity hover:opacity-80"
                 aria-label="Account menu"
                 aria-expanded={dropdownOpen}
@@ -154,7 +157,7 @@ export function Nav() {
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </button>
-              {dropdownOpen && <AccountDropdown onClose={() => setDropdownOpen(false)} />}
+              {dropdownOpen && <AccountDropdown onClose={() => setDropdownOpen(false)} triggerRef={triggerRef} />}
             </div>
           ) : (
             <Link to="/account" className={linkClass}>Account</Link>
