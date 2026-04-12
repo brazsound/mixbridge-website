@@ -64,6 +64,8 @@ const menuBtnClass =
 
 export function AccountSettings() {
   const { user, updateProfile, updatePassword, setPasswordWithoutCurrent, updateEmail, resetPasswordForEmail, updateBetaOptIn, deleteAccount } = useAuth();
+  // True if the user has ever set a password (has an 'email' identity provider)
+  const hasPassword = user?.identities?.some(id => id.provider === 'email') ?? false;
   const [modal, setModal] = useState<SettingsModal | null>(null);
 
   const [fullName, setFullName] = useState('');
@@ -349,34 +351,42 @@ export function AccountSettings() {
       {modal === 'password' && (
         <ModalShell title="Password" onClose={closeModal}>
           <div className="space-y-8">
-            <form onSubmit={handleFirstPassword} className="space-y-3">
-              <h3 className="text-sm font-medium text-text-secondary">Create a password</h3>
-              <p className="text-text-muted text-xs">If you usually sign in with an email link, set a password here.</p>
-              <input type="password" value={firstPassword} onChange={(e) => setFirstPassword(e.target.value)} placeholder="New password" className={inputClass} autoComplete="new-password" minLength={6} />
-              <input type="password" value={firstPasswordConfirm} onChange={(e) => setFirstPasswordConfirm(e.target.value)} placeholder="Confirm new password" className={inputClass} autoComplete="new-password" minLength={6} />
-              {firstPwdErr && <p className="text-amber-400 text-sm">{firstPwdErr}</p>}
-              {firstPwdMsg && <p className="text-emerald-400/90 text-sm">{firstPwdMsg}</p>}
-              {resetLinkMsg && <p className="text-emerald-400/90 text-sm">{resetLinkMsg}</p>}
-              <div className="flex flex-wrap gap-2 pt-1">
-                <button type="submit" disabled={firstPwdBusy} className="btn-accent text-sm py-2 px-4">{firstPwdBusy ? 'Saving…' : 'Save password'}</button>
-                <button type="button" disabled={resetLinkBusy} onClick={() => void handlePasswordResetEmail()} className={menuBtnClass}>{resetLinkBusy ? 'Sending…' : 'Email me a reset link instead'}</button>
-              </div>
-            </form>
-            <div className="pt-6" style={{ borderTop: '1px solid var(--border)' }}>
-              <form onSubmit={handlePassword} className="space-y-3">
-                <h3 className="text-sm font-medium text-text-secondary">Change existing password</h3>
-                <p className="text-text-muted text-xs">Enter your current password, then your new password (at least 6 characters).</p>
-                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Current password" className={inputClass} autoComplete="current-password" />
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password" className={inputClass} autoComplete="new-password" minLength={6} />
-                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm new password" className={inputClass} autoComplete="new-password" minLength={6} />
-                {passwordErr && <p className="text-amber-400 text-sm">{passwordErr}</p>}
-                {passwordMsg && <p className="text-emerald-400/90 text-sm">{passwordMsg}</p>}
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <button type="submit" disabled={passwordBusy} className="btn-accent text-sm py-2 px-4">{passwordBusy ? 'Updating…' : 'Update password'}</button>
-                  <button type="button" onClick={closeModal} className={menuBtnClass}>Done</button>
+            {!hasPassword && (
+              <form onSubmit={handleFirstPassword} className="space-y-3">
+                <h3 className="text-sm font-medium text-text-secondary">Create a password</h3>
+                <p className="text-text-muted text-xs">If you usually sign in with an email link, set a password here.</p>
+                <input type="password" value={firstPassword} onChange={(e) => setFirstPassword(e.target.value)} placeholder="New password" className={inputClass} autoComplete="new-password" minLength={6} />
+                <input type="password" value={firstPasswordConfirm} onChange={(e) => setFirstPasswordConfirm(e.target.value)} placeholder="Confirm new password" className={inputClass} autoComplete="new-password" minLength={6} />
+                {firstPwdErr && <p className="text-amber-400 text-sm">{firstPwdErr}</p>}
+                {firstPwdMsg && <p className="text-emerald-400/90 text-sm">{firstPwdMsg}</p>}
+                {resetLinkMsg && <p className="text-emerald-400/90 text-sm">{resetLinkMsg}</p>}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button type="submit" disabled={firstPwdBusy} className="btn-accent text-sm py-2 px-4">{firstPwdBusy ? 'Saving…' : 'Save password'}</button>
                 </div>
               </form>
-            </div>
+            )}
+            <form onSubmit={hasPassword ? handlePassword : handleFirstPassword} className={`space-y-3 ${!hasPassword ? 'pt-6' : ''}`} style={!hasPassword ? { borderTop: '1px solid var(--border)' } : {}}>
+              {hasPassword && (
+                <>
+                  <h3 className="text-sm font-medium text-text-secondary">Change password</h3>
+                  <p className="text-text-muted text-xs">Enter your current password, then choose a new one.</p>
+                  <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Current password" className={inputClass} autoComplete="current-password" />
+                </>
+              )}
+              {hasPassword && (
+                <>
+                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password" className={inputClass} autoComplete="new-password" minLength={6} />
+                  <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm new password" className={inputClass} autoComplete="new-password" minLength={6} />
+                  {passwordErr && <p className="text-amber-400 text-sm">{passwordErr}</p>}
+                  {passwordMsg && <p className="text-emerald-400/90 text-sm">{passwordMsg}</p>}
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <button type="submit" disabled={passwordBusy} className="btn-accent text-sm py-2 px-4">{passwordBusy ? 'Updating…' : 'Update password'}</button>
+                    <button type="button" disabled={resetLinkBusy} onClick={() => void handlePasswordResetEmail()} className={menuBtnClass}>{resetLinkBusy ? 'Sending…' : 'Forgot password?'}</button>
+                    <button type="button" onClick={closeModal} className={menuBtnClass}>Done</button>
+                  </div>
+                </>
+              )}
+            </form>
           </div>
         </ModalShell>
       )}
