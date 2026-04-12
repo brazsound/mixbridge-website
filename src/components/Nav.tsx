@@ -139,15 +139,17 @@ export function Nav() {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setDropdownOpen((v) => !v)}
-                className="flex items-center gap-2 rounded-full transition-opacity hover:opacity-80"
+                // Use onMouseDown + preventDefault so the dropdown's outside-click
+                // handler (which listens on mousedown) doesn't fire before this toggle.
+                onMouseDown={(e) => { e.preventDefault(); setDropdownOpen((v) => !v); }}
+                className="flex items-center gap-2 transition-opacity hover:opacity-80"
                 aria-label="Account menu"
                 aria-expanded={dropdownOpen}
               >
-                <Avatar url={avatarUrl} name={displayName} size={30} />
                 {displayName && (
                   <span className="text-[13px] text-text-muted max-w-[120px] truncate">{displayName.split(' ')[0]}</span>
                 )}
+                <Avatar url={avatarUrl} name={displayName} size={30} />
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-text-muted" style={{ transform: dropdownOpen ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s' }}>
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
