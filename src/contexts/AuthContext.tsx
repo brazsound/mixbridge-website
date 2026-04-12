@@ -11,6 +11,9 @@ interface AuthContextValue {
   /** True when user arrived via a password reset link — show the reset modal instead of logging in. */
   needsPasswordReset: boolean;
   clearPasswordReset: () => void;
+  uploadAvatar: (file: File) => Promise<{ url?: string; error?: string }>;
+  /** Public avatar URL from user metadata, or null if not set. */
+  avatarUrl: string | null;
   signInWithEmail: (email: string) => Promise<{ error?: string }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error?: string }>;
   signUpWithPassword: (email: string, password: string) => Promise<{ error?: string; needsEmailConfirmation?: boolean }>;
@@ -40,6 +43,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
   const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
+
+  const avatarUrl = (user?.user_metadata as { avatar_url?: string } | undefined)?.avatar_url ?? null;
 
   useEffect(() => {
     let mounted = true;
@@ -93,6 +98,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const clearPasswordReset = useCallback(() => setNeedsPasswordReset(false), []);
+
+  const uploadAvatar = useCallback(async (file: File): Promise<{ url?: string; error?: string }> => {
+    const currentUser = (await supabase.auth.getUser()).data.user;
+    if (!currentUser) return { error: 'Not authenticated' };
+
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const path = `${currentUser.id}/avatar.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(path, file, { upsert: true, contentType: file.type });
+
+    if (uploadError) return { error: uploadError.message };
+
+    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+
+    // Bust the cache by appending a timestamp
+    const url = `${publicUrl}?t=${Date.now()}`;
+
+    const { error: metaError } = await supabase.auth.updateUser({ data: { avatar_url: url } });
+    if (metaError) return { error: metaError.message };
+
+    // Refresh local user state
+    const { data: { user: refreshed } } = await supabase.auth.getUser();
+    if (refreshed) setUser(refreshed);
+
+    return { url };
+  }, []);
 
   const signInWithEmail = useCallback(async (email: string) => {
     const trimmed = email.trim().toLowerCase();
@@ -236,6 +269,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     needsPasswordSetup,
     needsPasswordReset,
     clearPasswordReset,
+    uploadAvatar,
+    avatarUrl,
     signInWithEmail,
     signInWithPassword,
     signUpWithPassword,

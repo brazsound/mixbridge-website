@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, type ReactNode } from 'react';
+import { useEffect, useState, useRef, useCallback, type ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const inputClass =
@@ -63,9 +63,25 @@ const menuBtnClass =
   + ' ' + 'border border-[rgba(255,255,255,0.08)] bg-[var(--surface)]';
 
 export function AccountSettings() {
-  const { user, updateProfile, updatePassword, setPasswordWithoutCurrent, updateEmail, resetPasswordForEmail, updateBetaOptIn, deleteAccount } = useAuth();
+  const { user, avatarUrl, uploadAvatar, updateProfile, updatePassword, setPasswordWithoutCurrent, updateEmail, resetPasswordForEmail, updateBetaOptIn, deleteAccount } = useAuth();
   // True if the user has ever set a password (has an 'email' identity provider)
   const hasPassword = user?.identities?.some(id => id.provider === 'email') ?? false;
+
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarErr, setAvatarErr] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarErr(null);
+    setAvatarBusy(true);
+    const { error } = await uploadAvatar(file);
+    setAvatarBusy(false);
+    if (error) setAvatarErr(error);
+    // reset input so the same file can be re-selected
+    e.target.value = '';
+  }, [uploadAvatar]);
   const [modal, setModal] = useState<SettingsModal | null>(null);
 
   const [fullName, setFullName] = useState('');
@@ -201,6 +217,44 @@ export function AccountSettings() {
       <div className="glass-card p-6 max-w-lg mb-6">
         <h2 className="font-medium mb-4">Account Information</h2>
         <div className="space-y-4">
+          {/* Avatar row */}
+          <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => !avatarBusy && avatarInputRef.current?.click()}
+                disabled={avatarBusy}
+                className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 group"
+                style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+                aria-label="Change profile picture"
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="flex items-center justify-center w-full h-full text-base font-semibold text-text-muted select-none">
+                    {(user?.user_metadata as { full_name?: string })?.full_name?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? '?'}
+                  </span>
+                )}
+                <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'rgba(0,0,0,0.55)' }}>
+                  {avatarBusy ? (
+                    <svg className="animate-spin w-4 h-4 text-white" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  )}
+                </span>
+              </button>
+              <div>
+                <p className="text-text-muted text-[11px] mb-0.5">Profile picture</p>
+                <p className="text-xs text-text-muted">JPG, PNG or WebP · max 2 MB</p>
+                {avatarErr && <p className="text-red-400 text-xs mt-0.5">{avatarErr}</p>}
+              </div>
+            </div>
+            <button type="button" onClick={() => !avatarBusy && avatarInputRef.current?.click()} disabled={avatarBusy} className="text-xs text-accent hover:underline">
+              {avatarBusy ? 'Uploading…' : 'Change'}
+            </button>
+            <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" onChange={handleAvatarChange} />
+          </div>
+
           <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid var(--border)' }}>
             <div>
               <p className="text-text-muted text-[11px] mb-0.5">Name</p>
