@@ -87,6 +87,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (freshUser.user_metadata?.needs_password_setup) {
             setNeedsPasswordSetup(true);
           }
+          // Auto-set name from email prefix on first sign-in if not already set
+          if (!freshUser.user_metadata?.full_name && freshUser.email) {
+            const defaultName = freshUser.email.split('@')[0];
+            supabase.auth.updateUser({ data: { full_name: defaultName } })
+              .then(({ data }) => { if (mounted && data.user) setUser(data.user); })
+              .catch(() => {});
+          }
         }).catch(() => {});
       }
     });
@@ -157,13 +164,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` };
     }
     const redirectTo = `${window.location.origin}/account`;
+    const defaultName = trimmed.split('@')[0];
     const { data, error } = await supabase.auth.signUp({
       email: trimmed,
       password,
       options: {
         emailRedirectTo: redirectTo,
         data: {
-          full_name: trimmed,
+          full_name: defaultName,
         },
       },
     });
