@@ -220,7 +220,7 @@ export function AccountSettings() {
           <div className="flex items-center justify-between py-2.5">
             <div>
               <p className="text-text-muted text-[11px] mb-0.5">Password</p>
-              <p className="text-sm text-text-muted">Create or change your password</p>
+              <p className="text-sm text-text-muted">{hasPassword ? 'Change your password' : 'Create or change your password'}</p>
             </div>
             <button type="button" onClick={() => openModal('password')} className="text-xs text-accent hover:underline">Manage</button>
           </div>
