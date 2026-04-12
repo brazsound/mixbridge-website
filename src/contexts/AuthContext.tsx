@@ -8,6 +8,9 @@ interface AuthContextValue {
   loading: boolean;
   /** True when user arrived via an invite link and must set a password before proceeding. */
   needsPasswordSetup: boolean;
+  /** True when user arrived via a password reset link — show the reset modal instead of logging in. */
+  needsPasswordReset: boolean;
+  clearPasswordReset: () => void;
   signInWithEmail: (email: string) => Promise<{ error?: string }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error?: string }>;
   signUpWithPassword: (email: string, password: string) => Promise<{ error?: string; needsEmailConfirmation?: boolean }>;
@@ -36,6 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
+  const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -60,10 +64,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
+
+      // Intercept password recovery links — don't treat as a normal login.
+      if (event === 'PASSWORD_RECOVERY') {
+        setNeedsPasswordReset(true);
+        return;
+      }
 
       if (session) {
         supabase.auth.getUser().then(({ data: { user: freshUser } }) => {
@@ -81,6 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
+
+  const clearPasswordReset = useCallback(() => setNeedsPasswordReset(false), []);
 
   const signInWithEmail = useCallback(async (email: string) => {
     const trimmed = email.trim().toLowerCase();
@@ -222,6 +234,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     loading,
     needsPasswordSetup,
+    needsPasswordReset,
+    clearPasswordReset,
     signInWithEmail,
     signInWithPassword,
     signUpWithPassword,

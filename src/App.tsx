@@ -154,6 +154,97 @@ function SetPasswordModal() {
   );
 }
 
+function ResetPasswordModal() {
+  const { setPasswordWithoutCurrent, clearPasswordReset, signOut } = useAuth();
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+    if (password !== confirm) { setError('Passwords do not match'); return; }
+    setBusy(true);
+    const result = await setPasswordWithoutCurrent(password);
+    setBusy(false);
+    if (result.error) { setError(result.error); return; }
+    setDone(true);
+    clearPasswordReset();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+      <div className="w-full max-w-sm rounded-2xl p-8 shadow-2xl" style={{ background: 'var(--bg)', border: '1px solid rgba(255,255,255,0.1)' }}>
+        {done ? (
+          <div className="text-center">
+            <div className="text-4xl mb-4">✓</div>
+            <h2 className="text-xl font-semibold mb-2">Password updated!</h2>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Your new password has been saved.</p>
+            <button
+              className="btn-accent w-full py-2.5 rounded-lg font-medium"
+              onClick={() => window.location.replace('/account')}
+            >
+              Go to my account
+            </button>
+          </div>
+        ) : (
+          <>
+            <h2 className="text-xl font-semibold mb-1">Reset your password</h2>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
+              Choose a new password for your account.
+            </p>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>New password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  required
+                  autoFocus
+                  className="px-3 py-2.5 rounded-lg text-sm outline-none"
+                  style={{ background: 'var(--glass-bg)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text)' }}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Confirm password</label>
+                <input
+                  type="password"
+                  value={confirm}
+                  onChange={e => setConfirm(e.target.value)}
+                  placeholder="Repeat password"
+                  required
+                  className="px-3 py-2.5 rounded-lg text-sm outline-none"
+                  style={{ background: 'var(--glass-bg)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text)' }}
+                />
+              </div>
+              {error && <p className="text-xs text-red-400">{error}</p>}
+              <button
+                type="submit"
+                disabled={busy}
+                className="btn-accent py-2.5 rounded-lg font-medium text-sm mt-1"
+              >
+                {busy ? 'Saving…' : 'Save new password'}
+              </button>
+            </form>
+            <button
+              onClick={() => signOut()}
+              className="w-full mt-3 text-xs text-center"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Sign out
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="pt-24 flex justify-center"><p className="text-text-muted">Loading…</p></div>;
@@ -162,11 +253,12 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 function AppInner() {
-  const { needsPasswordSetup } = useAuth();
+  const { needsPasswordSetup, needsPasswordReset } = useAuth();
   return (
     <>
       <Nav />
-      {needsPasswordSetup && <SetPasswordModal />}
+      {needsPasswordReset && <ResetPasswordModal />}
+      {!needsPasswordReset && needsPasswordSetup && <SetPasswordModal />}
       <Routes>
         <Route path="/" element={<HomePage />} />
 
