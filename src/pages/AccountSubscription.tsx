@@ -80,20 +80,19 @@ export function AccountSubscription() {
               </div>
               <div className="space-y-2 text-sm">
                 <p className="text-text-secondary">
-                  Plan: <span className="text-text capitalize font-medium">{data.tier ?? 'Unknown'}</span>
+                  Plan: <span className="text-text capitalize font-medium">
+                    {data.status === 'free' ? 'NFR (complimentary)' : (data.tier ?? 'Unknown')}
+                  </span>
                 </p>
                 <p className="text-text-secondary">
                   Devices: {data.activation_used} / {data.activation_limit}
-                </p>
-                <p className="text-text-secondary">
-                  Status: <span className="text-text capitalize">{data.status === 'free' ? 'NFR (complimentary)' : data.status}</span>
                 </p>
               </div>
             </div>
           )}
 
-          {/* Plans grid */}
-          <div>
+          {/* Plans grid — hidden for NFR users */}
+          {data?.status !== 'free' && <div>
             <h2 className="font-medium mb-4">{data?.status ? 'Available Plans' : 'Choose a Plan'}</h2>
             <div className="grid gap-4 md:grid-cols-3">
               {tiers.map((tier) => {
@@ -125,11 +124,13 @@ export function AccountSubscription() {
                 );
               })}
             </div>
-          </div>
+          </div>}
 
-          <p className="text-text-muted text-xs">
-            Billing is not yet open. <Link to="/account" className="text-accent hover:underline">Return to dashboard</Link> and check back soon.
-          </p>
+          {data?.status !== 'free' && (
+            <p className="text-text-muted text-xs">
+              Billing is not yet open. <Link to="/account" className="text-accent hover:underline">Return to dashboard</Link> and check back soon.
+            </p>
+          )}
         </div>
       )}
     </div>
