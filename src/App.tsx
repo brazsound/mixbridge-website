@@ -37,10 +37,12 @@ function HomePage() {
 }
 
 function SetPasswordModal() {
-  const { setPasswordWithoutCurrent, signOut } = useAuth();
+  const { setPasswordWithoutCurrent, updatePassword, signOut } = useAuth();
+  const [current, setCurrent] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
+  const [needsCurrent, setNeedsCurrent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -50,7 +52,18 @@ function SetPasswordModal() {
     if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
     if (password !== confirm) { setError('Passwords do not match'); return; }
     setBusy(true);
-    const result = await setPasswordWithoutCurrent(password);
+    let result: { error?: string };
+    if (needsCurrent) {
+      result = await updatePassword(current, password);
+    } else {
+      result = await setPasswordWithoutCurrent(password);
+      if (result.error?.toLowerCase().includes('current password')) {
+        setNeedsCurrent(true);
+        setError('This account already has a password. Please enter your current password above.');
+        setBusy(false);
+        return;
+      }
+    }
     setBusy(false);
     if (result.error) { setError(result.error); return; }
     setDone(true);
@@ -78,6 +91,21 @@ function SetPasswordModal() {
               Set a password to secure your account before continuing.
             </p>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              {needsCurrent && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Current password</label>
+                  <input
+                    type="password"
+                    value={current}
+                    onChange={e => setCurrent(e.target.value)}
+                    placeholder="Your existing password"
+                    required
+                    autoFocus
+                    className="px-3 py-2.5 rounded-lg text-sm outline-none"
+                    style={{ background: 'var(--glass-bg)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text)' }}
+                  />
+                </div>
+              )}
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>New password</label>
                 <input
