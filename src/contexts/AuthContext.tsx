@@ -50,13 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session) {
         supabase.auth.getUser().then(({ data: { user: freshUser } }) => {
           if (!mounted || !freshUser) return;
-          console.log('[MixBridge] getUser metadata:', JSON.stringify(freshUser.user_metadata));
           setUser(freshUser);
           if (freshUser.user_metadata?.needs_password_setup) {
-            console.log('[MixBridge] needs_password_setup=true, showing modal');
             setNeedsPasswordSetup(true);
           }
-        }).catch((err) => { console.error('[MixBridge] getUser failed:', err); });
+        }).catch(() => { /* network error — use cached session */ });
       }
     });
 
