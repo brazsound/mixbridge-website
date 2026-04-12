@@ -69,33 +69,15 @@ export function AccountSubscription() {
         <p className="text-amber-400 text-sm">{error}</p>
       ) : (
         <div className="space-y-6">
-          {/* Current subscription card */}
-          <div className="glass-card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-medium">Subscription</h2>
-              {data?.status ? (
+          {/* Current subscription card — only shown when the user has an active plan or NFR license */}
+          {data?.status && (
+            <div className="glass-card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-medium">Your Plan</h2>
                 <span className="px-2 py-0.5 rounded-md text-xs font-semibold" style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399' }}>
                   {data.status === 'free' ? 'NFR' : data.status}
                 </span>
-              ) : (
-                <span className="px-2 py-0.5 rounded-md text-xs font-semibold" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}>
-                  Free
-                </span>
-              )}
-            </div>
-
-            {!data?.status ? (
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-text">Free Plan</p>
-                <p className="text-text-secondary text-sm">
-                  Upgrade to unlock full Mix Bridge features. Billing opens soon.
-                </p>
-                <div className="flex items-center gap-2 text-sm text-text-muted">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--text-muted)' }} />
-                  Status: Free
-                </div>
               </div>
-            ) : (
               <div className="space-y-2 text-sm">
                 <p className="text-text-secondary">
                   Plan: <span className="text-text capitalize font-medium">{data.tier ?? 'Unknown'}</span>
@@ -107,12 +89,12 @@ export function AccountSubscription() {
                   Status: <span className="text-text capitalize">{data.status === 'free' ? 'NFR (complimentary)' : data.status}</span>
                 </p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Plans grid */}
           <div>
-            <h2 className="font-medium mb-4">Available Plans</h2>
+            <h2 className="font-medium mb-4">{data?.status ? 'Available Plans' : 'Choose a Plan'}</h2>
             <div className="grid gap-4 md:grid-cols-3">
               {tiers.map((tier) => {
                 const isCurrent = currentTier === tier.name.toLowerCase();
