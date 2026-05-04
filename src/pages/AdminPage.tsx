@@ -109,6 +109,24 @@ function exportCSV(accounts: Account[]) {
 
 // ── Shared small components ───────────────────────────────────────────────────
 
+function MemberAvatar({ email }: { email: string }) {
+  const letter = (email[0] ?? '?').toUpperCase();
+  return (
+    <span
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+      style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)' }}
+      aria-hidden
+    >
+      {letter}
+    </span>
+  );
+}
+
+function emailLocalPart(email: string) {
+  const i = email.indexOf('@');
+  return i === -1 ? email : email.slice(0, i);
+}
+
 function LicenseBadge({ account }: { account: Account }) {
   if (account.banned_until && new Date(account.banned_until) > new Date()) {
     return (
@@ -729,12 +747,16 @@ function DashboardTab({ token, accountsTotal, noLicense, complimentary, paid }: 
 
 // ── All Accounts Tab ──────────────────────────────────────────────────────────
 
+type AccountSortKey = 'signed_up' | 'email' | 'license';
+
 function AccountsTab({ token }: { token: string }) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'none' | 'complimentary' | 'paid'>('all');
+  const [sortKey, setSortKey] = useState<AccountSortKey>('signed_up');
+  const [sortDesc, setSortDesc] = useState(true);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // Modals
@@ -851,8 +873,22 @@ function AccountsTab({ token }: { token: string }) {
 
   const filtered = accounts.filter((a) => {
     if (filter !== 'all' && a.license_type !== filter) return false;
-    if (search && !a.email.toLowerCase().includes(search.toLowerCase())) return false;
+    const q = search.trim().toLowerCase();
+    if (q && !a.email.toLowerCase().includes(q) && !a.auth_id.toLowerCase().includes(q)) return false;
     return true;
+  });
+
+  const sortedRows = [...filtered].sort((a, b) => {
+    let cmp = 0;
+    if (sortKey === 'email') cmp = a.email.localeCompare(b.email);
+    else if (sortKey === 'signed_up') {
+      cmp = new Date(a.signed_up_at).getTime() - new Date(b.signed_up_at).getTime();
+    } else {
+      const order = { paid: 0, complimentary: 1, none: 2 };
+      cmp = (order[a.license_type] ?? 3) - (order[b.license_type] ?? 3);
+      if (cmp === 0) cmp = a.email.localeCompare(b.email);
+    }
+    return sortDesc ? -cmp : cmp;
   });
 
   const recipientCount = accounts.filter((a) => broadcastFilter === 'all' || a.license_type === broadcastFilter).length;
@@ -866,48 +902,6 @@ function AccountsTab({ token }: { token: string }) {
 
   return (
     <div>
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {[{ label: 'Total', value: counts.total }, { label: 'No license', value: counts.none }, { label: 'Complimentary', value: counts.comp }, { label: 'Paid', value: counts.paid }].map((s) => (
-          <div key={s.label} className="glass-card px-4 py-3" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
-            <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>{s.value}</p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Top bar */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <button onClick={() => { setShowInvite(true); setInviteSent(false); setInviteError(null); setInviteEmail(''); }}
-          className="btn-accent shrink-0" style={{ padding: '9px 16px', fontSize: '0.875rem' }}>
-          + Create account
-        </button>
-        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by email…"
-          className="flex-1 min-w-[160px] px-4 py-2.5 rounded-lg text-sm bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
-          style={{ color: 'var(--text)' }} />
-        <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          {(['all', 'none', 'complimentary', 'paid'] as const).map((f) => (
-            <button key={f} onClick={() => setFilter(f)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize"
-              style={{ background: filter === f ? 'rgba(255,255,255,0.1)' : 'transparent', color: filter === f ? 'var(--text)' : 'var(--text-muted)' }}>
-              {f}
-            </button>
-          ))}
-        </div>
-        <button onClick={() => exportCSV(accounts)} className="text-sm px-3 py-2.5 rounded-lg transition-colors shrink-0"
-          style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
-          Export CSV
-        </button>
-        <button onClick={() => void load()} disabled={loading} className="text-sm px-3 py-2.5 rounded-lg transition-colors shrink-0 disabled:opacity-40"
-          style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
-          {loading ? 'Loading…' : 'Refresh'}
-        </button>
-        <button onClick={() => setShowBroadcast((v) => !v)} className="text-sm px-3 py-2.5 rounded-lg transition-colors shrink-0"
-          style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
-          Broadcast email
-        </button>
-      </div>
-
       {/* Broadcast section */}
       {showBroadcast && (
         <div className="glass-card p-5 mb-6">
@@ -957,48 +951,216 @@ function AccountsTab({ token }: { token: string }) {
         </div>
       )}
 
-      {/* Table */}
-      <div className="glass-card overflow-hidden">
-        {error && <div className="px-6 py-4 text-sm" style={{ color: '#f87171' }}>{error}</div>}
-        {!loading && filtered.length === 0 && !error && (
-          <div className="px-6 py-14 text-center">
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{search || filter !== 'all' ? 'No accounts match.' : 'No accounts found.'}</p>
+      {/* Members — Discord-style list */}
+      <div className="glass-card overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="border-b px-5 py-4 sm:px-6" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--text)' }}>Members</h2>
+              <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                <span className="font-medium" style={{ color: 'var(--text-secondary)' }}>{sortedRows.length}</span> shown
+                <span className="mx-1.5 opacity-40">·</span>
+                {counts.total} total
+                <span className="mx-1.5 opacity-40">·</span>
+                {counts.paid} paid
+                <span className="mx-1.5 opacity-40">·</span>
+                {counts.comp} complimentary
+                <span className="mx-1.5 opacity-40">·</span>
+                {counts.none} no license
+              </p>
+            </div>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by email or user ID…"
+                className="w-full min-w-0 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent sm:w-56"
+                style={{ color: 'var(--text)' }}
+              />
+              <div className="flex items-center gap-2">
+                <label htmlFor="account-sort" className="sr-only">Sort by</label>
+                <select
+                  id="account-sort"
+                  value={sortKey}
+                  onChange={(e) => setSortKey(e.target.value as AccountSortKey)}
+                  className="shrink-0 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  <option value="signed_up">Member since</option>
+                  <option value="email">Email (A–Z)</option>
+                  <option value="license">Plan type</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setSortDesc((d) => !d)}
+                  className="shrink-0 rounded-lg border border-white/10 px-3 py-2 text-xs font-medium transition-colors hover:bg-white/[0.06]"
+                  style={{ color: 'var(--text-secondary)' }}
+                  title={sortDesc ? 'Newest / Z–A first' : 'Oldest / A–Z first'}
+                >
+                  {sortDesc ? '↓' : '↑'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => { setShowInvite(true); setInviteSent(false); setInviteError(null); setInviteEmail(''); }}
+              className="btn-accent shrink-0 text-sm"
+              style={{ padding: '8px 14px' }}
+            >
+              + Create account
+            </button>
+            <div className="flex flex-wrap gap-1 rounded-xl p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              {(['all', 'none', 'complimentary', 'paid'] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setFilter(f)}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-all"
+                  style={{
+                    background: filter === f ? 'rgba(255,255,255,0.1)' : 'transparent',
+                    color: filter === f ? 'var(--text)' : 'var(--text-muted)',
+                    boxShadow: filter === f ? 'inset 0 0 0 1px rgba(255,255,255,0.08)' : 'none',
+                  }}
+                >
+                  {f === 'none' ? 'No license' : f}
+                </button>
+              ))}
+            </div>
+            <span className="mx-1 hidden h-5 w-px sm:inline-block" style={{ background: 'rgba(255,255,255,0.12)' }} aria-hidden />
+            <button
+              type="button"
+              onClick={() => exportCSV(accounts)}
+              className="rounded-lg border border-white/10 px-3 py-2 text-xs font-medium transition-colors hover:bg-white/[0.06]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Export CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => void load()}
+              disabled={loading}
+              className="rounded-lg border border-white/10 px-3 py-2 text-xs font-medium transition-colors hover:bg-white/[0.06] disabled:opacity-40"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {loading ? 'Loading…' : 'Refresh'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowBroadcast((v) => !v)}
+              className="rounded-lg border border-white/10 px-3 py-2 text-xs font-medium transition-colors hover:bg-white/[0.06]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Broadcast email
+            </button>
+          </div>
+        </div>
+
+        {error && <div className="border-b px-6 py-3 text-sm" style={{ borderColor: 'rgba(255,255,255,0.06)', color: '#f87171' }}>{error}</div>}
+
+        {loading && (
+          <div className="py-16 text-center text-sm" style={{ color: 'var(--text-muted)' }}>Loading members…</div>
+        )}
+
+        {!loading && sortedRows.length === 0 && !error && (
+          <div className="px-6 py-16 text-center">
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              {search || filter !== 'all' ? 'No members match your search or filter.' : 'No members yet.'}
+            </p>
           </div>
         )}
-        {filtered.length > 0 && (
+
+        {!loading && sortedRows.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[880px] text-sm">
               <thead>
-                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                  {['Email', 'License', 'Key', 'Devices', 'Signed up', 'Actions'].map((h, i) => (
-                    <th key={h} className={`px-${i === 0 || i === 5 ? '5' : '4'} py-3 text-left text-xs font-medium uppercase tracking-wider`} style={{ color: 'var(--text-muted)' }}>{h}</th>
-                  ))}
+                <tr
+                  className="text-left text-[11px] font-semibold uppercase tracking-wider"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-muted)', background: 'rgba(0,0,0,0.15)' }}
+                >
+                  <th className="px-5 py-2.5">Member</th>
+                  <th className="px-4 py-2.5 whitespace-nowrap">Member since</th>
+                  <th className="px-4 py-2.5 whitespace-nowrap">User ID</th>
+                  <th className="px-4 py-2.5">Plan</th>
+                  <th className="px-4 py-2.5 text-center whitespace-nowrap">Devices</th>
+                  <th className="px-4 py-2.5 min-w-[140px]">License key</th>
+                  <th className="px-5 py-2.5 text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((a) => (
-                  <tr key={a.email} className="hover:bg-white/[0.02] transition-colors" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td className="px-5 py-3.5 font-medium" style={{ color: 'var(--text)' }}>{a.email}</td>
-                    <td className="px-4 py-3.5"><LicenseBadge account={a} /></td>
-                    <td className="px-4 py-3.5">
+                {sortedRows.map((a) => (
+                  <tr
+                    key={a.email}
+                    className="transition-colors hover:bg-white/[0.03]"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                  >
+                    <td className="px-5 py-3 align-middle">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <MemberAvatar email={a.email} />
+                        <div className="min-w-0">
+                          <p className="truncate font-medium" style={{ color: 'var(--text)' }} title={emailLocalPart(a.email)}>
+                            {emailLocalPart(a.email)}
+                          </p>
+                          <p className="truncate text-xs" style={{ color: 'var(--text-muted)' }} title={a.email}>
+                            {a.email}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 align-middle text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      {formatDateTime(a.signed_up_at)}
+                    </td>
+                    <td className="px-4 py-3 align-middle">
+                      <code
+                        className="block max-w-[7.5rem] truncate text-[11px] font-mono"
+                        style={{ color: 'var(--text-muted)' }}
+                        title={a.auth_id}
+                      >
+                        {a.auth_id.slice(0, 8)}…
+                      </code>
+                    </td>
+                    <td className="px-4 py-3 align-middle">
+                      <div className="flex flex-wrap items-center gap-1">
+                        <LicenseBadge account={a} />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center align-middle text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      {a.license_type !== 'none' ? (
+                        <span className={(a.activations_used ?? 0) >= (a.activation_limit ?? 999) ? 'text-amber-400' : ''}>
+                          {a.activations_used ?? 0} / {a.activation_limit ?? '-'}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                    <td className="max-w-[200px] px-4 py-3 align-middle">
                       {a.license_key ? (
-                        <div className="flex items-center gap-1.5">
-                          <code className="text-xs font-mono tracking-wider" style={{ color: 'var(--text-secondary)' }}>{a.license_key}</code>
-                          <button onClick={() => { void navigator.clipboard.writeText(a.license_key!); setCopiedKey(a.email); setTimeout(() => setCopiedKey(null), 2000); }}
-                            className="text-xs transition-colors hover:opacity-80" style={{ color: 'var(--text-muted)' }}>
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <code className="truncate font-mono text-[11px] tracking-wide" style={{ color: 'var(--text-secondary)' }} title={a.license_key}>
+                            {a.license_key}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void navigator.clipboard.writeText(a.license_key!);
+                              setCopiedKey(a.email);
+                              setTimeout(() => setCopiedKey(null), 2000);
+                            }}
+                            className="shrink-0 text-[11px] transition-opacity hover:opacity-80"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
                             {copiedKey === a.email ? '✓' : 'Copy'}
                           </button>
                         </div>
-                      ) : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
                     </td>
-                    <td className="px-4 py-3.5 text-center" style={{ color: 'var(--text-secondary)' }}>
-                      {a.license_type !== 'none'
-                        ? <span className={(a.activations_used ?? 0) >= (a.activation_limit ?? 999) ? 'text-amber-400' : ''}>{a.activations_used ?? 0} / {a.activation_limit ?? '-'}</span>
-                        : <span style={{ color: 'var(--text-muted)' }}>-</span>}
-                    </td>
-                    <td className="px-4 py-3.5 text-xs whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>{formatDate(a.signed_up_at)}</td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-1 justify-end">
+                    <td className="px-5 py-3 align-middle text-right">
+                      <div className="flex items-center justify-end gap-1">
                         {resetLoading === a.email && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>…</span>}
                         <ActionsMenu
                           account={a}
@@ -1008,7 +1170,12 @@ function AccountsTab({ token }: { token: string }) {
                           onOpenLicense={() => setLicenseAccount(a)}
                           onOpenEmail={() => setEmailAccount(a)}
                           onOpenReset={() => void sendReset(a)}
-                          onOpenGrant={() => { setGrantAccount(a); setGrantNote(''); setGrantLimit(3); setGrantError(null); }}
+                          onOpenGrant={() => {
+                            setGrantAccount(a);
+                            setGrantNote('');
+                            setGrantLimit(3);
+                            setGrantError(null);
+                          }}
                         />
                       </div>
                     </td>
@@ -1457,7 +1624,7 @@ function NfrTab({ token }: { token: string }) {
         {!dataLoading && users.length === 0 && !loadError && (
           <div className="px-6 py-14 text-center">
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No complimentary licenses yet.</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Add an email above or use All Accounts to grant from an existing account.</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Add an email above or use Members to grant from an existing account.</p>
           </div>
         )}
 
@@ -1787,7 +1954,7 @@ type Tab = 'dashboard' | 'accounts' | 'bugs' | 'audit' | 'licenses' | 'releases'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
-  { id: 'accounts', label: 'All Accounts' },
+  { id: 'accounts', label: 'Members' },
   { id: 'bugs', label: 'Bug Reports' },
   { id: 'audit', label: 'Audit Log' },
   { id: 'licenses', label: 'Complimentary Licenses' },
