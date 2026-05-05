@@ -734,9 +734,8 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
                   )}
                 </div>
 
-                {/* Device limit override (complimentary only) */}
-                {account.license_type === 'complimentary' && (
-                  <div className="pt-3" style={divider}>
+                {/* Device limit override */}
+                <div className="pt-3" style={divider}>
                     <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Device limit override</p>
                     <div className="flex items-center gap-2">
                       <input type="number" value={limitValue}
@@ -752,7 +751,6 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
                     </div>
                     {limitError && <p className="text-xs mt-1" style={{ color: '#fbbf24' }}>{limitError}</p>}
                   </div>
-                )}
 
                 {/* Transfer (complimentary only) */}
                 {account.license_type === 'complimentary' && (
