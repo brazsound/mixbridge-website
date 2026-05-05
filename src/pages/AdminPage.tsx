@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -13,7 +13,7 @@ interface Account {
   banned_until?: string | null;
   license_type: 'none' | 'complimentary' | 'paid';
   status: string | null;
-  tier: string | null;
+  license_version: number | null;
   license_key: string | null;
   note?: string;
   activation_limit?: number;
@@ -57,7 +57,7 @@ interface AuditEntry {
 
 interface Stats {
   complimentary_licenses: number;
-  paid_subscriptions: number;
+  paid_licenses: number;
   devices_activated_this_week: number;
   open_bug_reports: number;
 }
@@ -83,12 +83,12 @@ function apiReq(token: string, path: string, method: string, body?: object) {
 }
 
 function exportCSV(accounts: Account[]) {
-  const header = 'Email,License Type,Tier,Status,Devices Used,Device Limit,Signed Up';
+  const header = 'Email,License Type,Version,Status,Devices Used,Device Limit,Signed Up';
   const rows = accounts.map((a) =>
     [
       a.email,
       a.license_type,
-      a.tier ?? '',
+      a.license_version != null ? `V${a.license_version}` : '',
       a.status ?? '',
       a.activations_used ?? '',
       a.activation_limit ?? '',
@@ -138,13 +138,22 @@ function LicenseBadge({ account }: { account: Account }) {
     );
   }
   if (account.license_type === 'paid') {
-    const label = account.tier ? ({ solo: 'Solo', pro: 'Pro', team: 'Team' }[account.tier] ?? account.tier) : 'Paid';
-    const past = account.status === 'past_due';
+    const isRefunded = account.status === 'refunded';
+    const versionLabel = account.license_version != null ? `V${account.license_version}` : 'Paid';
+    if (isRefunded) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+          style={{ background: 'rgba(234,179,8,0.12)', color: '#ca8a04', border: '1px solid rgba(234,179,8,0.25)' }}>
+          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#ca8a04' }} />
+          {versionLabel} · Refunded
+        </span>
+      );
+    }
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
-        style={{ background: past ? 'rgba(234,179,8,0.12)' : 'rgba(34,197,94,0.12)', color: past ? '#ca8a04' : '#16a34a', border: `1px solid ${past ? 'rgba(234,179,8,0.25)' : 'rgba(34,197,94,0.25)'}` }}>
-        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: past ? '#ca8a04' : '#16a34a' }} />
-        {label}{past ? ' · Past due' : ''}
+        style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.25)' }}>
+        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#16a34a' }} />
+        {versionLabel}
       </span>
     );
   }
@@ -188,485 +197,6 @@ function ModalHeader({ title, subtitle, onClose }: { title: string; subtitle?: s
   );
 }
 
-function CopyModal({ link, onClose }: { link: string; onClose: () => void }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <Modal onClose={onClose}>
-      <ModalHeader title="Password Reset Link" subtitle="Copy and share this link with the user. It expires after 24 hours." onClose={onClose} />
-      <div className="p-6">
-        <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <code className="flex-1 text-xs font-mono break-all" style={{ color: 'var(--text-secondary)' }}>{link}</code>
-        </div>
-        <button
-          onClick={() => { void navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-          className="mt-4 w-full py-2.5 rounded-xl text-sm font-medium transition-colors"
-          style={{ background: 'var(--accent)', color: '#fff' }}>
-          {copied ? 'Copied!' : 'Copy link'}
-        </button>
-      </div>
-    </Modal>
-  );
-}
-
-// ── Devices Modal ─────────────────────────────────────────────────────────────
-
-function DevicesModal({ account, token, onClose }: { account: Account; token: string; onClose: () => void }) {
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [deactivating, setDeactivating] = useState<string | null>(null);
-  const [wipingAll, setWipingAll] = useState(false);
-  const [confirmWipe, setConfirmWipe] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiReq(token, 'user-actions', 'POST', { action: 'list_devices', email: account.email });
-      const data = await res.json() as { devices?: Device[]; error?: string };
-      if (data.error) { setError(data.error); return; }
-      setDevices(data.devices ?? []);
-    } catch {
-      setError('Failed to load devices.');
-    } finally {
-      setLoading(false);
-    }
-  }, [token, account.email]);
-
-  useEffect(() => { void load(); }, [load]);
-
-  const deactivate = async (d: Device) => {
-    setDeactivating(d.device_id);
-    await apiReq(token, 'user-actions', 'POST', { action: 'deactivate_device', email: account.email, device_id: d.device_id, source: d.source });
-    setDeactivating(null);
-    await load();
-  };
-
-  const wipeAll = async () => {
-    setWipingAll(true);
-    await apiReq(token, 'user-actions', 'POST', { action: 'deactivate_all_devices', email: account.email });
-    setWipingAll(false);
-    setConfirmWipe(false);
-    await load();
-  };
-
-  return (
-    <Modal onClose={onClose}>
-      <ModalHeader title="Activated Devices" subtitle={account.email} onClose={onClose} />
-      <div className="p-6">
-        {loading && <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>Loading…</p>}
-        {error && <p className="text-sm" style={{ color: '#fbbf24' }}>{error}</p>}
-        {!loading && devices.length === 0 && !error && (
-          <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>No activated devices.</p>
-        )}
-        {devices.length > 0 && (
-          <div className="flex flex-col gap-2 mb-5">
-            {devices.map((d) => (
-              <div key={d.device_id} className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
-                    {d.display_name || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Unnamed device</span>}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    {d.source === 'paid' ? 'Paid' : 'Complimentary'} · Activated {formatDate(d.activated_at)}
-                  </p>
-                </div>
-                <button
-                  onClick={() => void deactivate(d)}
-                  disabled={deactivating === d.device_id}
-                  className="text-xs shrink-0 transition-colors disabled:opacity-40"
-                  style={{ color: '#f87171' }}>
-                  {deactivating === d.device_id ? 'Removing…' : 'Deactivate'}
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-        {devices.length > 0 && (
-          confirmWipe ? (
-            <div className="flex items-center gap-3">
-              <span className="text-sm flex-1" style={{ color: 'var(--text-muted)' }}>Remove all {devices.length} devices?</span>
-              <button onClick={() => void wipeAll()} disabled={wipingAll} className="text-xs font-medium transition-colors disabled:opacity-40" style={{ color: '#f87171' }}>
-                {wipingAll ? 'Removing…' : 'Confirm'}
-              </button>
-              <button onClick={() => setConfirmWipe(false)} className="text-xs" style={{ color: 'var(--text-muted)' }}>Cancel</button>
-            </div>
-          ) : (
-            <button onClick={() => setConfirmWipe(true)} className="w-full py-2.5 rounded-xl text-sm transition-colors"
-              style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
-              Deactivate all devices
-            </button>
-          )
-        )}
-      </div>
-    </Modal>
-  );
-}
-
-// ── License Actions Modal ─────────────────────────────────────────────────────
-
-function LicenseModal({ account, token, onClose, onRefresh }: { account: Account; token: string; onClose: () => void; onRefresh: () => void }) {
-  const [regenConfirm, setRegenConfirm] = useState(false);
-  const [regenLoading, setRegenLoading] = useState(false);
-  const [newKey, setNewKey] = useState<string | null>(null);
-  const [copiedKey, setCopiedKey] = useState(false);
-
-  const [transferEmail, setTransferEmail] = useState('');
-  const [transferConfirm, setTransferConfirm] = useState(false);
-  const [transferLoading, setTransferLoading] = useState(false);
-  const [transferError, setTransferError] = useState<string | null>(null);
-
-  const [limitValue, setLimitValue] = useState(account.activation_limit ?? 3);
-  const [limitLoading, setLimitLoading] = useState(false);
-  const [limitError, setLimitError] = useState<string | null>(null);
-  const [limitSaved, setLimitSaved] = useState(false);
-
-  const [error, setError] = useState<string | null>(null);
-
-  const regenKey = async () => {
-    setRegenLoading(true);
-    setError(null);
-    try {
-      const res = await apiReq(token, 'license-actions', 'POST', { action: 'regenerate_key', email: account.email, license_type: account.license_type });
-      const data = await res.json() as { ok?: boolean; new_key?: string; error?: string };
-      if (data.error) { setError(data.error); return; }
-      setNewKey(data.new_key ?? null);
-      setRegenConfirm(false);
-      onRefresh();
-    } finally {
-      setRegenLoading(false);
-    }
-  };
-
-  const transferLicense = async () => {
-    setTransferLoading(true);
-    setTransferError(null);
-    try {
-      const res = await apiReq(token, 'license-actions', 'POST', { action: 'transfer_license', email: account.email, new_email: transferEmail.trim().toLowerCase() });
-      const data = await res.json() as { ok?: boolean; error?: string };
-      if (data.error) { setTransferError(data.error); return; }
-      onRefresh();
-      onClose();
-    } finally {
-      setTransferLoading(false);
-    }
-  };
-
-  const saveLimit = async () => {
-    setLimitLoading(true);
-    setLimitError(null);
-    try {
-      const res = await apiReq(token, 'license-actions', 'POST', { action: 'override_device_limit', email: account.email, limit: limitValue, license_type: account.license_type });
-      const data = await res.json() as { ok?: boolean; error?: string };
-      if (data.error) { setLimitError(data.error); return; }
-      setLimitSaved(true);
-      setTimeout(() => setLimitSaved(false), 2000);
-      onRefresh();
-    } finally {
-      setLimitLoading(false);
-    }
-  };
-
-  return (
-    <Modal onClose={onClose}>
-      <ModalHeader title="License Actions" subtitle={account.email} onClose={onClose} />
-      <div className="p-6 flex flex-col gap-5">
-        {error && <p className="text-sm" style={{ color: '#fbbf24' }}>{error}</p>}
-
-        {/* New key display */}
-        {newKey && (
-          <div className="p-4 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
-            <p className="text-xs mb-2" style={{ color: '#16a34a' }}>New license key generated</p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 text-sm font-mono font-semibold" style={{ color: 'var(--text)' }}>{newKey}</code>
-              <button onClick={() => { void navigator.clipboard.writeText(newKey); setCopiedKey(true); setTimeout(() => setCopiedKey(false), 2000); }}
-                className="text-xs" style={{ color: 'var(--text-muted)' }}>{copiedKey ? '✓' : 'Copy'}</button>
-            </div>
-          </div>
-        )}
-
-        {/* Regenerate key */}
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Regenerate license key</p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Issues a new key. The old key stops working immediately.</p>
-          {regenConfirm ? (
-            <div className="flex gap-2">
-              <button onClick={() => void regenKey()} disabled={regenLoading}
-                className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
-                style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
-                {regenLoading ? 'Generating…' : 'Yes, regenerate'}
-              </button>
-              <button onClick={() => setRegenConfirm(false)} className="flex-1 py-2 rounded-lg text-sm transition-colors"
-                style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button onClick={() => setRegenConfirm(true)}
-              className="w-full py-2 rounded-lg text-sm transition-colors"
-              style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
-              Regenerate key
-            </button>
-          )}
-        </div>
-
-        {/* Override device limit */}
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Device limit</p>
-          <div className="flex items-center gap-2">
-            <input type="number" value={limitValue} onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value, 10) || 1))}
-              min={1} max={100}
-              className="w-20 px-3 py-2 rounded-lg text-sm text-center bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
-              style={{ color: 'var(--text)' }} />
-            <button onClick={() => void saveLimit()} disabled={limitLoading}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
-              style={{ background: 'var(--accent)', color: '#fff' }}>
-              {limitLoading ? 'Saving…' : limitSaved ? 'Saved!' : 'Save'}
-            </button>
-          </div>
-          {limitError && <p className="text-xs" style={{ color: '#fbbf24' }}>{limitError}</p>}
-        </div>
-
-        {/* Transfer license (complimentary only) */}
-        {account.license_type === 'complimentary' && (
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Transfer to new email</p>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Moves the license and all activations to a different email.</p>
-            <input type="email" value={transferEmail} onChange={(e) => setTransferEmail(e.target.value)}
-              placeholder="new@example.com"
-              className="w-full px-3 py-2.5 rounded-lg text-sm bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
-              style={{ color: 'var(--text)' }} />
-            {transferError && <p className="text-xs" style={{ color: '#fbbf24' }}>{transferError}</p>}
-            {transferConfirm ? (
-              <div className="flex gap-2">
-                <button onClick={() => void transferLicense()} disabled={transferLoading}
-                  className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
-                  style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
-                  {transferLoading ? 'Transferring…' : 'Confirm transfer'}
-                </button>
-                <button onClick={() => setTransferConfirm(false)} className="flex-1 py-2 rounded-lg text-sm transition-colors"
-                  style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button onClick={() => setTransferConfirm(true)} disabled={!transferEmail.trim()}
-                className="w-full py-2 rounded-lg text-sm transition-colors disabled:opacity-40"
-                style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                Transfer
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    </Modal>
-  );
-}
-
-// ── Email Compose Modal ───────────────────────────────────────────────────────
-
-function EmailModal({ to, token, onClose }: { to: string; token: string; onClose: () => void }) {
-  const [subject, setSubject] = useState('');
-  const [text, setText] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState(false);
-
-  const send = async () => {
-    if (!subject.trim() || !text.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiReq(token, 'email', 'POST', { action: 'send_custom', to, subject, text });
-      const data = await res.json() as { ok?: boolean; error?: string };
-      if (data.error) { setError(data.error); return; }
-      setSent(true);
-      setTimeout(onClose, 1500);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Modal onClose={onClose}>
-      <ModalHeader title="Send Email" subtitle={to} onClose={onClose} />
-      <div className="p-6 flex flex-col gap-4">
-        {sent ? (
-          <p className="text-sm text-center py-4" style={{ color: '#16a34a' }}>Email sent.</p>
-        ) : (
-          <>
-            <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Subject</label>
-              <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject line"
-                className="w-full px-3 py-2.5 rounded-lg text-sm bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
-                style={{ color: 'var(--text)' }} autoFocus />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Message</label>
-              <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Your message…" rows={6}
-                className="w-full px-3 py-2.5 rounded-lg text-sm bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-                style={{ color: 'var(--text)' }} />
-            </div>
-            {error && <p className="text-sm" style={{ color: '#fbbf24' }}>{error}</p>}
-            <div className="flex gap-2">
-              <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm transition-colors"
-                style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                Cancel
-              </button>
-              <button onClick={() => void send()} disabled={loading || !subject.trim() || !text.trim()}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-                style={{ background: 'var(--accent)', color: '#fff' }}>
-                {loading ? 'Sending…' : 'Send'}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </Modal>
-  );
-}
-
-// ── Row Actions Dropdown ──────────────────────────────────────────────────────
-
-function ActionsMenu({
-  account, token, onRefresh, onOpenDevices, onOpenLicense, onOpenEmail, onOpenReset, onOpenGrant,
-}: {
-  account: Account;
-  token: string;
-  onRefresh: () => void;
-  onOpenDevices: () => void;
-  onOpenLicense: () => void;
-  onOpenEmail: () => void;
-  onOpenReset: () => void;
-  onOpenGrant: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [confirmDeleteFinal, setConfirmDeleteFinal] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      const target = e.target as Node;
-      const insideBtn = btnRef.current?.contains(target);
-      const insideMenu = menuRef.current?.contains(target);
-      if (!insideBtn && !insideMenu) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const openMenu = () => {
-    if (btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
-      setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
-    }
-    setOpen((v) => !v);
-  };
-
-  const deleteUser = async () => {
-    setDeleteLoading(true);
-    await apiReq(token, 'user-actions', 'POST', { action: 'delete_user', auth_id: account.auth_id, email: account.email });
-    setDeleteLoading(false);
-    setConfirmDelete(false);
-    setConfirmDeleteFinal(false);
-    setOpen(false);
-    onRefresh();
-  };
-
-  const item = (label: string, onClick: () => void, danger = false) => (
-    <button
-      onMouseDown={(e) => { e.preventDefault(); onClick(); setOpen(false); }}
-      className="w-full text-left px-3 py-2 text-sm transition-colors hover:bg-white/[0.06] rounded-lg"
-      style={{ color: danger ? '#f87171' : 'var(--text-secondary)' }}>
-      {label}
-    </button>
-  );
-
-  return (
-    <div>
-      {/* Final confirmation modal */}
-      {confirmDeleteFinal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl p-6 shadow-2xl" style={{ background: 'var(--bg)', border: '1px solid rgba(255,255,255,0.12)' }}>
-            <div className="mb-4 flex items-center justify-center w-12 h-12 rounded-full mx-auto" style={{ background: 'rgba(248,113,113,0.12)' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-            </div>
-            <h3 className="text-center text-base font-semibold mb-1" style={{ color: 'var(--text)' }}>This cannot be undone</h3>
-            <p className="text-center text-sm mb-2" style={{ color: 'var(--text-muted)' }}>
-              You are permanently deleting:
-            </p>
-            <p className="text-center text-sm font-medium mb-5 px-2 py-2 rounded-lg" style={{ color: '#f87171', background: 'rgba(248,113,113,0.08)', wordBreak: 'break-all' }}>
-              {account.email}
-            </p>
-            <p className="text-center text-xs mb-5" style={{ color: 'var(--text-muted)' }}>
-              Their account, auth credentials, and all activations will be removed from the system.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setConfirmDeleteFinal(false); setConfirmDelete(false); }}
-                className="flex-1 py-2.5 rounded-xl text-sm transition-colors"
-                style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                Cancel
-              </button>
-              <button
-                onClick={() => void deleteUser()} disabled={deleteLoading}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-                style={{ background: '#ef4444', color: '#fff' }}>
-                {deleteLoading ? 'Deleting…' : 'Yes, delete permanently'}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {confirmDelete && !confirmDeleteFinal ? (
-        <div className="flex items-center gap-2">
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Delete account?</span>
-          <button onClick={() => setConfirmDeleteFinal(true)}
-            className="text-xs font-medium transition-colors" style={{ color: '#f87171' }}>
-            Confirm
-          </button>
-          <button onClick={() => setConfirmDelete(false)} className="text-xs" style={{ color: 'var(--text-muted)' }}>Cancel</button>
-        </div>
-      ) : (!confirmDeleteFinal && (
-        <>
-          <button
-            ref={btnRef}
-            onClick={openMenu}
-            className="px-2 py-1 rounded-lg text-sm transition-colors hover:bg-white/[0.06]"
-            style={{ color: 'var(--text-muted)' }}>
-            ···
-          </button>
-          {open && menuPos && createPortal(
-            <div
-              ref={menuRef}
-              className="fixed z-[9999] w-44 rounded-xl p-1 shadow-2xl"
-              style={{
-                top: menuPos.top,
-                right: menuPos.right,
-                background: 'var(--bg)',
-                border: '1px solid rgba(255,255,255,0.12)',
-              }}>
-              {account.license_type === 'none' && item('Grant license', onOpenGrant)}
-              {item('Send reset link', onOpenReset)}
-              {item('Devices', onOpenDevices)}
-              {(account.license_type === 'complimentary' || account.license_type === 'paid') && item('License actions', onOpenLicense)}
-              {item('Send email', onOpenEmail)}
-              {account.license_type !== 'paid' && item('Delete account', () => setConfirmDelete(true), true)}
-            </div>,
-            document.body
-          )}
-        </>
-      ))}
-    </div>
-  );
-}
 
 // ── Dashboard Tab ─────────────────────────────────────────────────────────────
 
@@ -745,6 +275,561 @@ function DashboardTab({ token, accountsTotal, noLicense, complimentary, paid }: 
   );
 }
 
+// ── User Detail Panel ─────────────────────────────────────────────────────────
+
+function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
+  account: Account;
+  token: string;
+  onBack: () => void;
+  onAccountRefresh: () => void;
+}) {
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [devicesLoading, setDevicesLoading] = useState(true);
+  const [devicesError, setDevicesError] = useState<string | null>(null);
+  const [deactivating, setDeactivating] = useState<string | null>(null);
+  const [wipingAll, setWipingAll] = useState(false);
+  const [confirmWipe, setConfirmWipe] = useState(false);
+
+  const [regenConfirm, setRegenConfirm] = useState(false);
+  const [regenLoading, setRegenLoading] = useState(false);
+  const [newKey, setNewKey] = useState<string | null>(null);
+  const [copiedKeyMain, setCopiedKeyMain] = useState(false);
+  const [limitValue, setLimitValue] = useState(account.activation_limit ?? 3);
+  const [limitLoading, setLimitLoading] = useState(false);
+  const [limitSaved, setLimitSaved] = useState(false);
+  const [limitError, setLimitError] = useState<string | null>(null);
+  const [transferEmail, setTransferEmail] = useState('');
+  const [transferConfirm, setTransferConfirm] = useState(false);
+  const [transferLoading, setTransferLoading] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [licenseError, setLicenseError] = useState<string | null>(null);
+
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailText, setEmailText] = useState('');
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
+
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetLink, setResetLink] = useState<string | null>(null);
+  const [resetCopied, setResetCopied] = useState(false);
+
+  const [grantNote, setGrantNote] = useState('');
+  const [grantLimit, setGrantLimit] = useState(3);
+  const [grantLoading, setGrantLoading] = useState(false);
+  const [grantError, setGrantError] = useState<string | null>(null);
+  const [grantSuccess, setGrantSuccess] = useState(false);
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDeleteFinal, setConfirmDeleteFinal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const loadDevices = useCallback(async () => {
+    setDevicesLoading(true);
+    setDevicesError(null);
+    try {
+      const res = await apiReq(token, 'user-actions', 'POST', { action: 'list_devices', email: account.email });
+      const data = await res.json() as { devices?: Device[]; error?: string };
+      if (data.error) { setDevicesError(data.error); return; }
+      setDevices(data.devices ?? []);
+    } catch {
+      setDevicesError('Failed to load devices.');
+    } finally {
+      setDevicesLoading(false);
+    }
+  }, [token, account.email]);
+
+  useEffect(() => { void loadDevices(); }, [loadDevices]);
+
+  const deactivateDevice = async (d: Device) => {
+    setDeactivating(d.device_id);
+    await apiReq(token, 'user-actions', 'POST', { action: 'deactivate_device', email: account.email, device_id: d.device_id, source: d.source });
+    setDeactivating(null);
+    await loadDevices();
+    onAccountRefresh();
+  };
+
+  const wipeAll = async () => {
+    setWipingAll(true);
+    await apiReq(token, 'user-actions', 'POST', { action: 'deactivate_all_devices', email: account.email });
+    setWipingAll(false);
+    setConfirmWipe(false);
+    await loadDevices();
+    onAccountRefresh();
+  };
+
+  const regenKey = async () => {
+    setRegenLoading(true);
+    setLicenseError(null);
+    try {
+      const res = await apiReq(token, 'license-actions', 'POST', { action: 'regenerate_key', email: account.email, license_type: account.license_type });
+      const data = await res.json() as { ok?: boolean; new_key?: string; error?: string };
+      if (data.error) { setLicenseError(data.error); return; }
+      setNewKey(data.new_key ?? null);
+      setRegenConfirm(false);
+      onAccountRefresh();
+    } finally {
+      setRegenLoading(false);
+    }
+  };
+
+  const saveLimit = async () => {
+    setLimitLoading(true);
+    setLimitError(null);
+    try {
+      const res = await apiReq(token, 'license-actions', 'POST', { action: 'override_device_limit', email: account.email, limit: limitValue, license_type: account.license_type });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (data.error) { setLimitError(data.error); return; }
+      setLimitSaved(true);
+      setTimeout(() => setLimitSaved(false), 2000);
+      onAccountRefresh();
+    } finally {
+      setLimitLoading(false);
+    }
+  };
+
+  const transferLicense = async () => {
+    setTransferLoading(true);
+    setTransferError(null);
+    try {
+      const res = await apiReq(token, 'license-actions', 'POST', { action: 'transfer_license', email: account.email, new_email: transferEmail.trim().toLowerCase() });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (data.error) { setTransferError(data.error); return; }
+      onAccountRefresh();
+      onBack();
+    } finally {
+      setTransferLoading(false);
+    }
+  };
+
+  const sendEmail = async () => {
+    if (!emailSubject.trim() || !emailText.trim()) return;
+    setEmailLoading(true);
+    setEmailError(null);
+    try {
+      const res = await apiReq(token, 'email', 'POST', { action: 'send_custom', to: account.email, subject: emailSubject, text: emailText });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (data.error) { setEmailError(data.error); return; }
+      setEmailSent(true);
+      setEmailSubject('');
+      setEmailText('');
+      setTimeout(() => setEmailSent(false), 3000);
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const sendReset = async () => {
+    setResetLoading(true);
+    try {
+      const res = await apiReq(token, 'user-actions', 'POST', { action: 'reset_password', email: account.email });
+      const data = await res.json() as { ok?: boolean; link?: string; error?: string };
+      if (data.link) setResetLink(data.link);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const grantLicense = async () => {
+    setGrantLoading(true);
+    setGrantError(null);
+    try {
+      const res = await apiReq(token, 'accounts', 'POST', { email: account.email, note: grantNote.trim() || undefined, activation_limit: grantLimit });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (data.error) { setGrantError(data.error); return; }
+      setGrantSuccess(true);
+      onAccountRefresh();
+    } finally {
+      setGrantLoading(false);
+    }
+  };
+
+  const deleteUser = async () => {
+    setDeleteLoading(true);
+    await apiReq(token, 'user-actions', 'POST', { action: 'delete_user', auth_id: account.auth_id, email: account.email });
+    setDeleteLoading(false);
+    onAccountRefresh();
+    onBack();
+  };
+
+  const SectionLabel = ({ title }: { title: string }) => (
+    <p className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>{title}</p>
+  );
+
+  const divider = { borderTop: '1px solid rgba(255,255,255,0.06)' };
+
+  return (
+    <div>
+      {/* Back nav */}
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1.5 text-sm mb-6 transition-opacity hover:opacity-70"
+        style={{ color: 'var(--text-muted)' }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Back to Members
+      </button>
+
+      {/* User header */}
+      <div className="glass-card p-5 mb-5" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="flex items-start gap-4">
+          <div className="shrink-0">
+            <MemberAvatar email={account.email} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg font-semibold leading-tight" style={{ color: 'var(--text)' }}>{emailLocalPart(account.email)}</h1>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>{account.email}</p>
+            <div className="flex items-center flex-wrap gap-2 mt-3">
+              <LicenseBadge account={account} />
+              {account.activation_limit != null && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${(account.activations_used ?? 0) >= account.activation_limit ? 'text-amber-400' : ''}`}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    color: (account.activations_used ?? 0) >= account.activation_limit ? '#fbbf24' : 'var(--text-muted)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                  }}>
+                  {account.activations_used ?? 0} / {account.activation_limit} devices
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Joined</p>
+            <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--text-secondary)' }}>{formatDate(account.signed_up_at)}</p>
+            <code className="block text-[11px] font-mono mt-2 px-2 py-1 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }} title={account.auth_id}>
+              {account.auth_id.slice(0, 12)}…
+            </code>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* ── Left column ── */}
+        <div className="flex flex-col gap-5">
+
+          {/* License card */}
+          {account.license_type !== 'none' && (
+            <div className="glass-card p-5" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+              <SectionLabel title="License" />
+              <div className="flex flex-col gap-4">
+
+                {/* License key */}
+                {(newKey ?? account.license_key) && (
+                  <div>
+                    <p className="text-xs mb-1.5" style={{ color: 'var(--text-muted)' }}>License key</p>
+                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <code className="flex-1 min-w-0 text-sm font-mono tracking-wide break-all" style={{ color: 'var(--text)' }}>{newKey ?? account.license_key}</code>
+                      <button
+                        onClick={() => { void navigator.clipboard.writeText(newKey ?? account.license_key!); setCopiedKeyMain(true); setTimeout(() => setCopiedKeyMain(false), 2000); }}
+                        className="text-xs shrink-0 transition-opacity hover:opacity-70"
+                        style={{ color: 'var(--text-muted)' }}>
+                        {copiedKeyMain ? '✓ Copied' : 'Copy'}
+                      </button>
+                    </div>
+                    {newKey && <p className="text-xs mt-1.5" style={{ color: '#16a34a' }}>New key generated — share this with the user</p>}
+                  </div>
+                )}
+
+                {/* Version + devices row */}
+                <div className="flex items-center gap-4">
+                  {account.license_type === 'paid' && account.license_version != null && (
+                    <div>
+                      <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Version</p>
+                      <span className="text-sm font-medium px-2.5 py-0.5 rounded-full"
+                        style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.2)' }}>
+                        V{account.license_version}
+                      </span>
+                    </div>
+                  )}
+                  {account.license_type === 'complimentary' && account.note && (
+                    <div>
+                      <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Note</p>
+                      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{account.note}</p>
+                    </div>
+                  )}
+                </div>
+
+                {licenseError && <p className="text-xs" style={{ color: '#fbbf24' }}>{licenseError}</p>}
+
+                {/* Regen key */}
+                <div className="pt-3" style={divider}>
+                  <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Regenerate key — old key stops working immediately.</p>
+                  {regenConfirm ? (
+                    <div className="flex gap-2">
+                      <button onClick={() => void regenKey()} disabled={regenLoading}
+                        className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
+                        style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+                        {regenLoading ? 'Generating…' : 'Yes, regenerate'}
+                      </button>
+                      <button onClick={() => setRegenConfirm(false)}
+                        className="flex-1 py-2 rounded-lg text-sm transition-colors"
+                        style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setRegenConfirm(true)}
+                      className="w-full py-2 rounded-lg text-sm transition-colors"
+                      style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      Regenerate key
+                    </button>
+                  )}
+                </div>
+
+                {/* Device limit override (complimentary only) */}
+                {account.license_type === 'complimentary' && (
+                  <div className="pt-3" style={divider}>
+                    <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Device limit override</p>
+                    <div className="flex items-center gap-2">
+                      <input type="number" value={limitValue}
+                        onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        min={1} max={100}
+                        className="w-20 px-3 py-2 rounded-lg text-sm text-center bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
+                        style={{ color: 'var(--text)' }} />
+                      <button onClick={() => void saveLimit()} disabled={limitLoading}
+                        className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
+                        style={{ background: 'var(--accent)', color: '#fff' }}>
+                        {limitLoading ? 'Saving…' : limitSaved ? 'Saved!' : 'Save'}
+                      </button>
+                    </div>
+                    {limitError && <p className="text-xs mt-1" style={{ color: '#fbbf24' }}>{limitError}</p>}
+                  </div>
+                )}
+
+                {/* Transfer (complimentary only) */}
+                {account.license_type === 'complimentary' && (
+                  <div className="pt-3" style={divider}>
+                    <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Transfer license to a different account</p>
+                    <input type="email" value={transferEmail} onChange={(e) => setTransferEmail(e.target.value)}
+                      placeholder="new@example.com"
+                      className="w-full px-3 py-2.5 rounded-lg text-sm bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent mb-2"
+                      style={{ color: 'var(--text)' }} />
+                    {transferError && <p className="text-xs mb-2" style={{ color: '#fbbf24' }}>{transferError}</p>}
+                    {transferConfirm ? (
+                      <div className="flex gap-2">
+                        <button onClick={() => void transferLicense()} disabled={transferLoading}
+                          className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
+                          style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+                          {transferLoading ? 'Transferring…' : 'Confirm transfer'}
+                        </button>
+                        <button onClick={() => setTransferConfirm(false)}
+                          className="flex-1 py-2 rounded-lg text-sm transition-colors"
+                          style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setTransferConfirm(true)} disabled={!transferEmail.trim()}
+                        className="w-full py-2 rounded-lg text-sm transition-colors disabled:opacity-40"
+                        style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        Transfer
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Grant license (no license accounts) */}
+          {account.license_type === 'none' && (
+            <div className="glass-card p-5" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+              <SectionLabel title="Grant Complimentary License" />
+              {grantSuccess ? (
+                <p className="text-sm" style={{ color: '#16a34a' }}>License granted successfully.</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Note (optional)</label>
+                    <input type="text" value={grantNote} onChange={(e) => setGrantNote(e.target.value)} placeholder="e.g. Beta tester"
+                      className="w-full px-3 py-2.5 rounded-lg text-sm bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
+                      style={{ color: 'var(--text)' }} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Device limit</label>
+                    <input type="number" value={grantLimit}
+                      onChange={(e) => setGrantLimit(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                      min={1} max={100}
+                      className="w-24 px-3 py-2.5 rounded-lg text-sm text-center bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
+                      style={{ color: 'var(--text)' }} />
+                  </div>
+                  {grantError && <p className="text-sm" style={{ color: '#fbbf24' }}>{grantError}</p>}
+                  <button onClick={() => void grantLicense()} disabled={grantLoading}
+                    className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+                    style={{ background: 'var(--accent)', color: '#fff' }}>
+                    {grantLoading ? 'Granting…' : 'Grant license'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Send email */}
+          <div className="glass-card p-5" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+            <SectionLabel title="Send Email" />
+            {emailSent ? (
+              <p className="text-sm py-2" style={{ color: '#16a34a' }}>Email sent successfully.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <input type="text" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)}
+                  placeholder="Subject"
+                  className="w-full px-3 py-2.5 rounded-lg text-sm bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
+                  style={{ color: 'var(--text)' }} />
+                <textarea value={emailText} onChange={(e) => setEmailText(e.target.value)}
+                  placeholder="Message…" rows={4}
+                  className="w-full px-3 py-2.5 rounded-lg text-sm bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent resize-none"
+                  style={{ color: 'var(--text)' }} />
+                {emailError && <p className="text-sm" style={{ color: '#fbbf24' }}>{emailError}</p>}
+                <button onClick={() => void sendEmail()} disabled={emailLoading || !emailSubject.trim() || !emailText.trim()}
+                  className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+                  style={{ background: 'var(--accent)', color: '#fff' }}>
+                  {emailLoading ? 'Sending…' : 'Send email'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Right column ── */}
+        <div className="flex flex-col gap-5">
+
+          {/* Devices */}
+          <div className="glass-card p-5" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Activated Devices</p>
+              <button onClick={() => void loadDevices()} className="text-xs transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
+                Refresh
+              </button>
+            </div>
+
+            {devicesLoading && <p className="text-sm py-4 text-center" style={{ color: 'var(--text-muted)' }}>Loading…</p>}
+            {devicesError && <p className="text-sm" style={{ color: '#fbbf24' }}>{devicesError}</p>}
+            {!devicesLoading && devices.length === 0 && !devicesError && (
+              <p className="text-sm py-4 text-center" style={{ color: 'var(--text-muted)' }}>No activated devices.</p>
+            )}
+
+            {devices.length > 0 && (
+              <div className="flex flex-col gap-2 mb-4">
+                {devices.map((d) => (
+                  <div key={d.device_id} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
+                        {d.display_name || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Unnamed device</span>}
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        {d.source === 'paid' ? 'Paid' : 'Complimentary'} · Activated {formatDate(d.activated_at)}
+                      </p>
+                    </div>
+                    <button onClick={() => void deactivateDevice(d)} disabled={deactivating === d.device_id}
+                      className="text-xs shrink-0 transition-colors disabled:opacity-40" style={{ color: '#f87171' }}>
+                      {deactivating === d.device_id ? 'Removing…' : 'Deactivate'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {devices.length > 0 && (
+              confirmWipe ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm flex-1" style={{ color: 'var(--text-muted)' }}>Remove all {devices.length} devices?</span>
+                  <button onClick={() => void wipeAll()} disabled={wipingAll}
+                    className="text-xs font-medium disabled:opacity-40" style={{ color: '#f87171' }}>
+                    {wipingAll ? 'Removing…' : 'Confirm'}
+                  </button>
+                  <button onClick={() => setConfirmWipe(false)} className="text-xs" style={{ color: 'var(--text-muted)' }}>Cancel</button>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmWipe(true)} className="w-full py-2 rounded-lg text-sm transition-colors"
+                  style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  Deactivate all devices
+                </button>
+              )
+            )}
+          </div>
+
+          {/* Account actions */}
+          <div className="glass-card p-5" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+            <SectionLabel title="Account" />
+            <div className="flex flex-col gap-4">
+
+              {/* Password reset */}
+              <div>
+                <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Generate a password reset link for this user.</p>
+                {resetLink ? (
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <code className="flex-1 min-w-0 text-xs font-mono break-all" style={{ color: 'var(--text-secondary)' }}>{resetLink}</code>
+                    <button onClick={() => { void navigator.clipboard.writeText(resetLink); setResetCopied(true); setTimeout(() => setResetCopied(false), 2000); }}
+                      className="text-xs shrink-0 transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
+                      {resetCopied ? '✓' : 'Copy'}
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => void sendReset()} disabled={resetLoading}
+                    className="w-full py-2 rounded-lg text-sm transition-colors disabled:opacity-40"
+                    style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    {resetLoading ? 'Generating…' : 'Generate reset link'}
+                  </button>
+                )}
+              </div>
+
+              {/* Delete account */}
+              <div className="pt-3" style={divider}>
+                {confirmDeleteFinal && createPortal(
+                  <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+                    <div className="w-full max-w-sm rounded-2xl p-6 shadow-2xl" style={{ background: 'var(--bg)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                      <div className="mb-4 flex items-center justify-center w-12 h-12 rounded-full mx-auto" style={{ background: 'rgba(248,113,113,0.12)' }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                      </div>
+                      <h3 className="text-center text-base font-semibold mb-1" style={{ color: 'var(--text)' }}>This cannot be undone</h3>
+                      <p className="text-center text-sm mb-2" style={{ color: 'var(--text-muted)' }}>You are permanently deleting:</p>
+                      <p className="text-center text-sm font-medium mb-5 px-2 py-2 rounded-lg"
+                        style={{ color: '#f87171', background: 'rgba(248,113,113,0.08)', wordBreak: 'break-all' }}>
+                        {account.email}
+                      </p>
+                      <p className="text-center text-xs mb-5" style={{ color: 'var(--text-muted)' }}>
+                        Their account, auth credentials, and all activations will be permanently removed.
+                      </p>
+                      <div className="flex gap-2">
+                        <button onClick={() => { setConfirmDeleteFinal(false); setConfirmDelete(false); }}
+                          className="flex-1 py-2.5 rounded-xl text-sm transition-colors"
+                          style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                          Cancel
+                        </button>
+                        <button onClick={() => void deleteUser()} disabled={deleteLoading}
+                          className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+                          style={{ background: '#ef4444', color: '#fff' }}>
+                          {deleteLoading ? 'Deleting…' : 'Yes, delete permanently'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>,
+                  document.body
+                )}
+
+                {confirmDelete && !confirmDeleteFinal ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm flex-1" style={{ color: 'var(--text-muted)' }}>Delete this account permanently?</span>
+                    <button onClick={() => setConfirmDeleteFinal(true)} className="text-sm font-medium" style={{ color: '#f87171' }}>Confirm</button>
+                    <button onClick={() => setConfirmDelete(false)} className="text-sm" style={{ color: 'var(--text-muted)' }}>Cancel</button>
+                  </div>
+                ) : !confirmDeleteFinal && (
+                  <button onClick={() => setConfirmDelete(true)}
+                    className="w-full py-2 rounded-lg text-sm transition-colors"
+                    style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+                    Delete account
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── All Accounts Tab ──────────────────────────────────────────────────────────
 
 type AccountSortKey = 'signed_up' | 'email' | 'license';
@@ -759,13 +844,9 @@ function AccountsTab({ token }: { token: string }) {
   const [sortDesc, setSortDesc] = useState(true);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Modals
-  const [devicesAccount, setDevicesAccount] = useState<Account | null>(null);
-  const [licenseAccount, setLicenseAccount] = useState<Account | null>(null);
-  const [emailAccount, setEmailAccount] = useState<Account | null>(null);
-  const [resetLink, setResetLink] = useState<string | null>(null);
-  const [resetLoading, setResetLoading] = useState<string | null>(null);
-  const [grantAccount, setGrantAccount] = useState<Account | null>(null);
+  // User detail view
+  const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
+  const selectedAccount = selectedEmail ? (accounts.find((a) => a.email === selectedEmail) ?? null) : null;
 
   // Invite modal
   const [inviteEmail, setInviteEmail] = useState('');
@@ -773,12 +854,6 @@ function AccountsTab({ token }: { token: string }) {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSent, setInviteSent] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
-
-  // Grant modal
-  const [grantNote, setGrantNote] = useState('');
-  const [grantLimit, setGrantLimit] = useState(3);
-  const [grantLoading, setGrantLoading] = useState(false);
-  const [grantError, setGrantError] = useState<string | null>(null);
 
   // Broadcast
   const [showBroadcast, setShowBroadcast] = useState(false);
@@ -808,17 +883,6 @@ function AccountsTab({ token }: { token: string }) {
 
   useEffect(() => { void load(); }, [load]);
 
-  const sendReset = async (a: Account) => {
-    setResetLoading(a.email);
-    try {
-      const res = await apiReq(token, 'user-actions', 'POST', { action: 'reset_password', email: a.email });
-      const data = await res.json() as { ok?: boolean; link?: string; error?: string };
-      if (data.link) setResetLink(data.link);
-    } finally {
-      setResetLoading(null);
-    }
-  };
-
   const sendInvite = async () => {
     if (!inviteEmail.trim()) return;
     setInviteLoading(true);
@@ -833,23 +897,6 @@ function AccountsTab({ token }: { token: string }) {
       await load();
     } finally {
       setInviteLoading(false);
-    }
-  };
-
-  const sendGrant = async () => {
-    if (!grantAccount) return;
-    setGrantLoading(true);
-    setGrantError(null);
-    try {
-      const res = await apiReq(token, 'accounts', 'POST', { email: grantAccount.email, note: grantNote.trim() || undefined, activation_limit: grantLimit });
-      const data = await res.json() as { ok?: boolean; error?: string };
-      if (data.error) { setGrantError(data.error); return; }
-      setGrantAccount(null);
-      setGrantNote('');
-      setGrantLimit(3);
-      await load();
-    } finally {
-      setGrantLoading(false);
     }
   };
 
@@ -899,6 +946,17 @@ function AccountsTab({ token }: { token: string }) {
     comp: accounts.filter((a) => a.license_type === 'complimentary').length,
     paid: accounts.filter((a) => a.license_type === 'paid').length,
   };
+
+  if (selectedAccount) {
+    return (
+      <UserDetailPanel
+        account={selectedAccount}
+        token={token}
+        onBack={() => setSelectedEmail(null)}
+        onAccountRefresh={() => void load()}
+      />
+    );
+  }
 
   return (
     <div>
@@ -1087,15 +1145,16 @@ function AccountsTab({ token }: { token: string }) {
                   <th className="px-4 py-2.5">Plan</th>
                   <th className="px-4 py-2.5 text-center whitespace-nowrap">Devices</th>
                   <th className="px-4 py-2.5 min-w-[140px]">License key</th>
-                  <th className="px-5 py-2.5 text-right whitespace-nowrap">Actions</th>
+                  <th className="px-5 py-2.5 text-right whitespace-nowrap"></th>
                 </tr>
               </thead>
               <tbody>
                 {sortedRows.map((a) => (
                   <tr
                     key={a.email}
-                    className="transition-colors hover:bg-white/[0.03]"
+                    className="transition-colors hover:bg-white/[0.05] cursor-pointer"
                     style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                    onClick={() => setSelectedEmail(a.email)}
                   >
                     <td className="px-5 py-3 align-middle">
                       <div className="flex min-w-0 items-center gap-3">
@@ -1144,7 +1203,8 @@ function AccountsTab({ token }: { token: string }) {
                           </code>
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               void navigator.clipboard.writeText(a.license_key!);
                               setCopiedKey(a.email);
                               setTimeout(() => setCopiedKey(null), 2000);
@@ -1160,24 +1220,9 @@ function AccountsTab({ token }: { token: string }) {
                       )}
                     </td>
                     <td className="px-5 py-3 align-middle text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {resetLoading === a.email && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>…</span>}
-                        <ActionsMenu
-                          account={a}
-                          token={token}
-                          onRefresh={() => void load()}
-                          onOpenDevices={() => setDevicesAccount(a)}
-                          onOpenLicense={() => setLicenseAccount(a)}
-                          onOpenEmail={() => setEmailAccount(a)}
-                          onOpenReset={() => void sendReset(a)}
-                          onOpenGrant={() => {
-                            setGrantAccount(a);
-                            setGrantNote('');
-                            setGrantLimit(3);
-                            setGrantError(null);
-                          }}
-                        />
-                      </div>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)', display: 'inline-block' }}>
+                        <polyline points="9 18 15 12 9 6"/>
+                      </svg>
                     </td>
                   </tr>
                 ))}
@@ -1219,45 +1264,6 @@ function AccountsTab({ token }: { token: string }) {
         </Modal>
       )}
 
-      {/* Grant license modal */}
-      {grantAccount && (
-        <Modal onClose={() => setGrantAccount(null)}>
-          <ModalHeader title="Grant Complimentary License" subtitle={grantAccount.email} onClose={() => setGrantAccount(null)} />
-          <div className="p-6 flex flex-col gap-4">
-            <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Note (optional)</label>
-              <input type="text" value={grantNote} onChange={(e) => setGrantNote(e.target.value)} placeholder="e.g. Beta tester"
-                className="w-full px-3 py-2.5 rounded-lg text-sm bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
-                style={{ color: 'var(--text)' }} autoFocus />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Device limit</label>
-              <input type="number" value={grantLimit} onChange={(e) => setGrantLimit(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                min={1} max={100}
-                className="w-24 px-3 py-2.5 rounded-lg text-sm text-center bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
-                style={{ color: 'var(--text)' }} />
-            </div>
-            {grantError && <p className="text-sm" style={{ color: '#fbbf24' }}>{grantError}</p>}
-            <div className="flex gap-2">
-              <button onClick={() => setGrantAccount(null)} className="flex-1 py-2.5 rounded-xl text-sm transition-colors"
-                style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                Cancel
-              </button>
-              <button onClick={() => void sendGrant()} disabled={grantLoading}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-                style={{ background: 'var(--accent)', color: '#fff' }}>
-                {grantLoading ? 'Granting…' : 'Grant license'}
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* Modals */}
-      {devicesAccount && <DevicesModal account={devicesAccount} token={token} onClose={() => setDevicesAccount(null)} />}
-      {licenseAccount && <LicenseModal account={licenseAccount} token={token} onClose={() => setLicenseAccount(null)} onRefresh={() => void load()} />}
-      {emailAccount && <EmailModal to={emailAccount.email} token={token} onClose={() => setEmailAccount(null)} />}
-      {resetLink && <CopyModal link={resetLink} onClose={() => setResetLink(null)} />}
     </div>
   );
 }
