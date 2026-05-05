@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import { Component, useEffect, useState, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -119,8 +120,8 @@ function exportCSV(accounts: Account[]) {
 
 // ── Shared small components ───────────────────────────────────────────────────
 
-function MemberAvatar({ email }: { email: string }) {
-  const letter = (email[0] ?? '?').toUpperCase();
+function MemberAvatar({ email }: { email: string | undefined | null }) {
+  const letter = (email?.[0] ?? '?').toUpperCase();
   return (
     <span
       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
@@ -132,9 +133,28 @@ function MemberAvatar({ email }: { email: string }) {
   );
 }
 
-function emailLocalPart(email: string) {
-  const i = email.indexOf('@');
-  return i === -1 ? email : email.slice(0, i);
+function emailLocalPart(email: string | undefined | null) {
+  const e = email ?? '';
+  const i = e.indexOf('@');
+  return i === -1 ? e : e.slice(0, i);
+}
+
+/** Stable ordering even when API returns an unexpected license_type. */
+function planSortRank(lt: Account['license_type'] | undefined): number {
+  switch (lt) {
+    case 'paid':
+      return 0;
+    case 'complimentary':
+      return 1;
+    case 'trial_active':
+      return 2;
+    case 'trial_expired':
+      return 3;
+    case 'none':
+      return 4;
+    default:
+      return 99;
+  }
 }
 
 function LicenseBadge({ account }: { account: Account }) {
@@ -147,7 +167,8 @@ function LicenseBadge({ account }: { account: Account }) {
       </span>
     );
   }
-  if (account.license_type === 'trial_active') {
+  const plan = account.license_type ?? 'none';
+  if (plan === 'trial_active') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
         style={{ background: 'rgba(56,189,248,0.12)', color: '#0284c7', border: '1px solid rgba(56,189,248,0.25)' }}>
@@ -156,7 +177,7 @@ function LicenseBadge({ account }: { account: Account }) {
       </span>
     );
   }
-  if (account.license_type === 'trial_expired') {
+  if (plan === 'trial_expired') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
         style={{ background: 'rgba(251,191,36,0.12)', color: '#ca8a04', border: '1px solid rgba(251,191,36,0.25)' }}>
@@ -165,7 +186,7 @@ function LicenseBadge({ account }: { account: Account }) {
       </span>
     );
   }
-  if (account.license_type === 'paid') {
+  if (plan === 'paid') {
     const isRefunded = account.status === 'refunded';
     const versionLabel = account.license_version != null ? `V${account.license_version}` : 'Paid';
     if (isRefunded) {
@@ -185,7 +206,7 @@ function LicenseBadge({ account }: { account: Account }) {
       </span>
     );
   }
-  if (account.license_type === 'complimentary') {
+  if (plan === 'complimentary') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
         style={{ background: 'rgba(139,92,246,0.12)', color: '#7c3aed', border: '1px solid rgba(139,92,246,0.25)' }}>
@@ -1168,7 +1189,14 @@ type AccountSortKey = 'signed_up' | 'email' | 'license';
 
 type MembersPlanFilter = 'all' | Account['license_type'];
 
-const MEMBERS_PLAN_FILTERS = ['all', 'none', 'trial_active', 'trial_expired', 'complimentary', 'paid'] as const satisfies readonly MembersPlanFilter[];
+const MEMBERS_PLAN_FILTERS: readonly MembersPlanFilter[] = [
+  'all',
+  'none',
+  'trial_active',
+  'trial_expired',
+  'complimentary',
+  'paid',
+];
 
 function membersPlanFilterLabel(f: MembersPlanFilter): string {
   switch (f) {
@@ -1184,6 +1212,40 @@ function membersPlanFilterLabel(f: MembersPlanFilter): string {
       return 'Complimentary';
     case 'paid':
       return 'Paid';
+  }
+}
+
+interface AccountsTabErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface AccountsTabErrorBoundaryState {
+  message: string | null;
+}
+
+class AccountsTabErrorBoundary extends Component<AccountsTabErrorBoundaryProps, AccountsTabErrorBoundaryState> {
+  constructor(props: AccountsTabErrorBoundaryProps) {
+    super(props);
+    this.state = { message: null };
+  }
+
+  static getDerivedStateFromError(err: unknown): AccountsTabErrorBoundaryState {
+    return { message: err instanceof Error ? err.message : String(err) };
+  }
+
+  render() {
+    if (this.state.message) {
+      return (
+        <div className="glass-card p-6 mb-6" style={{ border: '1px solid rgba(239,68,68,0.35)' }}>
+          <p className="text-sm font-medium mb-2" style={{ color: '#f87171' }}>Members tab crashed</p>
+          <p className="text-xs whitespace-pre-wrap break-words" style={{ color: 'var(--text-muted)' }}>{this.state.message}</p>
+          <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
+            Check the browser console for details. Refresh the page and try again.
+          </p>
+        </div>
+      );
+    }
+    return this.props.children;
   }
 }
 
@@ -1275,25 +1337,19 @@ function AccountsTab({ token }: { token: string }) {
     if (filter !== 'all' && a.license_type !== filter) return false;
     const q = search.trim().toLowerCase();
     const authHaystack = (a.auth_id ?? '').toLowerCase();
-    if (q && !a.email.toLowerCase().includes(q) && !authHaystack.includes(q)) return false;
+    const emailHaystack = (a.email ?? '').toLowerCase();
+    if (q && !emailHaystack.includes(q) && !authHaystack.includes(q)) return false;
     return true;
   });
 
   const sortedRows = [...filtered].sort((a, b) => {
     let cmp = 0;
-    if (sortKey === 'email') cmp = a.email.localeCompare(b.email);
+    if (sortKey === 'email') cmp = (a.email ?? '').localeCompare(b.email ?? '');
     else if (sortKey === 'signed_up') {
       cmp = new Date(a.signed_up_at).getTime() - new Date(b.signed_up_at).getTime();
     } else {
-      const order: Record<Account['license_type'], number> = {
-        paid: 0,
-        complimentary: 1,
-        trial_active: 2,
-        trial_expired: 3,
-        none: 4,
-      };
-      cmp = order[a.license_type] - order[b.license_type];
-      if (cmp === 0) cmp = a.email.localeCompare(b.email);
+      cmp = planSortRank(a.license_type) - planSortRank(b.license_type);
+      if (cmp === 0) cmp = (a.email ?? '').localeCompare(b.email ?? '');
     }
     return sortDesc ? -cmp : cmp;
   });
@@ -1343,9 +1399,14 @@ function AccountsTab({ token }: { token: string }) {
             <input type="text" value={broadcastSubject} onChange={(e) => setBroadcastSubject(e.target.value)} placeholder="Subject"
               className="w-full px-3 py-2.5 rounded-lg text-sm bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
               style={{ color: 'var(--text)' }} />
-            <textarea value={broadcastText} onChange={(e) => setBroadcastText(e.target.value)} placeholder="Message…" rows={4} resize-none
+            <textarea
+              value={broadcastText}
+              onChange={(e) => setBroadcastText(e.target.value)}
+              placeholder="Message…"
+              rows={4}
               className="w-full px-3 py-2.5 rounded-lg text-sm bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-              style={{ color: 'var(--text)' }} />
+              style={{ color: 'var(--text)' }}
+            />
           </div>
           {broadcastError && <p className="text-sm mt-3" style={{ color: '#fbbf24' }}>{broadcastError}</p>}
           {broadcastResult && <p className="text-sm mt-3" style={{ color: '#16a34a' }}>{broadcastResult}</p>}
@@ -1515,9 +1576,9 @@ function AccountsTab({ token }: { token: string }) {
                 </tr>
               </thead>
               <tbody>
-                {sortedRows.map((a) => (
+                {sortedRows.map((a, rowIdx) => (
                   <tr
-                    key={a.email}
+                    key={a.email ?? `row-${rowIdx}`}
                     className="transition-colors hover:bg-white/[0.05] cursor-pointer"
                     style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
                     onClick={() => setSelectedEmail(a.email)}
@@ -2477,10 +2538,9 @@ export function AdminPage() {
           />
         )}
         {tab === 'accounts' && (
-          <AccountsTab
-            token={token}
-            key="accounts"
-          />
+          <AccountsTabErrorBoundary>
+            <AccountsTab token={token} />
+          </AccountsTabErrorBoundary>
         )}
         {tab === 'bugs' && <BugReportsTab token={token} />}
         {tab === 'audit' && <AuditLogTab token={token} />}
