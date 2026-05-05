@@ -8,10 +8,10 @@ const API = (import.meta.env.VITE_LICENSE_API_URL ?? '').replace(/\/$/, '');
 
 interface Account {
   email: string;
-  auth_id: string;
+  auth_id: string | null;
   signed_up_at: string;
   banned_until?: string | null;
-  license_type: 'none' | 'complimentary' | 'paid';
+  license_type: 'none' | 'complimentary' | 'paid' | 'trial_active' | 'trial_expired';
   status: string | null;
   license_version: number | null;
   license_key: string | null;
@@ -19,13 +19,15 @@ interface Account {
   activation_limit?: number;
   activations_used?: number;
   nfr_added_at?: string;
+  trial_started_at?: string;
+  trial_ends_at?: string;
 }
 
 interface Device {
   device_id: string;
   display_name: string | null;
   activated_at: string;
-  source: 'complimentary' | 'paid';
+  source: 'complimentary' | 'paid' | 'trial';
 }
 
 interface NfrUser {
@@ -44,6 +46,14 @@ interface BugReport {
   log: unknown;
   resolved: boolean;
   internal_note: string | null;
+}
+
+function isTrialPlan(t: Account['license_type']): boolean {
+  return t === 'trial_active' || t === 'trial_expired';
+}
+
+function hasKeyedLicensePlan(t: Account['license_type']): boolean {
+  return t === 'paid' || t === 'complimentary';
 }
 
 interface AuditEntry {
@@ -137,6 +147,24 @@ function LicenseBadge({ account }: { account: Account }) {
       </span>
     );
   }
+  if (account.license_type === 'trial_active') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+        style={{ background: 'rgba(56,189,248,0.12)', color: '#0284c7', border: '1px solid rgba(56,189,248,0.25)' }}>
+        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#0284c7' }} />
+        Trial · Active
+      </span>
+    );
+  }
+  if (account.license_type === 'trial_expired') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+        style={{ background: 'rgba(251,191,36,0.12)', color: '#ca8a04', border: '1px solid rgba(251,191,36,0.25)' }}>
+        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#ca8a04' }} />
+        Trial · Expired
+      </span>
+    );
+  }
   if (account.license_type === 'paid') {
     const isRefunded = account.status === 'refunded';
     const versionLabel = account.license_version != null ? `V${account.license_version}` : 'Paid';
@@ -200,12 +228,14 @@ function ModalHeader({ title, subtitle, onClose }: { title: string; subtitle?: s
 
 // ── Dashboard Tab ─────────────────────────────────────────────────────────────
 
-function DashboardTab({ token, accountsTotal, noLicense, complimentary, paid }: {
+function DashboardTab({ token, accountsTotal, noLicense, complimentary, paid, trialActive, trialExpired }: {
   token: string;
   accountsTotal: number;
   noLicense: number;
   complimentary: number;
   paid: number;
+  trialActive: number;
+  trialExpired: number;
 }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentLog, setRecentLog] = useState<AuditEntry[]>([]);
@@ -230,6 +260,8 @@ function DashboardTab({ token, accountsTotal, noLicense, complimentary, paid }: 
 
   const cards = [
     { label: 'Total accounts', value: accountsTotal },
+    { label: 'Trial · active', value: trialActive },
+    { label: 'Trial · expired', value: trialExpired },
     { label: 'No license', value: noLicense },
     { label: 'Complimentary', value: complimentary },
     { label: 'Paid', value: paid },
@@ -239,7 +271,7 @@ function DashboardTab({ token, accountsTotal, noLicense, complimentary, paid }: 
 
   return (
     <div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3 mb-8">
         {cards.map((c) => (
           <div key={c.label} className="glass-card px-4 py-3" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
             <p className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>{c.value}</p>
@@ -336,6 +368,10 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
   const [planConfirmRevoke, setPlanConfirmRevoke] = useState(false);
   const [planIssuedKey, setPlanIssuedKey] = useState<string | null>(null);
   const [planIssuedKeyCopied, setPlanIssuedKeyCopied] = useState(false);
+
+  const [extendExtraDays, setExtendExtraDays] = useState(7);
+  const [extendLoading, setExtendLoading] = useState(false);
+  const [extendError, setExtendError] = useState<string | null>(null);
 
   // Account history
   const [history, setHistory] = useState<AuditEntry[]>([]);
@@ -463,6 +499,7 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
   };
 
   const deleteUser = async () => {
+    if (!account.auth_id) return;
     setDeleteLoading(true);
     await apiReq(token, 'user-actions', 'POST', { action: 'delete_user', auth_id: account.auth_id, email: account.email });
     setDeleteLoading(false);
@@ -510,6 +547,26 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
       onAccountRefresh();
     } finally {
       setPlanLoading(false);
+    }
+  };
+
+  const extendTrial = async () => {
+    setExtendLoading(true);
+    setExtendError(null);
+    try {
+      const res = await apiReq(token, 'license-actions', 'POST', {
+        action: 'extend_trial',
+        email: account.email,
+        extra_days: extendExtraDays,
+      });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (data.error) {
+        setExtendError(data.error);
+        return;
+      }
+      onAccountRefresh();
+    } finally {
+      setExtendLoading(false);
     }
   };
 
@@ -576,8 +633,12 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
           <div className="text-right shrink-0">
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Joined</p>
             <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--text-secondary)' }}>{formatDate(account.signed_up_at)}</p>
-            <code className="block text-[11px] font-mono mt-2 px-2 py-1 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }} title={account.auth_id}>
-              {account.auth_id.slice(0, 12)}…
+            <code
+              className="block text-[11px] font-mono mt-2 px-2 py-1 rounded max-w-[11rem] ml-auto truncate"
+              style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}
+              title={account.auth_id ?? undefined}
+            >
+              {account.auth_id ? `${account.auth_id.slice(0, 12)}…` : 'Trial-only'}
             </code>
           </div>
         </div>
@@ -613,7 +674,7 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
           )}
 
           {/* Grant Complimentary — only if no license */}
-          {account.license_type === 'none' && (
+          {(account.license_type === 'none' || isTrialPlan(account.license_type)) && (
             <button onClick={() => void grantLicense()} disabled={grantLoading}
               className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
               style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.12)' }}>
@@ -626,7 +687,11 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
             planConfirmRevoke ? (
               <div className="flex items-center gap-2">
                 <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                  {account.license_type === 'paid' ? 'Mark as refunded?' : 'Delete complimentary license?'}
+                  {account.license_type === 'paid'
+                    ? 'Mark as refunded?'
+                    : isTrialPlan(account.license_type)
+                      ? 'Remove trial for this email?'
+                      : 'Delete complimentary license?'}
                 </span>
                 <button onClick={() => void revokeLicense()} disabled={planLoading}
                   className="text-sm font-medium disabled:opacity-40" style={{ color: '#f87171' }}>
@@ -643,6 +708,37 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
             )
           )}
         </div>
+
+        {isTrialPlan(account.license_type) && (
+          <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+              Extend trial — extra days are added after the current end time (or from now if the trial already expired).
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                max={365}
+                value={extendExtraDays}
+                onChange={(e) => setExtendExtraDays(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                className="w-20 px-3 py-2 rounded-lg text-sm text-center bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
+                style={{ color: 'var(--text)' }}
+              />
+              <button
+                type="button"
+                onClick={() => void extendTrial()}
+                disabled={extendLoading}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
+                style={{ background: 'var(--accent)', color: '#fff' }}
+              >
+                {extendLoading ? 'Saving…' : 'Extend trial'}
+              </button>
+            </div>
+            {extendError && (
+              <p className="text-xs mt-2" style={{ color: '#fbbf24' }}>{extendError}</p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -650,13 +746,26 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
         <div className="flex flex-col gap-5">
 
           {/* License card */}
-          {account.license_type !== 'none' && (
+          {(hasKeyedLicensePlan(account.license_type) || isTrialPlan(account.license_type)) && (
             <div className="glass-card p-5" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
-              <SectionLabel title="License" />
+              <SectionLabel title={isTrialPlan(account.license_type) ? 'Trial' : 'License'} />
               <div className="flex flex-col gap-4">
 
+                {isTrialPlan(account.license_type) && (
+                  <div className="flex flex-wrap gap-6">
+                    <div>
+                      <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Started</p>
+                      <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{formatDateTime(account.trial_started_at)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Ends</p>
+                      <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{formatDateTime(account.trial_ends_at)}</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* License key */}
-                {(newKey ?? account.license_key) && (
+                {hasKeyedLicensePlan(account.license_type) && (newKey ?? account.license_key) && (
                   <div>
                     <p className="text-xs mb-1.5" style={{ color: 'var(--text-muted)' }}>License key</p>
                     <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -707,50 +816,54 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
                   </div>
                 )}
 
-                {licenseError && <p className="text-xs" style={{ color: '#fbbf24' }}>{licenseError}</p>}
+                {hasKeyedLicensePlan(account.license_type) && (
+                  <>
+                    {licenseError && <p className="text-xs" style={{ color: '#fbbf24' }}>{licenseError}</p>}
 
-                {/* Regen key */}
-                <div className="pt-3" style={divider}>
-                  <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Regenerate key — old key stops working immediately.</p>
-                  {regenConfirm ? (
-                    <div className="flex gap-2">
-                      <button onClick={() => void regenKey()} disabled={regenLoading}
-                        className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
-                        style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
-                        {regenLoading ? 'Generating…' : 'Yes, regenerate'}
-                      </button>
-                      <button onClick={() => setRegenConfirm(false)}
-                        className="flex-1 py-2 rounded-lg text-sm transition-colors"
-                        style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        Cancel
-                      </button>
+                    {/* Regen key */}
+                    <div className="pt-3" style={divider}>
+                      <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Regenerate key — old key stops working immediately.</p>
+                      {regenConfirm ? (
+                        <div className="flex gap-2">
+                          <button onClick={() => void regenKey()} disabled={regenLoading}
+                            className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
+                            style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+                            {regenLoading ? 'Generating…' : 'Yes, regenerate'}
+                          </button>
+                          <button onClick={() => setRegenConfirm(false)}
+                            className="flex-1 py-2 rounded-lg text-sm transition-colors"
+                            style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setRegenConfirm(true)}
+                          className="w-full py-2 rounded-lg text-sm transition-colors"
+                          style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                          Regenerate key
+                        </button>
+                      )}
                     </div>
-                  ) : (
-                    <button onClick={() => setRegenConfirm(true)}
-                      className="w-full py-2 rounded-lg text-sm transition-colors"
-                      style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                      Regenerate key
-                    </button>
-                  )}
-                </div>
 
-                {/* Device limit override */}
-                <div className="pt-3" style={divider}>
-                    <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Device limit override</p>
-                    <div className="flex items-center gap-2">
-                      <input type="number" value={limitValue}
-                        onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                        min={1} max={100}
-                        className="w-20 px-3 py-2 rounded-lg text-sm text-center bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
-                        style={{ color: 'var(--text)' }} />
-                      <button onClick={() => void saveLimit()} disabled={limitLoading}
-                        className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
-                        style={{ background: 'var(--accent)', color: '#fff' }}>
-                        {limitLoading ? 'Saving…' : limitSaved ? 'Saved!' : 'Save'}
-                      </button>
+                    {/* Device limit override */}
+                    <div className="pt-3" style={divider}>
+                      <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Device limit override</p>
+                      <div className="flex items-center gap-2">
+                        <input type="number" value={limitValue}
+                          onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                          min={1} max={100}
+                          className="w-20 px-3 py-2 rounded-lg text-sm text-center bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
+                          style={{ color: 'var(--text)' }} />
+                        <button onClick={() => void saveLimit()} disabled={limitLoading}
+                          className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
+                          style={{ background: 'var(--accent)', color: '#fff' }}>
+                          {limitLoading ? 'Saving…' : limitSaved ? 'Saved!' : 'Save'}
+                        </button>
+                      </div>
+                      {limitError && <p className="text-xs mt-1" style={{ color: '#fbbf24' }}>{limitError}</p>}
                     </div>
-                    {limitError && <p className="text-xs mt-1" style={{ color: '#fbbf24' }}>{limitError}</p>}
-                  </div>
+                  </>
+                )}
 
                 {/* Transfer (complimentary only) */}
                 {account.license_type === 'complimentary' && (
@@ -874,7 +987,7 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
                         {d.display_name || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Unnamed device</span>}
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        {d.source === 'paid' ? 'Paid' : 'Complimentary'} · Activated {formatDate(d.activated_at)}
+                        {d.source === 'paid' ? 'Paid' : d.source === 'trial' ? 'Trial' : 'Complimentary'} · Activated {formatDate(d.activated_at)}
                       </p>
                     </div>
                     <button onClick={() => void deactivateDevice(d)} disabled={deactivating === d.device_id}
@@ -911,6 +1024,7 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
             <div className="flex flex-col gap-4">
 
               {/* Password reset */}
+              {account.auth_id ? (
               <div>
                 <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Generate a password reset link for this user.</p>
                 {resetLink ? (
@@ -929,8 +1043,12 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
                   </button>
                 )}
               </div>
+              ) : (
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No login account — trial started from the app only.</p>
+              )}
 
               {/* Delete account */}
+              {account.auth_id && (
               <div className="pt-3" style={divider}>
                 {confirmDeleteFinal && createPortal(
                   <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
@@ -978,6 +1096,7 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
                   </button>
                 )}
               </div>
+              )}
             </div>
           </div>
         </div>
@@ -1047,12 +1166,33 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
 
 type AccountSortKey = 'signed_up' | 'email' | 'license';
 
+type MembersPlanFilter = 'all' | Account['license_type'];
+
+const MEMBERS_PLAN_FILTERS = ['all', 'none', 'trial_active', 'trial_expired', 'complimentary', 'paid'] as const satisfies readonly MembersPlanFilter[];
+
+function membersPlanFilterLabel(f: MembersPlanFilter): string {
+  switch (f) {
+    case 'all':
+      return 'All';
+    case 'none':
+      return 'No license';
+    case 'trial_active':
+      return 'Trial · active';
+    case 'trial_expired':
+      return 'Trial · expired';
+    case 'complimentary':
+      return 'Complimentary';
+    case 'paid':
+      return 'Paid';
+  }
+}
+
 function AccountsTab({ token }: { token: string }) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'none' | 'complimentary' | 'paid'>('all');
+  const [filter, setFilter] = useState<MembersPlanFilter>('all');
   const [sortKey, setSortKey] = useState<AccountSortKey>('signed_up');
   const [sortDesc, setSortDesc] = useState(true);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -1134,7 +1274,8 @@ function AccountsTab({ token }: { token: string }) {
   const filtered = accounts.filter((a) => {
     if (filter !== 'all' && a.license_type !== filter) return false;
     const q = search.trim().toLowerCase();
-    if (q && !a.email.toLowerCase().includes(q) && !a.auth_id.toLowerCase().includes(q)) return false;
+    const authHaystack = (a.auth_id ?? '').toLowerCase();
+    if (q && !a.email.toLowerCase().includes(q) && !authHaystack.includes(q)) return false;
     return true;
   });
 
@@ -1144,8 +1285,14 @@ function AccountsTab({ token }: { token: string }) {
     else if (sortKey === 'signed_up') {
       cmp = new Date(a.signed_up_at).getTime() - new Date(b.signed_up_at).getTime();
     } else {
-      const order = { paid: 0, complimentary: 1, none: 2 };
-      cmp = (order[a.license_type] ?? 3) - (order[b.license_type] ?? 3);
+      const order: Record<Account['license_type'], number> = {
+        paid: 0,
+        complimentary: 1,
+        trial_active: 2,
+        trial_expired: 3,
+        none: 4,
+      };
+      cmp = order[a.license_type] - order[b.license_type];
       if (cmp === 0) cmp = a.email.localeCompare(b.email);
     }
     return sortDesc ? -cmp : cmp;
@@ -1158,6 +1305,8 @@ function AccountsTab({ token }: { token: string }) {
     none: accounts.filter((a) => a.license_type === 'none').length,
     comp: accounts.filter((a) => a.license_type === 'complimentary').length,
     paid: accounts.filter((a) => a.license_type === 'paid').length,
+    trial_active: accounts.filter((a) => a.license_type === 'trial_active').length,
+    trial_expired: accounts.filter((a) => a.license_type === 'trial_expired').length,
   };
 
   if (selectedAccount) {
@@ -1237,6 +1386,10 @@ function AccountsTab({ token }: { token: string }) {
                 <span className="mx-1.5 opacity-40">·</span>
                 {counts.comp} complimentary
                 <span className="mx-1.5 opacity-40">·</span>
+                {counts.trial_active} trial · active
+                <span className="mx-1.5 opacity-40">·</span>
+                {counts.trial_expired} trial · expired
+                <span className="mx-1.5 opacity-40">·</span>
                 {counts.none} no license
               </p>
             </div>
@@ -1285,19 +1438,19 @@ function AccountsTab({ token }: { token: string }) {
               + Create account
             </button>
             <div className="flex flex-wrap gap-1 rounded-xl p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              {(['all', 'none', 'complimentary', 'paid'] as const).map((f) => (
+              {MEMBERS_PLAN_FILTERS.map((f) => (
                 <button
                   key={f}
                   type="button"
                   onClick={() => setFilter(f)}
-                  className="rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-all"
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium transition-all"
                   style={{
                     background: filter === f ? 'rgba(255,255,255,0.1)' : 'transparent',
                     color: filter === f ? 'var(--text)' : 'var(--text-muted)',
                     boxShadow: filter === f ? 'inset 0 0 0 1px rgba(255,255,255,0.08)' : 'none',
                   }}
                 >
-                  {f === 'none' ? 'No license' : f}
+                  {membersPlanFilterLabel(f)}
                 </button>
               ))}
             </div>
@@ -1389,9 +1542,9 @@ function AccountsTab({ token }: { token: string }) {
                       <code
                         className="block max-w-[7.5rem] truncate text-[11px] font-mono"
                         style={{ color: 'var(--text-muted)' }}
-                        title={a.auth_id}
+                        title={a.auth_id ?? undefined}
                       >
-                        {a.auth_id.slice(0, 8)}…
+                        {a.auth_id ? `${a.auth_id.slice(0, 8)}…` : '—'}
                       </code>
                     </td>
                     <td className="px-4 py-3 align-middle">
@@ -2188,7 +2341,14 @@ export function AdminPage() {
   const [forbidden, setForbidden] = useState(false);
   const [tab, setTab] = useState<Tab>('dashboard');
 
-  const [accountCounts, setAccountCounts] = useState({ total: 0, none: 0, comp: 0, paid: 0 });
+  const [accountCounts, setAccountCounts] = useState({
+    total: 0,
+    none: 0,
+    comp: 0,
+    paid: 0,
+    trialActive: 0,
+    trialExpired: 0,
+  });
 
   useEffect(() => {
     if (!session?.access_token) return;
@@ -2198,11 +2358,20 @@ export function AdminPage() {
       .then((r) => r.ok ? r.json() : null)
       .then((d: { accounts?: Account[] } | null) => {
         if (!d?.accounts) return;
-        const counts = { total: d.accounts.length, none: 0, comp: 0, paid: 0 };
+        const counts = {
+          total: d.accounts.length,
+          none: 0,
+          comp: 0,
+          paid: 0,
+          trialActive: 0,
+          trialExpired: 0,
+        };
         for (const a of d.accounts) {
           if (a.license_type === 'none') counts.none++;
           else if (a.license_type === 'complimentary') counts.comp++;
           else if (a.license_type === 'paid') counts.paid++;
+          else if (a.license_type === 'trial_active') counts.trialActive++;
+          else if (a.license_type === 'trial_expired') counts.trialExpired++;
         }
         setAccountCounts(counts);
       });
@@ -2303,6 +2472,8 @@ export function AdminPage() {
             noLicense={accountCounts.none}
             complimentary={accountCounts.comp}
             paid={accountCounts.paid}
+            trialActive={accountCounts.trialActive}
+            trialExpired={accountCounts.trialExpired}
           />
         )}
         {tab === 'accounts' && (
