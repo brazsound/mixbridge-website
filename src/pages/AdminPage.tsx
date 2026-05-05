@@ -324,6 +324,24 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
   const [confirmDeleteFinal, setConfirmDeleteFinal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Note editing
+  const [noteValue, setNoteValue] = useState(account.note ?? '');
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteSaved, setNoteSaved] = useState(false);
+  const [noteError, setNoteError] = useState<string | null>(null);
+
+  // Plan management
+  const [planLoading, setPlanLoading] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
+  const [planConfirmRevoke, setPlanConfirmRevoke] = useState(false);
+  const [planIssuedKey, setPlanIssuedKey] = useState<string | null>(null);
+  const [planIssuedKeyCopied, setPlanIssuedKeyCopied] = useState(false);
+
+  // Account history
+  const [history, setHistory] = useState<AuditEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
   const loadDevices = useCallback(async () => {
     setDevicesLoading(true);
     setDevicesError(null);
@@ -452,6 +470,68 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
     onBack();
   };
 
+  const saveNote = async () => {
+    setNoteSaving(true);
+    setNoteError(null);
+    try {
+      const res = await apiReq(token, 'license-actions', 'POST', { action: 'update_note', email: account.email, note: noteValue });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (data.error) { setNoteError(data.error); return; }
+      setNoteSaved(true);
+      setTimeout(() => setNoteSaved(false), 2000);
+      onAccountRefresh();
+    } finally {
+      setNoteSaving(false);
+    }
+  };
+
+  const revokeLicense = async () => {
+    setPlanLoading(true);
+    setPlanError(null);
+    try {
+      const res = await apiReq(token, 'license-actions', 'POST', { action: 'revoke_license', email: account.email, license_type: account.license_type });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (data.error) { setPlanError(data.error); return; }
+      setPlanConfirmRevoke(false);
+      onAccountRefresh();
+    } finally {
+      setPlanLoading(false);
+    }
+  };
+
+  const issuePaidLicense = async () => {
+    setPlanLoading(true);
+    setPlanError(null);
+    try {
+      const res = await apiReq(token, 'license-actions', 'POST', { action: 'issue_paid_license', email: account.email });
+      const data = await res.json() as { ok?: boolean; license_key?: string; error?: string };
+      if (data.error) { setPlanError(data.error); return; }
+      setPlanIssuedKey(data.license_key ?? null);
+      onAccountRefresh();
+    } finally {
+      setPlanLoading(false);
+    }
+  };
+
+  const loadHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const res = await fetch(`${API}/api/admin/audit-log?target=${encodeURIComponent(account.email)}&per_page=50`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json() as { entries?: AuditEntry[]; error?: string };
+      if (data.error) { setHistoryError(data.error); return; }
+      setHistory(data.entries ?? []);
+    } catch {
+      setHistoryError('Failed to load history.');
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [token, account.email]);
+
+  useEffect(() => { void loadHistory(); }, [loadHistory]);
+
   const SectionLabel = ({ title }: { title: string }) => (
     <p className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>{title}</p>
   );
@@ -503,6 +583,68 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
         </div>
       </div>
 
+      {/* ── Plan Management ── */}
+      <div className="glass-card p-5 mb-5" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+        <SectionLabel title="Plan Management" />
+        {planError && <p className="text-xs mb-3" style={{ color: '#fbbf24' }}>{planError}</p>}
+
+        {/* Issued paid license key display */}
+        {planIssuedKey && (
+          <div className="mb-4 p-3 rounded-lg" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
+            <p className="text-xs mb-1.5" style={{ color: '#16a34a' }}>Paid license issued — share this key with the user</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-sm font-mono font-semibold" style={{ color: 'var(--text)' }}>{planIssuedKey}</code>
+              <button onClick={() => { void navigator.clipboard.writeText(planIssuedKey); setPlanIssuedKeyCopied(true); setTimeout(() => setPlanIssuedKeyCopied(false), 2000); }}
+                className="text-xs shrink-0" style={{ color: 'var(--text-muted)' }}>
+                {planIssuedKeyCopied ? '✓ Copied' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Issue Paid License */}
+          {account.license_type !== 'paid' && (
+            <button onClick={() => void issuePaidLicense()} disabled={planLoading}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
+              style={{ background: 'var(--accent)', color: '#fff' }}>
+              {planLoading ? 'Working…' : 'Issue Paid License'}
+            </button>
+          )}
+
+          {/* Grant Complimentary — only if no license */}
+          {account.license_type === 'none' && (
+            <button onClick={() => void grantLicense()} disabled={grantLoading}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
+              style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              {grantLoading ? 'Granting…' : 'Grant Complimentary'}
+            </button>
+          )}
+
+          {/* Revoke */}
+          {account.license_type !== 'none' && (
+            planConfirmRevoke ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  {account.license_type === 'paid' ? 'Mark as refunded?' : 'Delete complimentary license?'}
+                </span>
+                <button onClick={() => void revokeLicense()} disabled={planLoading}
+                  className="text-sm font-medium disabled:opacity-40" style={{ color: '#f87171' }}>
+                  {planLoading ? 'Revoking…' : 'Confirm'}
+                </button>
+                <button onClick={() => setPlanConfirmRevoke(false)} className="text-sm" style={{ color: 'var(--text-muted)' }}>Cancel</button>
+              </div>
+            ) : (
+              <button onClick={() => setPlanConfirmRevoke(true)}
+                className="px-4 py-2 rounded-lg text-sm transition-colors"
+                style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+                Revoke License
+              </button>
+            )
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* ── Left column ── */}
         <div className="flex flex-col gap-5">
@@ -530,24 +672,40 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
                   </div>
                 )}
 
-                {/* Version + devices row */}
-                <div className="flex items-center gap-4">
-                  {account.license_type === 'paid' && account.license_version != null && (
-                    <div>
-                      <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Version</p>
-                      <span className="text-sm font-medium px-2.5 py-0.5 rounded-full"
-                        style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.2)' }}>
-                        V{account.license_version}
-                      </span>
+                {/* Version */}
+                {account.license_type === 'paid' && account.license_version != null && (
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Version</p>
+                    <span className="text-sm font-medium px-2.5 py-0.5 rounded-full"
+                      style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.2)' }}>
+                      V{account.license_version}
+                    </span>
+                  </div>
+                )}
+
+                {/* Editable note (complimentary) */}
+                {account.license_type === 'complimentary' && (
+                  <div>
+                    <p className="text-xs mb-1.5" style={{ color: 'var(--text-muted)' }}>Note</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={noteValue}
+                        onChange={(e) => setNoteValue(e.target.value)}
+                        placeholder="e.g. Beta tester"
+                        className="flex-1 px-3 py-2 rounded-lg text-sm bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
+                        style={{ color: 'var(--text)' }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') void saveNote(); }}
+                      />
+                      <button onClick={() => void saveNote()} disabled={noteSaving}
+                        className="px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 shrink-0"
+                        style={{ background: 'var(--accent)', color: '#fff' }}>
+                        {noteSaving ? '…' : noteSaved ? '✓' : 'Save'}
+                      </button>
                     </div>
-                  )}
-                  {account.license_type === 'complimentary' && account.note && (
-                    <div>
-                      <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Note</p>
-                      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{account.note}</p>
-                    </div>
-                  )}
-                </div>
+                    {noteError && <p className="text-xs mt-1" style={{ color: '#fbbf24' }}>{noteError}</p>}
+                  </div>
+                )}
 
                 {licenseError && <p className="text-xs" style={{ color: '#fbbf24' }}>{licenseError}</p>}
 
@@ -825,6 +983,63 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ── Account History ── */}
+      <div className="glass-card mt-5 overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Account History</p>
+          <button onClick={() => void loadHistory()} className="text-xs transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
+            Refresh
+          </button>
+        </div>
+
+        {/* Account creation as the first event */}
+        <div className="px-5 py-3 flex items-start gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+          <div className="mt-0.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#6366f1', marginTop: '6px' }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Account created</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{account.email}</p>
+          </div>
+          <span className="text-xs shrink-0" style={{ color: 'var(--text-muted)' }}>{formatDateTime(account.signed_up_at)}</span>
+        </div>
+
+        {historyLoading && (
+          <p className="px-5 py-4 text-sm text-center" style={{ color: 'var(--text-muted)' }}>Loading history…</p>
+        )}
+        {historyError && (
+          <p className="px-5 py-4 text-sm" style={{ color: '#fbbf24' }}>{historyError}</p>
+        )}
+        {!historyLoading && history.length === 0 && !historyError && (
+          <p className="px-5 py-6 text-sm text-center" style={{ color: 'var(--text-muted)' }}>No recorded activity yet.</p>
+        )}
+        {history.map((e) => {
+          const isAdminAction = !!e.admin_email;
+          const dot = isAdminAction ? '#a78bfa' : 'rgba(255,255,255,0.3)';
+          const label = e.action.replace(/_/g, ' ');
+          const details = e.details as Record<string, unknown> | null;
+          const safeDetails = details
+            ? Object.entries(details)
+                .filter(([k]) => !['password', 'token', 'secret', 'key'].some((s) => k.toLowerCase().includes(s)))
+                .map(([k, v]) => `${k}: ${String(v)}`)
+                .join(', ')
+            : null;
+          return (
+            <div key={e.id} className="px-5 py-3 flex items-start gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="shrink-0 rounded-full" style={{ width: '6px', height: '6px', background: dot, marginTop: '6px' }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium capitalize" style={{ color: 'var(--text)' }}>{label}</p>
+                {safeDetails && (
+                  <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{safeDetails}</p>
+                )}
+                {isAdminAction && (
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>by {e.admin_email}</p>
+                )}
+              </div>
+              <span className="text-xs shrink-0" style={{ color: 'var(--text-muted)' }}>{formatDateTime(e.created_at)}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
