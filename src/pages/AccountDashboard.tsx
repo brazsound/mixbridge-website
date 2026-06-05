@@ -173,7 +173,7 @@ export function AccountDashboard() {
           <div className="glass-card p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-medium">Your License</h2>
-              <Link to="/account/subscription" className="text-xs text-accent hover:underline">Details</Link>
+              <Link to="/account/devices" className="text-xs text-accent hover:underline">Manage</Link>
             </div>
             {accountData.error === NO_LICENSE_FOR_EMAIL ? (
               <div className="rounded-lg px-4 py-3 text-sm space-y-2" style={{ background: 'rgba(255,200,0,0.05)', border: '1px solid rgba(255,200,0,0.12)', color: '#ffd560' }}>
@@ -195,7 +195,7 @@ export function AccountDashboard() {
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded-md text-xs font-semibold" style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399' }}>
-                    {accountData.status === 'free' ? 'NFR' : accountData.status}
+                    {accountData.status === 'free' ? 'Complimentary' : accountData.status}
                   </span>
                   {accountData.tier && (
                     <span className="text-text-secondary text-sm capitalize">{accountData.tier} plan</span>

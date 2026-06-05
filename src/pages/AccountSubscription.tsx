@@ -75,13 +75,13 @@ export function AccountSubscription() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-medium">Your Plan</h2>
                 <span className="px-2 py-0.5 rounded-md text-xs font-semibold" style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399' }}>
-                  {data.status === 'free' ? 'NFR' : data.status}
+                  {data.status === 'free' ? 'Complimentary' : data.status}
                 </span>
               </div>
               <div className="space-y-2 text-sm">
                 <p className="text-text-secondary">
                   Plan: <span className="text-text capitalize font-medium">
-                    {data.status === 'free' ? 'NFR (complimentary)' : (data.tier ?? 'Unknown')}
+                    {data.status === 'free' ? 'Complimentary' : (data.tier ?? 'Unknown')}
                   </span>
                 </p>
                 <p className="text-text-secondary">

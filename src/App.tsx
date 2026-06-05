@@ -15,7 +15,6 @@ import { AccountAuthGate } from './pages/AccountPage';
 import { AccountDashboard } from './pages/AccountDashboard';
 import { AccountDownload } from './pages/AccountDownload';
 import { AccountFeedback } from './pages/AccountFeedback';
-import { AccountSubscription } from './pages/AccountSubscription';
 import { DevicesPage } from './pages/DevicesPage';
 import { AccountSettings } from './pages/AccountSettings';
 import { AdminPage } from './pages/AdminPage';
@@ -274,7 +273,6 @@ function AppInner() {
           <Route index element={<AccountDashboard />} />
           <Route path="download" element={<AccountDownload />} />
           <Route path="feedback" element={<AccountFeedback />} />
-          <Route path="subscription" element={<AccountSubscription />} />
           <Route path="devices" element={<DevicesPage />} />
           <Route path="settings" element={<AccountSettings />} />
           <Route path="*" element={<Navigate to="/account" replace />} />

@@ -12,7 +12,6 @@ const linkClass = 'text-text-muted hover:text-text transition-colors text-[13px]
 const accountLinks = [
   { to: '/account', label: 'Dashboard' },
   { to: '/account/download', label: 'Download' },
-  { to: '/account/subscription', label: 'Subscription' },
   { to: '/account/devices', label: 'Devices' },
   { to: '/account/settings', label: 'Settings' },
 ];
