@@ -408,6 +408,9 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
   const [refundConfirm, setRefundConfirm] = useState(false);
   const [refundLoading, setRefundLoading] = useState(false);
   const [refundWarning, setRefundWarning] = useState<string | null>(null);
+  const [changePlanOpen, setChangePlanOpen] = useState(false);
+  const [changePlanLoading, setChangePlanLoading] = useState<string | null>(null);
+  const [changePlanError, setChangePlanError] = useState<string | null>(null);
 
   const [extendExtraDays, setExtendExtraDays] = useState(7);
   const [extendLoading, setExtendLoading] = useState(false);
@@ -603,6 +606,22 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
       onAccountRefresh();
     } finally {
       setRefundLoading(false);
+    }
+  };
+
+  const changePlan = async (planId: 'complimentary' | 'trial' | 'solo' | 'pro' | 'team' | 'lifetime') => {
+    setChangePlanLoading(planId);
+    setChangePlanError(null);
+    setPlanIssuedKey(null);
+    try {
+      const res = await apiReq(token, 'license-actions', 'POST', { action: 'change_plan', email: account.email, new_plan: planId });
+      const data = await res.json() as { ok?: boolean; license_key?: string; error?: string };
+      if (data.error) { setChangePlanError(data.error); return; }
+      if (data.license_key) setPlanIssuedKey(data.license_key);
+      setChangePlanOpen(false);
+      onAccountRefresh();
+    } finally {
+      setChangePlanLoading(null);
     }
   };
 
@@ -803,8 +822,60 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
               </button>
             )}
 
+            {/* Change Plan — swaps license without Paddle refund */}
+            {account.license_type === 'paid' && !refundConfirm && (
+              changePlanOpen ? (
+                <div className="w-full mt-1">
+                  <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+                    Switch to — old license revoked instantly, no Paddle refund:
+                  </p>
+                  {changePlanError && <p className="text-xs mb-2" style={{ color: '#fbbf24' }}>{changePlanError}</p>}
+                  <div className="flex flex-wrap gap-2">
+                    {(
+                      [
+                        { id: 'complimentary', label: 'Complimentary', sub: 'NFR',          accent: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: 'rgba(139,92,246,0.3)' },
+                        { id: 'trial',         label: 'Free Trial',    sub: '14 days',       accent: 'rgba(56,189,248,0.1)',  color: '#38bdf8', border: 'rgba(56,189,248,0.3)' },
+                        { id: 'solo',          label: 'Solo',          sub: '1 Mac',         accent: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.12)' },
+                        { id: 'pro',           label: 'Pro',           sub: '3 Macs',        accent: 'var(--accent)',          color: '#fff',                  border: 'transparent' },
+                        { id: 'team',          label: 'Team',          sub: '10 Macs',       accent: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.12)' },
+                        { id: 'lifetime',      label: 'Lifetime',      sub: '3 Macs',        accent: 'rgba(251,191,36,0.1)',   color: '#fbbf24', border: 'rgba(251,191,36,0.25)' },
+                      ] as const
+                    ).map((plan) => (
+                      <button
+                        key={plan.id}
+                        onClick={() => void changePlan(plan.id)}
+                        disabled={changePlanLoading !== null}
+                        className="flex flex-col items-start px-4 py-2 rounded-lg text-left transition-opacity disabled:opacity-40"
+                        style={{ background: plan.accent, color: plan.color, border: `1px solid ${plan.border}` }}
+                      >
+                        <span className="text-sm font-medium leading-tight">
+                          {changePlanLoading === plan.id ? 'Switching…' : plan.label}
+                        </span>
+                        <span className="text-[11px] mt-0.5 opacity-70">{plan.sub}</span>
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => { setChangePlanOpen(false); setChangePlanError(null); }}
+                      className="px-3 py-2 rounded-lg text-sm self-center"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setChangePlanOpen(true); setRefundConfirm(false); }}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.12)' }}
+                >
+                  Change Plan
+                </button>
+              )
+            )}
+
             {/* Paid license → Refund through Paddle */}
-            {account.license_type === 'paid' && (
+            {account.license_type === 'paid' && !changePlanOpen && (
               refundConfirm ? (
                 <div className="flex flex-col gap-2">
                   <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
