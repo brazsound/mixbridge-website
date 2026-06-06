@@ -41,10 +41,13 @@ html {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  transition: border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .glass-card:hover {
   border-color: var(--border-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .btn-accent {
@@ -123,6 +126,29 @@ button:focus-visible,
 .hero-secondary-cta:hover,
 .hero-secondary-cta:focus-visible {
   color: var(--text);
+}
+
+.btn-accent-glow {
+  box-shadow: 0 0 20px rgba(110, 86, 207, 0.35), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn-accent-glow:hover {
+  box-shadow: 0 0 28px rgba(110, 86, 207, 0.5), 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.hero-mockup-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-mockup-float {
+    animation: none;
+  }
 }
 
 ::selection {

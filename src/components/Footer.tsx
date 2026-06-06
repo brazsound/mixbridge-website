@@ -17,6 +17,7 @@ export function Footer() {
           <a href="https://github.com/Meteteus/mix-bridge" target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-text transition-colors">GitHub</a>
           <Link to="/privacy" className="text-text-muted hover:text-text transition-colors">Privacy</Link>
           <Link to="/terms" className="text-text-muted hover:text-text transition-colors">Terms</Link>
+          <Link to="/refund" className="text-text-muted hover:text-text transition-colors">Refunds</Link>
         </div>
       </div>
     </footer>

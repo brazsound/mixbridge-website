@@ -173,7 +173,34 @@ export function Pricing() {
           </div>
         </div>
 
-        <p className="text-center text-text-muted text-sm mt-8">
+        {/* Trust bar */}
+        <div
+          className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 py-4 px-6 rounded-xl text-[12px] text-text-muted"
+          style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid var(--border)' }}
+        >
+          <div className="flex items-center gap-2">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent)', flexShrink: 0 }} aria-hidden>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            30-day money-back guarantee
+          </div>
+          <div className="hidden sm:block" style={{ width: 1, height: 14, background: 'var(--border)' }} />
+          <div className="flex items-center gap-2">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent)', flexShrink: 0 }} aria-hidden>
+              <circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" />
+            </svg>
+            7-day free trial, no card required
+          </div>
+          <div className="hidden sm:block" style={{ width: 1, height: 14, background: 'var(--border)' }} />
+          <div className="flex items-center gap-2">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent)', flexShrink: 0 }} aria-hidden>
+              <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" />
+            </svg>
+            macOS · Pro Tools 2025.6+
+          </div>
+        </div>
+
+        <p className="text-center text-text-muted text-sm mt-6">
           <Link to="/account" className="underline underline-offset-2 hover:text-text-secondary transition-colors">
             Sign in to your account
           </Link>{' '}

@@ -12,13 +12,17 @@ function AppMockup() {
 
   return (
     <div
-      className="w-full max-w-xl mx-auto mt-16 rounded-xl overflow-hidden"
+      className="w-full max-w-xl mx-auto mt-16 rounded-xl overflow-hidden hero-mockup-float"
       style={{
         background: 'rgba(255,255,255,0.025)',
-        border: '1px solid var(--border)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        boxShadow: '0 0 60px rgba(110,86,207,0.12), 0 24px 64px rgba(0,0,0,0.5)',
       }}
     >
-      <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
+      <div
+        className="flex items-center gap-2 px-4 py-3"
+        style={{ borderBottom: '1px solid var(--border)' }}
+      >
         <div className="flex gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgba(255,95,87,0.5)' }} />
           <span className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgba(255,189,46,0.5)' }} />
@@ -27,9 +31,14 @@ function AppMockup() {
         <span className="text-[11px] ml-2 text-text-muted">Mix Bridge · Session 3 of 5</span>
       </div>
 
-      <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: '1px solid var(--border)' }}>
+      <div
+        className="flex items-center justify-between px-4 py-2.5"
+        style={{ borderBottom: '1px solid var(--border)' }}
+      >
         <span className="text-[11px] font-medium text-text-muted">bounce queue</span>
-        <span className="text-[11px]" style={{ color: 'var(--accent)' }}>2 / 5 done</span>
+        <span className="text-[11px]" style={{ color: 'var(--accent)' }}>
+          2 / 5 done
+        </span>
       </div>
 
       <div className="px-3 py-2 space-y-1">
@@ -38,40 +47,79 @@ function AppMockup() {
             key={i}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
             style={{
-              background: row.active ? 'var(--accent-subtle)' : row.done ? 'rgba(255,255,255,0.015)' : 'transparent',
-              border: row.active ? '1px solid rgba(110,86,207,0.2)' : '1px solid transparent',
+              background: row.active
+                ? 'var(--accent-subtle)'
+                : row.done
+                ? 'rgba(255,255,255,0.015)'
+                : 'transparent',
+              border: row.active
+                ? '1px solid rgba(110,86,207,0.2)'
+                : '1px solid transparent',
             }}
           >
             <span
               className="w-1.5 h-1.5 rounded-full shrink-0"
               style={{
-                background: row.done ? 'rgba(40,200,64,0.6)' : row.active ? 'var(--accent)' : 'rgba(255,255,255,0.12)',
+                background: row.done
+                  ? 'rgba(40,200,64,0.6)'
+                  : row.active
+                  ? 'var(--accent)'
+                  : 'rgba(255,255,255,0.12)',
               }}
             />
             <span
               className="text-[12px] flex-1 truncate"
               style={{
-                color: row.done ? 'var(--text-muted)' : row.active ? 'var(--text)' : 'var(--text-secondary)',
+                color: row.done
+                  ? 'var(--text-muted)'
+                  : row.active
+                  ? 'var(--text)'
+                  : 'var(--text-secondary)',
               }}
             >
               {row.label}
             </span>
-            <div className="rounded-full overflow-hidden" style={{ width: 64, height: 2, background: 'rgba(255,255,255,0.06)' }}>
+            <div
+              className="rounded-full overflow-hidden"
+              style={{ width: 64, height: 2, background: 'rgba(255,255,255,0.06)' }}
+            >
               {(row.done || row.active) && (
-                <div className="h-full rounded-full" style={{ width: row.done ? '100%' : row.width, background: row.done ? 'rgba(40,200,64,0.4)' : 'var(--accent)' }} />
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: row.done ? '100%' : row.width,
+                    background: row.done ? 'rgba(40,200,64,0.4)' : 'var(--accent)',
+                  }}
+                />
               )}
             </div>
-            <span className="text-[10px] px-1.5 py-0.5 rounded shrink-0" style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded shrink-0"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                color: 'var(--text-muted)',
+                border: '1px solid var(--border)',
+              }}
+            >
               WAV
             </span>
           </div>
         ))}
       </div>
 
-      <div className="flex items-center justify-between px-4 py-2.5" style={{ borderTop: '1px solid var(--border)' }}>
+      <div
+        className="flex items-center justify-between px-4 py-2.5"
+        style={{ borderTop: '1px solid var(--border)' }}
+      >
         <span className="text-[11px] text-text-muted">Est. 4 min Remaining</span>
-        <div className="flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md" style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}>
-          <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--accent)' }} />
+        <div
+          className="flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md"
+          style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}
+        >
+          <span
+            className="w-1.5 h-1.5 rounded-full animate-pulse"
+            style={{ background: 'var(--accent)' }}
+          />
           Running
         </div>
       </div>
@@ -85,19 +133,40 @@ export function Hero() {
 
   return (
     <header className="relative min-h-screen flex flex-col items-center justify-center px-6 py-24 overflow-hidden">
+      {/* Background gradients */}
       <div
         className="absolute inset-0 -z-10"
         style={{
-          background: 'radial-gradient(ellipse 60% 50% at 50% -5%, rgba(110,86,207,0.08) 0%, transparent 55%), var(--bg)',
+          background: [
+            'radial-gradient(ellipse 70% 55% at 50% -10%, rgba(110,86,207,0.18) 0%, transparent 60%)',
+            'radial-gradient(ellipse 40% 30% at 80% 80%, rgba(110,86,207,0.06) 0%, transparent 50%)',
+            'var(--bg)',
+          ].join(', '),
         }}
       />
 
+      {/* Platform badge */}
       <div
         className="flex items-center gap-2 px-3 py-1.5 rounded-full mb-8 text-xs font-medium"
-        style={{ background: 'var(--accent-subtle)', border: '1px solid rgba(110,86,207,0.2)', color: 'var(--accent)' }}
+        style={{
+          background: 'var(--accent-subtle)',
+          border: '1px solid rgba(110,86,207,0.25)',
+          color: 'var(--accent)',
+        }}
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" />
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <path d="M8 21h8M12 17v4" />
         </svg>
         macOS · Pro Tools required
       </div>
@@ -111,28 +180,41 @@ export function Hero() {
       </p>
       <p className="text-sm md:text-base text-text-muted text-center max-w-xl mb-12 leading-relaxed">
         Queue your stems, set your formats, and walk away.
+        <br className="hidden sm:block" />
         Mix Bridge handles the exports while you focus on the mix.
       </p>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center">
-        <a href="#download" className="btn-accent">Download for Mac</a>
+        <a href="#download" className="btn-accent btn-accent-glow">
+          Download for Mac
+        </a>
         {showAccountCta && (
-          <Link to="/account" className="text-sm font-medium normal-case transition-colors hero-secondary-cta">
+          <Link
+            to="/account"
+            className="text-sm font-medium normal-case transition-colors hero-secondary-cta"
+          >
             Create Account or Sign In &rarr;
           </Link>
         )}
       </div>
 
+      {/* Feature pills */}
       <div className="flex flex-wrap justify-center gap-2 mt-10">
-        {['multi-session queue', 'WAV · MP3 · AIFF', 'session templates', 'runs in the background'].map((pill) => (
-          <span
-            key={pill}
-            className="text-[11px] px-3 py-1.5 rounded-full"
-            style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}
-          >
-            {pill}
-          </span>
-        ))}
+        {['multi-session queue', 'WAV · MP3 · AIFF', 'session templates', 'runs in the background'].map(
+          (pill) => (
+            <span
+              key={pill}
+              className="text-[11px] px-3 py-1.5 rounded-full"
+              style={{
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-muted)',
+              }}
+            >
+              {pill}
+            </span>
+          ),
+        )}
       </div>
 
       <AppMockup />

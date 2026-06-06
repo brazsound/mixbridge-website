@@ -57,7 +57,16 @@ const features = [
 
 export function Features() {
   return (
-    <section id="features" className="px-6 py-24 md:py-32">
+    <section
+      id="features"
+      className="px-6 py-24 md:py-32 relative overflow-hidden"
+      style={{
+        background: [
+          'radial-gradient(ellipse 50% 40% at 50% 100%, rgba(110,86,207,0.07) 0%, transparent 60%)',
+          'transparent',
+        ].join(', '),
+      }}
+    >
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
@@ -72,7 +81,7 @@ export function Features() {
           {features.map((f) => (
             <div key={f.title} className="glass-card p-6 group">
               <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center mb-4"
+                className="w-9 h-9 rounded-lg flex items-center justify-center mb-4"
                 style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}
               >
                 {f.icon}
