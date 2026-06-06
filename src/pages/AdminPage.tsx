@@ -24,6 +24,7 @@ interface Account {
   trial_ends_at?: string;
   purchase_type?: 'full' | 'subscription' | 'rent_to_own' | null;
   paddle_subscription_id?: string | null;
+  tier?: string | null;
 }
 
 interface Device {
@@ -101,7 +102,7 @@ function exportCSV(accounts: Account[]) {
     [
       a.email,
       a.license_type,
-      a.license_version != null ? `V${a.license_version}` : '',
+      a.tier ?? (a.license_version != null ? `V${a.license_version}` : ''),
       a.status ?? '',
       a.activations_used ?? '',
       a.activation_limit ?? '',
@@ -190,13 +191,23 @@ function LicenseBadge({ account }: { account: Account }) {
   }
   if (plan === 'paid') {
     const isRefunded = account.status === 'refunded';
-    const versionLabel = account.license_version != null ? `V${account.license_version}` : 'Paid';
+    const isSuspended = account.status === 'suspended';
+    const planLabel = account.tier ?? (account.license_version != null ? `V${account.license_version}` : 'Paid');
     if (isRefunded) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
           style={{ background: 'rgba(234,179,8,0.12)', color: '#ca8a04', border: '1px solid rgba(234,179,8,0.25)' }}>
           <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#ca8a04' }} />
-          {versionLabel} · Refunded
+          {planLabel} · Refunded
+        </span>
+      );
+    }
+    if (isSuspended) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+          style={{ background: 'rgba(234,179,8,0.12)', color: '#ca8a04', border: '1px solid rgba(234,179,8,0.25)' }}>
+          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#ca8a04' }} />
+          {planLabel} · Suspended
         </span>
       );
     }
@@ -204,7 +215,7 @@ function LicenseBadge({ account }: { account: Account }) {
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
         style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.25)' }}>
         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#16a34a' }} />
-        {versionLabel}
+        {planLabel}
       </span>
     );
   }
@@ -931,13 +942,13 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
                   </div>
                 )}
 
-                {/* Version */}
-                {account.license_type === 'paid' && account.license_version != null && (
+                {/* Plan / Version */}
+                {account.license_type === 'paid' && (account.tier ?? account.license_version) != null && (
                   <div className="flex items-center gap-2">
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Version</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Plan</p>
                     <span className="text-sm font-medium px-2.5 py-0.5 rounded-full"
                       style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.2)' }}>
-                      V{account.license_version}
+                      {account.tier ?? `V${account.license_version}`}
                     </span>
                   </div>
                 )}

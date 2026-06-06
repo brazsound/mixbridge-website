@@ -195,10 +195,12 @@ export function AccountDashboard() {
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded-md text-xs font-semibold" style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399' }}>
-                    {accountData.status === 'free' ? 'Complimentary' : accountData.status}
+                    {accountData.status === 'free'
+                      ? 'Complimentary'
+                      : (accountData.tier ?? accountData.status)}
                   </span>
-                  {accountData.tier && (
-                    <span className="text-text-secondary text-sm capitalize">{accountData.tier} plan</span>
+                  {accountData.tier && accountData.status !== 'free' && (
+                    <span className="text-text-secondary text-sm">plan</span>
                   )}
                 </div>
                 <p className="text-text-muted text-sm">
