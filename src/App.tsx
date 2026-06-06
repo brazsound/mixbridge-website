@@ -20,6 +20,7 @@ import { AccountSettings } from './pages/AccountSettings';
 import { AdminPage } from './pages/AdminPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
+import { RefundPage } from './pages/RefundPage';
 
 function HomePage() {
   return (
@@ -281,6 +282,7 @@ function AppInner() {
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/refund" element={<RefundPage />} />
       </Routes>
     </>
   );
