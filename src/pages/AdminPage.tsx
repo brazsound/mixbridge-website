@@ -22,6 +22,8 @@ interface Account {
   nfr_added_at?: string;
   trial_started_at?: string;
   trial_ends_at?: string;
+  purchase_type?: 'full' | 'subscription' | 'rent_to_own' | null;
+  paddle_subscription_id?: string | null;
 }
 
 interface Device {
@@ -391,6 +393,9 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
   const [planIssuedKeyCopied, setPlanIssuedKeyCopied] = useState(false);
   const [assignLoading, setAssignLoading] = useState<string | null>(null);
   const [assignError, setAssignError] = useState<string | null>(null);
+  const [refundConfirm, setRefundConfirm] = useState(false);
+  const [refundLoading, setRefundLoading] = useState(false);
+  const [refundWarning, setRefundWarning] = useState<string | null>(null);
 
   const [extendExtraDays, setExtendExtraDays] = useState(7);
   const [extendLoading, setExtendLoading] = useState(false);
@@ -573,6 +578,22 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
     }
   };
 
+  const refundPaidLicense = async () => {
+    setRefundLoading(true);
+    setRefundWarning(null);
+    setPlanError(null);
+    try {
+      const res = await apiReq(token, 'license-actions', 'POST', { action: 'refund_paid_license', email: account.email });
+      const data = await res.json() as { ok?: boolean; paddle_warning?: string; error?: string };
+      if (data.error) { setPlanError(data.error); return; }
+      if (data.paddle_warning) setRefundWarning(data.paddle_warning);
+      setRefundConfirm(false);
+      onAccountRefresh();
+    } finally {
+      setRefundLoading(false);
+    }
+  };
+
   const hasNoEffectiveLicense =
     account.license_type === 'none' ||
     (account.license_type === 'paid' && account.status === 'refunded');
@@ -749,7 +770,7 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
             </div>
           </div>
         ) : (
-          /* ── Has active license: show revoke + misc actions ── */
+          /* ── Has active license: show refund/revoke actions ── */
           <div className="flex flex-wrap items-center gap-3">
             {/* Issue Paid License (legacy, for non-paid plans) */}
             {account.license_type !== 'paid' && (
@@ -769,29 +790,72 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
               </button>
             )}
 
-            {/* Revoke */}
-            {planConfirmRevoke ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                  {account.license_type === 'paid'
-                    ? 'Mark as refunded?'
-                    : isTrialPlan(account.license_type)
+            {/* Paid license → Refund through Paddle */}
+            {account.license_type === 'paid' && (
+              refundConfirm ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                    {account.purchase_type === 'subscription'
+                      ? 'Cancel the subscription in Paddle and refund the last payment?'
+                      : account.purchase_type === 'rent_to_own'
+                        ? 'Cancel the RTO plan in Paddle (stops future installments)?'
+                        : account.license_key && !account.paddle_subscription_id
+                          ? 'Issue a full refund through Paddle and revoke the license?'
+                          : 'Revoke this admin-issued license (no Paddle charge to refund)?'}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => void refundPaidLicense()} disabled={refundLoading}
+                      className="px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-40"
+                      style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}>
+                      {refundLoading ? 'Processing…' : 'Confirm refund'}
+                    </button>
+                    <button onClick={() => setRefundConfirm(false)} className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setRefundConfirm(true)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  Refund License
+                </button>
+              )
+            )}
+
+            {/* Complimentary / trial → plain Revoke (no Paddle involved) */}
+            {account.license_type !== 'paid' && (
+              planConfirmRevoke ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                    {isTrialPlan(account.license_type)
                       ? 'Remove trial for this email?'
                       : 'Delete complimentary license?'}
-                </span>
-                <button onClick={() => void revokeLicense()} disabled={planLoading}
-                  className="text-sm font-medium disabled:opacity-40" style={{ color: '#f87171' }}>
-                  {planLoading ? 'Revoking…' : 'Confirm'}
+                  </span>
+                  <button onClick={() => void revokeLicense()} disabled={planLoading}
+                    className="text-sm font-medium disabled:opacity-40" style={{ color: '#f87171' }}>
+                    {planLoading ? 'Revoking…' : 'Confirm'}
+                  </button>
+                  <button onClick={() => setPlanConfirmRevoke(false)} className="text-sm" style={{ color: 'var(--text-muted)' }}>Cancel</button>
+                </div>
+              ) : (
+                <button onClick={() => setPlanConfirmRevoke(true)}
+                  className="px-4 py-2 rounded-lg text-sm transition-colors"
+                  style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  Revoke License
                 </button>
-                <button onClick={() => setPlanConfirmRevoke(false)} className="text-sm" style={{ color: 'var(--text-muted)' }}>Cancel</button>
-              </div>
-            ) : (
-              <button onClick={() => setPlanConfirmRevoke(true)}
-                className="px-4 py-2 rounded-lg text-sm transition-colors"
-                style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
-                Revoke License
-              </button>
+              )
             )}
+          </div>
+        )}
+
+        {/* Paddle warning shown after a partial refund success */}
+        {refundWarning && (
+          <div className="mt-3 p-3 rounded-lg text-xs" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', color: '#fbbf24' }}>
+            <span className="font-medium">Paddle warning — </span>{refundWarning}
+            <span className="block mt-1" style={{ color: 'var(--text-muted)' }}>
+              The license has been revoked in our database. You may need to complete the refund manually in the Paddle dashboard.
+            </span>
           </div>
         )}
 
