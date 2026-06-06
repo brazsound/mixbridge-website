@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom';
 
-const tiers = [
+const annualTiers = [
   {
     name: 'Solo',
     price: 49,
-    devices: 1,
     deviceLabel: '1 Mac',
     description: 'For individual engineers working from a single machine.',
     features: [
@@ -19,7 +18,6 @@ const tiers = [
   {
     name: 'Pro',
     price: 99,
-    devices: 3,
     deviceLabel: 'Up to 3 Macs',
     description: 'For freelancers who move between studio, home, and laptop.',
     features: [
@@ -33,7 +31,6 @@ const tiers = [
   {
     name: 'Team',
     price: 199,
-    devices: 10,
     deviceLabel: 'Up to 10 Macs',
     description: 'For commercial studios and post-production facilities.',
     features: [
@@ -56,16 +53,19 @@ export function Pricing() {
   return (
     <section id="pricing" className="px-6 py-24 md:py-32" style={{ background: 'rgba(0,0,0,0.2)' }}>
       <div className="max-w-4xl mx-auto">
+
+        {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">Simple pricing</h2>
           <p className="text-text-secondary text-sm max-w-md mx-auto leading-relaxed">
-            One licence per account. Activate on up to your plan's device count.
-            Deactivate and move to a new Mac anytime.
+            Annual plans keep your licence active while you subscribe.
+            Or pay once and own this version forever.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4 mb-10">
-          {tiers.map((tier) => (
+        {/* Annual tiers */}
+        <div className="grid md:grid-cols-3 gap-4 mb-6">
+          {annualTiers.map((tier) => (
             <div
               key={tier.name}
               className="glass-card p-6 flex flex-col relative"
@@ -108,19 +108,78 @@ export function Pricing() {
                   tier.highlight ? 'btn-accent' : 'pricing-card-secondary'
                 }`}
               >
-                Get Early Access
+                Get started
               </Link>
             </div>
           ))}
         </div>
 
-        <p className="text-center text-text-muted text-sm">
-          Billing not yet open.{' '}
+        {/* Lifetime tier */}
+        <div
+          className="glass-card p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-6 md:gap-10"
+          style={{ border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)' }}
+        >
+          {/* Left: price + label */}
+          <div className="shrink-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full"
+                style={{ background: 'rgba(110,86,207,0.15)', color: 'var(--accent)' }}
+              >
+                Own it forever
+              </span>
+            </div>
+            <h3 className="font-semibold text-xl mt-2 mb-1">Lifetime V1</h3>
+            <div className="flex items-baseline gap-1">
+              <span className="text-4xl font-semibold">$350</span>
+              <span className="text-text-muted text-sm">one-time</span>
+            </div>
+            <p className="text-text-muted text-xs mt-1">Up to 3 Macs</p>
+          </div>
+
+          {/* Divider */}
+          <div className="hidden md:block self-stretch" style={{ width: 1, background: 'rgba(255,255,255,0.08)' }} />
+
+          {/* Right: description + features */}
+          <div className="flex-1">
+            <p className="text-text-secondary text-sm leading-relaxed mb-4">
+              Pay once, use Mix Bridge V1 on up to 3 Macs — no subscription, no expiry.
+              When V2 ships, existing Lifetime holders get a discounted upgrade price.
+            </p>
+            <ul className="flex flex-wrap gap-x-6 gap-y-2">
+              {[
+                'No recurring fees',
+                'Up to 3 activated Macs',
+                'All V1 updates included',
+                'Discounted V2 upgrade',
+                'Priority support',
+              ].map((f) => (
+                <li key={f} className="flex items-center gap-2 text-sm text-text-muted">
+                  <span style={{ color: 'var(--accent)', flexShrink: 0 }}>{checkIcon}</span>
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* CTA */}
+          <div className="shrink-0">
+            <Link
+              to="/account"
+              className="btn-accent px-6 py-2.5 text-sm font-medium whitespace-nowrap block text-center"
+            >
+              Buy Lifetime
+            </Link>
+          </div>
+        </div>
+
+        <p className="text-center text-text-muted text-sm mt-8">
           <Link to="/account" className="underline underline-offset-2 hover:text-text-secondary transition-colors">
             Sign in to your account
           </Link>{' '}
-          to hold your spot. Pricing goes live soon.
+          to manage your licence or devices.
         </p>
+
       </div>
     </section>
   );
