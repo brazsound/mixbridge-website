@@ -53,7 +53,7 @@ export function DevicesPage() {
 
   const handleDeactivate = async (deviceId: string) => {
     if (!session?.access_token || !API_URL) return;
-    if (!window.confirm('Deactivate this device? You can use that slot on another Mac.')) return;
+    if (!window.confirm('Deactivate this device? You can use that slot on another system.')) return;
 
     setDeactivating(deviceId);
     try {
@@ -88,7 +88,7 @@ export function DevicesPage() {
       ) : activations.length === 0 ? (
         <div className="glass-card p-6">
           <p className="text-text-muted text-sm">
-            No devices yet. Install Mix Bridge on your Mac and sign in with your email to add one.
+            No devices yet. Install Mix Bridge on your system and sign in with your email to add one.
           </p>
         </div>
       ) : (

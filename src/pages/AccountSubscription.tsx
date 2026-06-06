@@ -26,7 +26,7 @@ const annualTiers: AnnualTier[] = [
     name: 'Solo',
     price: 49,
     devices: 1,
-    deviceLabel: '1 Mac',
+    deviceLabel: '1 system',
     features: ['Unlimited bounce queue', 'WAV, MP3 & AIFF export', 'Session templates', 'Timeline & marker ranges'],
     highlight: false,
   },
@@ -34,16 +34,16 @@ const annualTiers: AnnualTier[] = [
     name: 'Pro',
     price: 99,
     devices: 3,
-    deviceLabel: 'Up to 3 Macs',
-    features: ['Everything in Solo', 'Up to 3 activated Macs', 'Switch machines anytime', 'Priority support'],
+    deviceLabel: 'Up to 3 systems',
+    features: ['Everything in Solo', 'Up to 3 activated systems', 'Switch machines anytime', 'Priority support'],
     highlight: true,
   },
   {
     name: 'Team',
     price: 199,
     devices: 10,
-    deviceLabel: 'Up to 10 Macs',
-    features: ['Everything in Pro', 'Up to 10 activated Macs', 'Centralised licence management', 'Priority support'],
+    deviceLabel: 'Up to 10 systems',
+    features: ['Everything in Pro', 'Up to 10 activated systems', 'Centralised licence management', 'Priority support'],
     highlight: false,
   },
 ];
@@ -133,7 +133,7 @@ export function AccountSubscription() {
                   )}
                   {!isComplimentary && !isLifetime && data?.status && (
                     <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-                      Annual subscription · {data.activation_used} / {data.activation_limit} Mac{data.activation_limit !== 1 ? 's' : ''} activated
+                      Annual subscription · {data.activation_used} / {data.activation_limit} system{data.activation_limit !== 1 ? 's' : ''} activated
                     </p>
                   )}
                 </div>
@@ -238,18 +238,18 @@ export function AccountSubscription() {
                     <span className="text-3xl font-semibold">$350</span>
                     <span className="text-sm" style={{ color: 'var(--text-muted)' }}>one-time</span>
                   </div>
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Up to 3 Macs</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Up to 3 systems</p>
                 </div>
 
                 <div className="hidden md:block self-stretch" style={{ width: 1, background: 'rgba(255,255,255,0.07)' }} />
 
                 <div className="flex-1">
                   <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
-                    Pay once, use Mix Bridge V1 on up to 3 Macs — no subscription, no expiry.
+                    Pay once, use Mix Bridge V1 on up to 3 systems — no subscription, no expiry.
                     When V2 ships, existing Lifetime holders get a discounted upgrade price.
                   </p>
                   <ul className="flex flex-wrap gap-x-6 gap-y-2">
-                    {['No recurring fees', 'Up to 3 activated Macs', 'All V1 updates included', 'Discounted V2 upgrade', 'Priority support'].map((f) => (
+                    {['No recurring fees', 'Up to 3 activated systems', 'All V1 updates included', 'Discounted V2 upgrade', 'Priority support'].map((f) => (
                       <li key={f} className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
                         <span style={{ color: 'var(--accent)', flexShrink: 0 }}>{checkIcon}</span>
                         {f}

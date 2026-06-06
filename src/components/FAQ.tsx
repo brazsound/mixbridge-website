@@ -17,9 +17,9 @@ const faqs: FAQItem[] = [
       "SoundFlow runs keyboard-shortcut macros and screen-scraping. Mix Bridge talks to Pro Tools directly through its scripting API (PTSL), which means it doesn't depend on window positions, menu layouts, or screen resolution. It also handles multi-session batching natively, something that's extremely difficult with macro-based tools.",
   },
   {
-    question: 'Can I use Mix Bridge on multiple Macs?',
+    question: 'Can I use Mix Bridge on multiple systems?',
     answer:
-      'Yes. The Solo plan covers 1 Mac, Pro covers up to 3, and Team covers up to 10. You can deactivate a device from your account page and move the seat to a different Mac at any time, at no extra charge.',
+      'Yes. The Solo plan covers 1 system, Pro covers up to 3, and Team covers up to 10. You can deactivate a device from your account page and move the seat to a different system at any time, at no extra charge.',
   },
   {
     question: 'Is it a subscription?',

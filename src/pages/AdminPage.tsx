@@ -780,10 +780,10 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
                 [
                   { id: 'complimentary', label: 'Complimentary', sub: 'NFR · unlimited devices', accent: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: 'rgba(139,92,246,0.3)' },
                   { id: 'trial',         label: 'Free Trial',    sub: '14 days',                 accent: 'rgba(56,189,248,0.1)',  color: '#38bdf8',               border: 'rgba(56,189,248,0.3)' },
-                  { id: 'solo',          label: 'Solo',          sub: '$49/yr · 1 Mac',           accent: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.12)' },
-                  { id: 'pro',           label: 'Pro',           sub: '$99/yr · 3 Macs',          accent: 'var(--accent)',          color: '#fff',                  border: 'transparent' },
-                  { id: 'team',          label: 'Team',          sub: '$199/yr · 10 Macs',        accent: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.12)' },
-                  { id: 'lifetime',      label: 'Lifetime',      sub: '$350 one-time · 3 Macs',   accent: 'rgba(251,191,36,0.1)',   color: '#fbbf24',               border: 'rgba(251,191,36,0.25)' },
+                  { id: 'solo',          label: 'Solo',          sub: '$49/yr · 1 system',           accent: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.12)' },
+                  { id: 'pro',           label: 'Pro',           sub: '$99/yr · 3 systems',          accent: 'var(--accent)',          color: '#fff',                  border: 'transparent' },
+                  { id: 'team',          label: 'Team',          sub: '$199/yr · 10 systems',        accent: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.12)' },
+                  { id: 'lifetime',      label: 'Lifetime',      sub: '$350 one-time · 3 systems',   accent: 'rgba(251,191,36,0.1)',   color: '#fbbf24',               border: 'rgba(251,191,36,0.25)' },
                 ] as const
               ).map((plan) => (
                 <button
@@ -835,10 +835,10 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
                       [
                         { id: 'complimentary', label: 'Complimentary', sub: 'NFR',          accent: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: 'rgba(139,92,246,0.3)' },
                         { id: 'trial',         label: 'Free Trial',    sub: '14 days',       accent: 'rgba(56,189,248,0.1)',  color: '#38bdf8', border: 'rgba(56,189,248,0.3)' },
-                        { id: 'solo',          label: 'Solo',          sub: '1 Mac',         accent: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.12)' },
-                        { id: 'pro',           label: 'Pro',           sub: '3 Macs',        accent: 'var(--accent)',          color: '#fff',                  border: 'transparent' },
-                        { id: 'team',          label: 'Team',          sub: '10 Macs',       accent: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.12)' },
-                        { id: 'lifetime',      label: 'Lifetime',      sub: '3 Macs',        accent: 'rgba(251,191,36,0.1)',   color: '#fbbf24', border: 'rgba(251,191,36,0.25)' },
+                        { id: 'solo',          label: 'Solo',          sub: '1 system',         accent: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.12)' },
+                        { id: 'pro',           label: 'Pro',           sub: '3 systems',        accent: 'var(--accent)',          color: '#fff',                  border: 'transparent' },
+                        { id: 'team',          label: 'Team',          sub: '10 systems',       accent: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.12)' },
+                        { id: 'lifetime',      label: 'Lifetime',      sub: '3 systems',        accent: 'rgba(251,191,36,0.1)',   color: '#fbbf24', border: 'rgba(251,191,36,0.25)' },
                       ] as const
                     ).map((plan) => (
                       <button

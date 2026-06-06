@@ -244,7 +244,7 @@ export function AccountDashboard() {
             <div className="glass-card p-6 md:col-span-2">
               <h2 className="font-medium mb-1">License Key</h2>
               <p className="text-text-muted text-sm mb-4">
-                Enter this key with your email when activating Mix Bridge on a new Mac.
+                Enter this key with your email when activating Mix Bridge on a new system.
               </p>
               <div className="flex items-center gap-3">
                 <code className="flex-1 px-4 py-3 rounded-lg bg-white/[0.03] border text-text font-mono tracking-widest text-center text-lg select-all" style={{ borderColor: 'var(--border)' }}>

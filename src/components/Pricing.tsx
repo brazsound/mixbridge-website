@@ -4,25 +4,25 @@ const annualTiers = [
   {
     name: 'Solo',
     price: 49,
-    deviceLabel: '1 Mac',
+    deviceLabel: '1 system',
     description: 'For individual engineers working from a single machine.',
     features: [
       'Unlimited bounce queue',
       'WAV, MP3 & AIFF export',
       'Session templates',
       'Timeline & marker ranges',
-      '1 activated Mac',
+      '1 activated system',
     ],
     highlight: false,
   },
   {
     name: 'Pro',
     price: 99,
-    deviceLabel: 'Up to 3 Macs',
+    deviceLabel: 'Up to 3 systems',
     description: 'For freelancers who move between studio, home, and laptop.',
     features: [
       'Everything in Solo',
-      'Up to 3 activated Macs',
+      'Up to 3 activated systems',
       'Switch machines anytime',
       'Priority support',
     ],
@@ -31,11 +31,11 @@ const annualTiers = [
   {
     name: 'Team',
     price: 199,
-    deviceLabel: 'Up to 10 Macs',
+    deviceLabel: 'Up to 10 systems',
     description: 'For commercial studios and post-production facilities.',
     features: [
       'Everything in Pro',
-      'Up to 10 activated Macs',
+      'Up to 10 activated systems',
       'Centralized licence management',
       'Priority support',
     ],
@@ -134,7 +134,7 @@ export function Pricing() {
               <span className="text-4xl font-semibold">$350</span>
               <span className="text-text-muted text-sm">one-time</span>
             </div>
-            <p className="text-text-muted text-xs mt-1">Up to 3 Macs</p>
+            <p className="text-text-muted text-xs mt-1">Up to 3 systems</p>
           </div>
 
           {/* Divider */}
@@ -149,7 +149,7 @@ export function Pricing() {
             <ul className="flex flex-wrap gap-x-6 gap-y-2">
               {[
                 'No recurring fees',
-                'Up to 3 activated Macs',
+                'Up to 3 activated systems',
                 'All V1 updates included',
                 'Discounted V2 upgrade',
                 'Priority support',
