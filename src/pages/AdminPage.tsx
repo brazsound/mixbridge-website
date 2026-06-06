@@ -382,7 +382,7 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
   const [resetCopied, setResetCopied] = useState(false);
 
   const [grantNote, setGrantNote] = useState('');
-  const [grantLimit, setGrantLimit] = useState(3);
+  const [grantLimit, setGrantLimit] = useState(10);
   const [grantLoading, setGrantLoading] = useState(false);
   const [grantError, setGrantError] = useState<string | null>(null);
   const [grantSuccess, setGrantSuccess] = useState(false);
@@ -636,7 +636,7 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
     try {
       let res: Response;
       if (planId === 'complimentary') {
-        res = await apiReq(token, 'accounts', 'POST', { email: account.email, activation_limit: 100 });
+        res = await apiReq(token, 'accounts', 'POST', { email: account.email, activation_limit: 10 });
       } else if (planId === 'trial') {
         res = await apiReq(token, 'license-actions', 'POST', { action: 'start_trial', email: account.email, days: 14 });
       } else {
@@ -2172,7 +2172,7 @@ function NfrTab({ token }: { token: string }) {
 
   const [addEmail, setAddEmail] = useState('');
   const [addNote, setAddNote] = useState('');
-  const [addLimit, setAddLimit] = useState(3);
+  const [addLimit, setAddLimit] = useState(10);
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
