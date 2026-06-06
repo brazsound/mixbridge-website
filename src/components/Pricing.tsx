@@ -143,7 +143,7 @@ export function Pricing() {
           {/* Right: description + features */}
           <div className="flex-1">
             <p className="text-text-secondary text-sm leading-relaxed mb-4">
-              Pay once, use Mix Bridge V1 on up to 3 Macs — no subscription, no expiry.
+              Pay once, use Mix Bridge V1 on up to 3 systems. No subscription, no expiry.
               When V2 ships, existing Lifetime holders get a discounted upgrade price.
             </p>
             <ul className="flex flex-wrap gap-x-6 gap-y-2">
