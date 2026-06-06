@@ -389,6 +389,8 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
   const [planConfirmRevoke, setPlanConfirmRevoke] = useState(false);
   const [planIssuedKey, setPlanIssuedKey] = useState<string | null>(null);
   const [planIssuedKeyCopied, setPlanIssuedKeyCopied] = useState(false);
+  const [assignLoading, setAssignLoading] = useState<string | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
 
   const [extendExtraDays, setExtendExtraDays] = useState(7);
   const [extendLoading, setExtendLoading] = useState(false);
@@ -571,6 +573,32 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
     }
   };
 
+  const hasNoEffectiveLicense =
+    account.license_type === 'none' ||
+    (account.license_type === 'paid' && account.status === 'refunded');
+
+  const assignPlan = async (planId: 'complimentary' | 'trial' | 'solo' | 'pro' | 'team') => {
+    setAssignLoading(planId);
+    setAssignError(null);
+    setPlanIssuedKey(null);
+    try {
+      let res: Response;
+      if (planId === 'complimentary') {
+        res = await apiReq(token, 'accounts', 'POST', { email: account.email, activation_limit: 100 });
+      } else if (planId === 'trial') {
+        res = await apiReq(token, 'license-actions', 'POST', { action: 'start_trial', email: account.email, days: 14 });
+      } else {
+        res = await apiReq(token, 'license-actions', 'POST', { action: 'issue_paid_license', email: account.email, tier: planId });
+      }
+      const data = await res.json() as { ok?: boolean; license_key?: string; error?: string };
+      if (data.error) { setAssignError(data.error); return; }
+      if (data.license_key) setPlanIssuedKey(data.license_key);
+      onAccountRefresh();
+    } finally {
+      setAssignLoading(null);
+    }
+  };
+
   const extendTrial = async () => {
     setExtendLoading(true);
     setExtendError(null);
@@ -668,44 +696,81 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
       {/* ── Plan Management ── */}
       <div className="glass-card p-5 mb-5" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
         <SectionLabel title="Plan Management" />
-        {planError && <p className="text-xs mb-3" style={{ color: '#fbbf24' }}>{planError}</p>}
+        {(planError ?? assignError) && (
+          <p className="text-xs mb-3" style={{ color: '#fbbf24' }}>{planError ?? assignError}</p>
+        )}
 
-        {/* Issued paid license key display */}
+        {/* Issued license key display */}
         {planIssuedKey && (
           <div className="mb-4 p-3 rounded-lg" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
-            <p className="text-xs mb-1.5" style={{ color: '#16a34a' }}>Paid license issued — share this key with the user</p>
+            <p className="text-xs mb-1.5" style={{ color: '#16a34a' }}>License issued — share this key with the user</p>
             <div className="flex items-center gap-2">
               <code className="flex-1 text-sm font-mono font-semibold" style={{ color: 'var(--text)' }}>{planIssuedKey}</code>
-              <button onClick={() => { void navigator.clipboard.writeText(planIssuedKey); setPlanIssuedKeyCopied(true); setTimeout(() => setPlanIssuedKeyCopied(false), 2000); }}
-                className="text-xs shrink-0" style={{ color: 'var(--text-muted)' }}>
+              <button
+                onClick={() => { void navigator.clipboard.writeText(planIssuedKey); setPlanIssuedKeyCopied(true); setTimeout(() => setPlanIssuedKeyCopied(false), 2000); }}
+                className="text-xs shrink-0"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 {planIssuedKeyCopied ? '✓ Copied' : 'Copy'}
               </button>
             </div>
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Issue Paid License */}
-          {account.license_type !== 'paid' && (
-            <button onClick={() => void issuePaidLicense()} disabled={planLoading}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
-              style={{ background: 'var(--accent)', color: '#fff' }}>
-              {planLoading ? 'Working…' : 'Issue Paid License'}
-            </button>
-          )}
+        {hasNoEffectiveLicense ? (
+          /* ── No active license: show assign options ── */
+          <div>
+            <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+              No active license. Assign a plan to this user:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  { id: 'complimentary', label: 'Complimentary', sub: 'NFR · unlimited devices', accent: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: 'rgba(139,92,246,0.3)' },
+                  { id: 'trial', label: 'Free Trial', sub: '14 days', accent: 'rgba(56,189,248,0.1)', color: '#38bdf8', border: 'rgba(56,189,248,0.3)' },
+                  { id: 'solo', label: 'Solo', sub: '$49/yr · 1 Mac', accent: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.12)' },
+                  { id: 'pro', label: 'Pro', sub: '$99/yr · 3 Macs', accent: 'var(--accent)', color: '#fff', border: 'transparent' },
+                  { id: 'team', label: 'Team', sub: '$199/yr · 10 Macs', accent: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: 'rgba(255,255,255,0.12)' },
+                ] as const
+              ).map((plan) => (
+                <button
+                  key={plan.id}
+                  onClick={() => void assignPlan(plan.id)}
+                  disabled={assignLoading !== null}
+                  className="flex flex-col items-start px-4 py-2.5 rounded-lg text-left transition-opacity disabled:opacity-40"
+                  style={{ background: plan.accent, color: plan.color, border: `1px solid ${plan.border}` }}
+                >
+                  <span className="text-sm font-medium leading-tight">
+                    {assignLoading === plan.id ? 'Assigning…' : plan.label}
+                  </span>
+                  <span className="text-[11px] mt-0.5 opacity-70">{plan.sub}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* ── Has active license: show revoke + misc actions ── */
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Issue Paid License (legacy, for non-paid plans) */}
+            {account.license_type !== 'paid' && (
+              <button onClick={() => void issuePaidLicense()} disabled={planLoading}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
+                style={{ background: 'var(--accent)', color: '#fff' }}>
+                {planLoading ? 'Working…' : 'Issue Paid License'}
+              </button>
+            )}
 
-          {/* Grant Complimentary — only if no license */}
-          {(account.license_type === 'none' || isTrialPlan(account.license_type)) && (
-            <button onClick={() => void grantLicense()} disabled={grantLoading}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
-              style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.12)' }}>
-              {grantLoading ? 'Granting…' : 'Grant Complimentary'}
-            </button>
-          )}
+            {/* Grant Complimentary — only if trial */}
+            {isTrialPlan(account.license_type) && (
+              <button onClick={() => void grantLicense()} disabled={grantLoading}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40"
+                style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                {grantLoading ? 'Granting…' : 'Grant Complimentary'}
+              </button>
+            )}
 
-          {/* Revoke */}
-          {account.license_type !== 'none' && (
-            planConfirmRevoke ? (
+            {/* Revoke */}
+            {planConfirmRevoke ? (
               <div className="flex items-center gap-2">
                 <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   {account.license_type === 'paid'
@@ -726,9 +791,9 @@ function UserDetailPanel({ account, token, onBack, onAccountRefresh }: {
                 style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
                 Revoke License
               </button>
-            )
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {isTrialPlan(account.license_type) && (
           <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
