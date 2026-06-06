@@ -1,6 +1,7 @@
 import { Component, useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 const API = (import.meta.env.VITE_LICENSE_API_URL ?? '').replace(/\/$/, '');
@@ -1400,9 +1401,15 @@ function AccountsTab({ token }: { token: string }) {
   const [sortDesc, setSortDesc] = useState(true);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // User detail view
-  const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
+  // User detail view — persisted in the URL as ?member=email so reloads keep the page open
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedEmail = searchParams.get('member');
   const selectedAccount = selectedEmail ? (accounts.find((a) => a.email === selectedEmail) ?? null) : null;
+
+  const openMember = (email: string) =>
+    setSearchParams((p) => { const n = new URLSearchParams(p); n.set('member', email); return n; });
+  const closeMember = () =>
+    setSearchParams((p) => { const n = new URLSearchParams(p); n.delete('member'); return n; });
 
   // Invite modal
   const [inviteEmail, setInviteEmail] = useState('');
@@ -1511,7 +1518,7 @@ function AccountsTab({ token }: { token: string }) {
       <UserDetailPanel
         account={selectedAccount}
         token={token}
-        onBack={() => setSelectedEmail(null)}
+        onBack={closeMember}
         onAccountRefresh={() => void load()}
       />
     );
@@ -1722,7 +1729,7 @@ function AccountsTab({ token }: { token: string }) {
                     key={a.email ?? `row-${rowIdx}`}
                     className="transition-colors hover:bg-white/[0.05] cursor-pointer"
                     style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
-                    onClick={() => setSelectedEmail(a.email)}
+                    onClick={() => openMember(a.email)}
                   >
                     <td className="px-5 py-3 align-middle">
                       <div className="flex min-w-0 items-center gap-3">
@@ -2541,7 +2548,10 @@ export function AdminPage() {
   const [password, setPassword] = useState('');
   const [signInError, setSignInError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
-  const [tab, setTab] = useState<Tab>('dashboard');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = (searchParams.get('tab') as Tab | null) ?? 'dashboard';
+  const setTab = (next: Tab) =>
+    setSearchParams((p) => { const n = new URLSearchParams(p); n.set('tab', next); n.delete('member'); return n; });
 
   const [accountCounts, setAccountCounts] = useState({
     total: 0,
