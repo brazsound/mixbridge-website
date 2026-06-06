@@ -17,6 +17,7 @@ import { AccountDownload } from './pages/AccountDownload';
 import { AccountFeedback } from './pages/AccountFeedback';
 import { DevicesPage } from './pages/DevicesPage';
 import { AccountSettings } from './pages/AccountSettings';
+import { AccountSubscription } from './pages/AccountSubscription';
 import { AdminPage } from './pages/AdminPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
@@ -275,6 +276,7 @@ function AppInner() {
           <Route path="download" element={<AccountDownload />} />
           <Route path="feedback" element={<AccountFeedback />} />
           <Route path="devices" element={<DevicesPage />} />
+          <Route path="subscription" element={<AccountSubscription />} />
           <Route path="settings" element={<AccountSettings />} />
           <Route path="*" element={<Navigate to="/account" replace />} />
         </Route>
