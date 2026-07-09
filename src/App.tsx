@@ -6,7 +6,6 @@ import { Nav } from './components/Nav';
 import { Hero } from './components/Hero';
 import { HowItWorks } from './components/HowItWorks';
 import { Features } from './components/Features';
-import { Pricing } from './components/Pricing';
 import { FAQ } from './components/FAQ';
 import { Download } from './components/Download';
 import { Footer } from './components/Footer';
@@ -15,13 +14,10 @@ import { AccountAuthGate } from './pages/AccountPage';
 import { AccountDashboard } from './pages/AccountDashboard';
 import { AccountDownload } from './pages/AccountDownload';
 import { AccountFeedback } from './pages/AccountFeedback';
-import { DevicesPage } from './pages/DevicesPage';
 import { AccountSettings } from './pages/AccountSettings';
-import { AccountSubscription } from './pages/AccountSubscription';
 import { AdminPage } from './pages/AdminPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
-import { RefundPage } from './pages/RefundPage';
 
 function HomePage() {
   return (
@@ -29,7 +25,6 @@ function HomePage() {
       <Hero />
       <HowItWorks />
       <Features />
-      <Pricing />
       <FAQ />
       <Download />
       <Footer />
@@ -275,8 +270,6 @@ function AppInner() {
           <Route index element={<AccountDashboard />} />
           <Route path="download" element={<AccountDownload />} />
           <Route path="feedback" element={<AccountFeedback />} />
-          <Route path="devices" element={<DevicesPage />} />
-          <Route path="subscription" element={<AccountSubscription />} />
           <Route path="settings" element={<AccountSettings />} />
           <Route path="*" element={<Navigate to="/account" replace />} />
         </Route>
@@ -284,7 +277,6 @@ function AppInner() {
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
-        <Route path="/refund" element={<RefundPage />} />
       </Routes>
     </>
   );

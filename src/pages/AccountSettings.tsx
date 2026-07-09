@@ -367,7 +367,7 @@ export function AccountSettings() {
             <div className="rounded-xl px-4 py-3 text-sm space-y-1" style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}>
               <p className="font-medium text-red-400">This cannot be undone.</p>
               <p className="text-text-muted text-xs leading-relaxed">
-                Your account, license, and all activated devices will be permanently removed. You will lose access immediately.
+                Your account will be permanently removed and you will be signed out on all your devices immediately.
               </p>
             </div>
             <form onSubmit={handleDeleteAccount} className="space-y-3">

@@ -83,7 +83,7 @@ export function AccountAuthGate() {
     <div className="min-h-screen bg-bg text-text">
       <div className="pt-28 px-6 max-w-md mx-auto pb-20">
         <h1 className="text-2xl font-semibold tracking-tight mb-2">Account</h1>
-        <p className="text-text-muted text-sm mb-8">Manage your license and devices from anywhere.</p>
+        <p className="text-text-muted text-sm mb-8">Sign in to download Mix Bridge and manage your account.</p>
 
         {authHashError && (
           <div className="mb-6 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100" role="alert">

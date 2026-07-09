@@ -12,7 +12,7 @@ const linkClass = 'text-text-muted hover:text-text transition-colors text-[13px]
 const accountLinks = [
   { to: '/account', label: 'Dashboard' },
   { to: '/account/download', label: 'Download' },
-  { to: '/account/devices', label: 'Devices' },
+  { to: '/account/feedback', label: 'Feedback' },
   { to: '/account/settings', label: 'Settings' },
 ];
 
@@ -135,7 +135,6 @@ export function Nav() {
 
         <div className="hidden md:flex gap-5 items-center">
           <a href="/#features" className={linkClass}>Features</a>
-          <a href="/#pricing" className={linkClass}>Pricing</a>
           <a href="/#download" className={linkClass}>Download</a>
 
           {user ? (
@@ -188,7 +187,6 @@ export function Nav() {
         <div className="md:hidden border-t" style={{ borderColor: 'var(--border)', background: 'rgba(10,10,15,0.95)' }}>
           <div className="flex flex-col px-6 py-3">
             <a href="/#features" className={`${linkClass} py-2.5`} onClick={() => setMobileOpen(false)}>Features</a>
-            <a href="/#pricing" className={`${linkClass} py-2.5`} onClick={() => setMobileOpen(false)}>Pricing</a>
             <a href="/#download" className={`${linkClass} py-2.5`} onClick={() => setMobileOpen(false)}>Download</a>
 
             {user ? (

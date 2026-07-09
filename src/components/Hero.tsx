@@ -168,7 +168,7 @@ export function Hero() {
           <rect x="2" y="3" width="20" height="14" rx="2" />
           <path d="M8 21h8M12 17v4" />
         </svg>
-        macOS · Pro Tools required
+        Free · macOS · Pro Tools required
       </div>
 
       <h1 className="text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight text-center mb-6 leading-[1.05]">

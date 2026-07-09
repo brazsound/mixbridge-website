@@ -1,4 +1,5 @@
 import React from 'react';
+import { useReveal } from '@/lib/useReveal';
 
 function WindowChrome({ title }: { title: string }) {
   return (
@@ -355,9 +356,10 @@ const stepData: StepData[] = [
 const mockups: React.ReactNode[] = [<QueueMockup />, <FormatMockup />, <BatchRunMockup />];
 
 export function HowItWorks() {
+  const revealRef = useReveal();
   return (
     <section className="px-6 py-24 md:py-32">
-      <div className="max-w-5xl mx-auto">
+      <div ref={revealRef} className="max-w-5xl mx-auto reveal">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">How it works</h2>
           <p className="text-text-secondary text-sm max-w-lg mx-auto leading-relaxed">

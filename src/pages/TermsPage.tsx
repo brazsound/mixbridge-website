@@ -20,9 +20,9 @@ export function TermsPage() {
             <div>
               <h2 className="text-text font-medium text-base mb-2">Licence</h2>
               <p>
-                Each Mix Bridge licence grants you a non-exclusive, non-transferable right to run the
-                software on the number of Macs specified by your plan (Solo: 1, Pro: 3, Team: 10).
-                You may deactivate and move a seat at any time through the account page.
+                Mix Bridge is free to use. We grant you a non-exclusive, non-transferable right to run the
+                software for your own audio work on as many Macs as you like. A free account is required to
+                download and sign in.
               </p>
             </div>
 
@@ -30,7 +30,7 @@ export function TermsPage() {
               <h2 className="text-text font-medium text-base mb-2">Acceptable use</h2>
               <ul className="list-disc list-inside space-y-1">
                 <li>Do not reverse-engineer, decompile, or modify the application binary.</li>
-                <li>Do not share your licence key or account credentials.</li>
+                <li>Do not share your account credentials.</li>
                 <li>Do not use the software to violate any applicable law.</li>
               </ul>
             </div>
@@ -39,25 +39,8 @@ export function TermsPage() {
               <h2 className="text-text font-medium text-base mb-2">Availability</h2>
               <p>
                 Mix Bridge is provided "as is". We aim for high reliability but do not guarantee uninterrupted
-                service. The licence server requires periodic internet access for activation; the application
-                itself works offline once activated.
-              </p>
-            </div>
-
-            <div>
-              <h2 className="text-text font-medium text-base mb-2">Billing</h2>
-              <p>
-                Licences are billed annually. Billing details and payment processing will be handled through
-                a third-party provider (Paddle or Stripe) when billing goes live. Prices may change with 30
-                days' notice before your next renewal.
-              </p>
-            </div>
-
-            <div>
-              <h2 className="text-text font-medium text-base mb-2">Refunds</h2>
-              <p>
-                If you are unsatisfied, contact us within 14 days of purchase for a full refund. After 14 days,
-                refunds are at our discretion.
+                service. Signing in requires internet access; the application itself works offline once you're
+                signed in.
               </p>
             </div>
 
@@ -90,8 +73,8 @@ export function TermsPage() {
               <h2 className="text-text font-medium text-base mb-2">Contact</h2>
               <p>
                 Questions? Reach us at{' '}
-                <a href="mailto:support@brazsound.com" className="text-accent hover:underline">
-                  support@brazsound.com
+                <a href="mailto:support@mixbridge.net" className="text-accent hover:underline">
+                  support@mixbridge.net
                 </a>.
               </p>
             </div>

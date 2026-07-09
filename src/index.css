@@ -151,6 +151,26 @@ button:focus-visible,
   }
 }
 
+/* Scroll reveal — paired with the useReveal() hook */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s ease, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 ::selection {
   background: rgba(110, 86, 207, 0.3);
   color: #fff;

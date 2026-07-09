@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useReveal } from '@/lib/useReveal';
 
 const GITHUB_API = 'https://api.github.com/repos/Meteteus/mix-bridge/releases/latest';
 
@@ -11,6 +12,7 @@ interface ReleaseInfo {
 export function Download() {
   const [release, setRelease] = useState<ReleaseInfo>({ url: null, version: '' });
   const [loading, setLoading] = useState(true);
+  const revealRef = useReveal();
 
   useEffect(() => {
     let cancelled = false;
@@ -52,14 +54,14 @@ export function Download() {
         ].join(', '),
       }}
     >
-      <div className="max-w-lg mx-auto">
+      <div ref={revealRef} className="max-w-lg mx-auto reveal">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
             Get Mix Bridge
           </h2>
           <p className="text-text-secondary text-sm leading-relaxed">
-            Free to try. No account needed to download.{' '}
-            <span className="text-text-muted">Purchase a licence from your account page after you install.</span>
+            Free to use.{' '}
+            <span className="text-text-muted">Create a free account, download, and start bouncing.</span>
           </p>
         </div>
 
@@ -108,7 +110,7 @@ export function Download() {
               )}
             </div>
 
-            {/* Trial info */}
+            {/* Free info */}
             <div
               className="mt-5 rounded-lg overflow-hidden"
               style={{ border: '1px solid var(--border)' }}
@@ -131,10 +133,10 @@ export function Download() {
                 >
                   <circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" />
                 </svg>
-                <span style={{ color: 'var(--accent)' }}>7-day free trial included</span>
+                <span style={{ color: 'var(--accent)' }}>100% free — no trial limits</span>
               </div>
               <div className="px-4 py-3 text-[12px] text-text-muted leading-relaxed" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                Full app, fully functional for 7 days after install. One activation per account. No credit card required — purchase a licence from your account page when you're ready.
+                The full app, free forever. Just create a free account so we can send updates and receive your bug reports and feature requests. No card, no device limits.
               </div>
             </div>
           </div>

@@ -134,10 +134,17 @@ export function AccountFeedback() {
         )}
       </div>
 
-      {/* Feedback history placeholder */}
+      {/* What happens to feedback */}
       <div className="glass-card p-6 max-w-lg mt-6">
-        <h2 className="font-medium mb-2">Your Feedback History</h2>
-        <p className="text-text-muted text-sm">No feedback submitted yet.</p>
+        <h2 className="font-medium mb-2">What happens next</h2>
+        <p className="text-text-muted text-sm leading-relaxed">
+          Every submission goes straight to our team — we read all of it, even when we can’t reply
+          to each one individually. For anything that needs a direct response, email{' '}
+          <a href="mailto:support@mixbridge.net" className="text-accent hover:underline">
+            support@mixbridge.net
+          </a>
+          .
+        </p>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useReveal } from '@/lib/useReveal';
 
 interface FAQItem {
   question: string;
@@ -17,14 +18,19 @@ const faqs: FAQItem[] = [
       "SoundFlow runs keyboard-shortcut macros and screen-scraping. Mix Bridge talks to Pro Tools directly through its scripting API (PTSL), which means it doesn't depend on window positions, menu layouts, or screen resolution. It also handles multi-session batching natively, something that's extremely difficult with macro-based tools.",
   },
   {
-    question: 'Can I use Mix Bridge on multiple systems?',
+    question: 'Is Mix Bridge really free?',
     answer:
-      'Yes. The Solo plan covers 1 system, Pro covers up to 3, and Team covers up to 10. You can deactivate a device from your account page and move the seat to a different system at any time, at no extra charge.',
+      'Yes. Mix Bridge is completely free to use — no fees, no trial limits, and no card required. Just create a free account, download the app, and start bouncing.',
   },
   {
-    question: 'Is it a subscription?',
+    question: 'Why do I need an account?',
     answer:
-      'Mix Bridge uses an annual licence. You pay once per year and receive all updates for that period. There are no monthly fees or per-bounce charges.',
+      "So we can keep you posted on updates and make it easy to send us bug reports and feature requests right from the app. Creating one takes a few seconds and it's free.",
+  },
+  {
+    question: 'Can I use Mix Bridge on multiple systems?',
+    answer:
+      'Yes. Install it on as many Macs as you like — just sign in with your account on each one. There are no device limits.',
   },
   {
     question: 'What audio formats are supported?',
@@ -44,7 +50,7 @@ const faqs: FAQItem[] = [
   {
     question: 'Does Mix Bridge require an internet connection?',
     answer:
-      'Only for activation and licence verification. Once activated, Mix Bridge works fully offline. Your sessions and bounces never leave your machine.',
+      "Only to sign in to your account. Once you're signed in, Mix Bridge works fully offline. Your sessions and bounces never leave your machine.",
   },
 ];
 
@@ -85,9 +91,10 @@ function FAQAccordion({ item }: { item: FAQItem }) {
 }
 
 export function FAQ() {
+  const revealRef = useReveal();
   return (
     <section id="faq" className="px-6 py-24 md:py-32">
-      <div className="max-w-2xl mx-auto">
+      <div ref={revealRef} className="max-w-2xl mx-auto reveal">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">Frequently asked questions</h2>
           <p className="text-text-secondary text-sm leading-relaxed">

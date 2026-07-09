@@ -1,3 +1,5 @@
+import { useReveal } from '@/lib/useReveal';
+
 const features = [
   {
     icon: (
@@ -56,6 +58,7 @@ const features = [
 ];
 
 export function Features() {
+  const revealRef = useReveal();
   return (
     <section
       id="features"
@@ -67,7 +70,7 @@ export function Features() {
         ].join(', '),
       }}
     >
-      <div className="max-w-4xl mx-auto">
+      <div ref={revealRef} className="max-w-4xl mx-auto reveal">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
             Less clicking. More mixing.

@@ -21,7 +21,7 @@ export function PrivacyPage() {
               <h2 className="text-text font-medium text-base mb-2">What we collect</h2>
               <ul className="list-disc list-inside space-y-1">
                 <li><strong className="text-text">Account data:</strong> email address, display name, and hashed password when you create an account.</li>
-                <li><strong className="text-text">Device identifiers:</strong> a hardware-derived ID used solely for licence activation. We store a display name for the device if you provide one.</li>
+                <li><strong className="text-text">Feedback you send:</strong> if you submit a bug report or feature request, we receive your message and, for bug reports, a diagnostic log (no audio or session content).</li>
                 <li><strong className="text-text">Usage analytics:</strong> we may collect anonymous, aggregated usage statistics (e.g. bounce counts) to improve the product. No audio content is ever transmitted.</li>
               </ul>
             </div>
@@ -37,7 +37,7 @@ export function PrivacyPage() {
             <div>
               <h2 className="text-text font-medium text-base mb-2">How we store your data</h2>
               <p>
-                Account and licence data is stored in Supabase (PostgreSQL) with row-level security policies.
+                Account data is stored in Supabase (PostgreSQL) with row-level security policies.
                 Passwords are hashed by Supabase Auth and never stored in plain text.
                 We do not sell or share your personal data with third parties.
               </p>
@@ -56,8 +56,8 @@ export function PrivacyPage() {
               <p>
                 You can update or delete your account data from the Account page at any time. If you want us to
                 remove all data associated with your email, contact{' '}
-                <a href="mailto:support@brazsound.com" className="text-accent hover:underline">
-                  support@brazsound.com
+                <a href="mailto:support@mixbridge.net" className="text-accent hover:underline">
+                  support@mixbridge.net
                 </a>.
               </p>
             </div>
@@ -74,8 +74,8 @@ export function PrivacyPage() {
               <h2 className="text-text font-medium text-base mb-2">Contact</h2>
               <p>
                 Questions? Reach us at{' '}
-                <a href="mailto:support@brazsound.com" className="text-accent hover:underline">
-                  support@brazsound.com
+                <a href="mailto:support@mixbridge.net" className="text-accent hover:underline">
+                  support@mixbridge.net
                 </a>.
               </p>
             </div>
