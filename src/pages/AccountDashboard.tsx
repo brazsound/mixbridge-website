@@ -10,7 +10,7 @@ const quickLinks = [
   {
     to: '/account/download',
     title: 'Download MixBridge',
-    body: 'Get the latest macOS build and install it in seconds.',
+    body: 'Get the latest macOS build of MixBridge.',
   },
   {
     to: '/account/feedback',

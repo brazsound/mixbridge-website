@@ -185,9 +185,9 @@ export function Hero() {
         Focus on the mix, not the manual work.
       </p>
       <p className="text-sm md:text-base text-text-muted text-center max-w-xl mb-12 leading-relaxed">
-        MixBridge exports clean, organized stems from Pro Tools in seconds.
+        Prep your bounces, queue them up, and walk away.
         <br className="hidden sm:block" />
-        Save time, stay consistent, and keep your creative flow.
+        MixBridge drives Pro Tools through every export — your stems are ready when you get back.
       </p>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center">
