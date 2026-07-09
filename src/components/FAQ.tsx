@@ -35,7 +35,7 @@ const faqs: FAQItem[] = [
   {
     question: 'What audio formats are supported?',
     answer:
-      'WAV, MP3, and AIFF, the same formats Pro Tools supports for offline bounce. You can set sample rate and bit depth per queue item.',
+      'WAV, MP3, and AIFF, the same formats Pro Tools supports for offline bounce. You set the format, sample rate, and bit depth per session, and you can add an MP3 copy alongside your main format in one pass.',
   },
   {
     question: 'Does it work with Dolby Atmos sessions?',
@@ -45,7 +45,12 @@ const faqs: FAQItem[] = [
   {
     question: 'What happens if a bounce fails mid-run?',
     answer:
-      "MixBridge logs the error and moves to the next item in the queue, so one failed bounce doesn't stop the entire batch. You can review what happened and re-run individual items.",
+      "MixBridge stops at the failed item and shows you exactly what went wrong. Fix the issue in your session, then resume the run from that item — everything already bounced stays done, so you never repeat work.",
+  },
+  {
+    question: 'Can I extend MixBridge or build my own add-ons?',
+    answer:
+      'Yes — MixBridge is open source (GPL-3.0) and has a full extension system. Install community extensions from Settings → Extensions inside the app, or build your own with the MIT-licensed SDK: extensions run sandboxed with explicit permissions and can react to bounces, edit the queue, call webhooks, and more. You can also attach shell commands to app events under Settings → Automation, no code required.',
   },
   {
     question: 'Does MixBridge require an internet connection?',

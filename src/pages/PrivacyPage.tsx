@@ -13,7 +13,7 @@ export function PrivacyPage() {
               <h2 className="text-text font-medium text-base mb-2">Who we are</h2>
               <p>
                 MixBridge is a product of Braz Sound ("we", "us"). This policy explains how we handle
-                your information when you use our website at mixbridge.net and the MixBridge desktop application.
+                your information when you use our website at mixbridge.studio and the MixBridge desktop application.
               </p>
             </div>
 

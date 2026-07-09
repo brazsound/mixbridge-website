@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useReveal } from '@/lib/useReveal';
+import { DOWNLOADS_ENABLED } from '@/lib/config';
 
-const GITHUB_API = 'https://api.github.com/repos/Meteteus/mix-bridge/releases/latest';
+const GITHUB_API = 'https://api.github.com/repos/brazsound/mixbridge/releases/latest';
 
 interface ReleaseInfo {
   url: string | null;
@@ -15,6 +16,10 @@ export function Download() {
   const revealRef = useReveal();
 
   useEffect(() => {
+    if (!DOWNLOADS_ENABLED) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
 
     async function fetchRelease() {
@@ -76,7 +81,24 @@ export function Download() {
           {/* Download CTA */}
           <div className="p-8 pb-6">
             <div className="mb-2">
-              {loading ? (
+              {!DOWNLOADS_ENABLED ? (
+                <div className="text-center">
+                  <span
+                    className="inline-flex items-center gap-2 w-full justify-center rounded-lg px-4 py-3 text-sm font-medium"
+                    style={{
+                      background: 'rgba(123,92,255,0.10)',
+                      border: '1px solid rgba(123,92,255,0.30)',
+                      color: 'var(--accent)',
+                    }}
+                  >
+                    Public download coming soon
+                  </span>
+                  <p className="text-[12px] text-text-muted mt-3 leading-relaxed">
+                    MixBridge is in final testing. Create a free account and we'll email you the
+                    moment the first public build ships.
+                  </p>
+                </div>
+              ) : loading ? (
                 <span className="btn-accent w-full cursor-wait opacity-50">Loading…</span>
               ) : release.url ? (
                 <a href={release.url} download className="btn-accent btn-accent-glow w-full text-base py-3">

@@ -18,6 +18,7 @@ import { AccountSettings } from './pages/AccountSettings';
 import { AdminPage } from './pages/AdminPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
+import { ExtensionsPage } from './pages/ExtensionsPage';
 
 function HomePage() {
   return (
@@ -98,7 +99,7 @@ function SetPasswordModal() {
                     required
                     autoFocus
                     className="px-3 py-2.5 rounded-lg text-sm outline-none"
-                    style={{ background: 'var(--glass-bg)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text)' }}
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text)' }}
                   />
                 </div>
               )}
@@ -112,7 +113,7 @@ function SetPasswordModal() {
                   required
                   autoFocus
                   className="px-3 py-2.5 rounded-lg text-sm outline-none"
-                  style={{ background: 'var(--glass-bg)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text)' }}
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text)' }}
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -124,7 +125,7 @@ function SetPasswordModal() {
                   placeholder="Repeat password"
                   required
                   className="px-3 py-2.5 rounded-lg text-sm outline-none"
-                  style={{ background: 'var(--glass-bg)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text)' }}
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text)' }}
                 />
               </div>
               {error && <p className="text-xs text-red-400">{error}</p>}
@@ -203,7 +204,7 @@ function ResetPasswordModal() {
                   required
                   autoFocus
                   className="px-3 py-2.5 rounded-lg text-sm outline-none"
-                  style={{ background: 'var(--glass-bg)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text)' }}
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text)' }}
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -215,7 +216,7 @@ function ResetPasswordModal() {
                   placeholder="Repeat password"
                   required
                   className="px-3 py-2.5 rounded-lg text-sm outline-none"
-                  style={{ background: 'var(--glass-bg)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text)' }}
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text)' }}
                 />
               </div>
               {error && <p className="text-xs text-red-400">{error}</p>}
@@ -277,6 +278,9 @@ function AppInner() {
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/extensions" element={<ExtensionsPage />} />
+        {/* Catch-all: unknown URLs go home instead of rendering a blank page */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { DOWNLOADS_ENABLED } from '@/lib/config';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -136,6 +137,10 @@ export function AccountDownload() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!DOWNLOADS_ENABLED) {
+      setLoading(false);
+      return;
+    }
     if (!API_URL) {
       setError('Download service is not configured.');
       setLoading(false);
@@ -160,6 +165,25 @@ export function AccountDownload() {
 
   const latest = releases[0];
   const previous = releases.slice(1);
+
+  if (!DOWNLOADS_ENABLED) {
+    return (
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight mb-1">Download MixBridge</h1>
+        <p className="text-text-muted text-sm mb-8">Public downloads aren't available quite yet.</p>
+        <div
+          className="rounded-xl p-8 text-center max-w-lg"
+          style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.1)' }}
+        >
+          <p className="text-sm text-text-secondary mb-2">MixBridge is getting ready for release.</p>
+          <p className="text-xs text-text-muted leading-relaxed">
+            You already have an account, so you're set — we'll email you the moment the first
+            public build is available for download here.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -231,8 +255,8 @@ export function AccountDownload() {
                   <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>Pro Tools Compatibility</p>
                   <div className="space-y-1.5">
                     {[
-                      { dot: '#34d399', label: '2025.6 or later', note: 'Recommended' },
-                      { dot: '#fbbf24', label: '2023.12 - 2025.3', note: 'Compatible' },
+                      { dot: '#34d399', label: '2025.6 or later', note: 'Supported' },
+                      { dot: '#f87171', label: 'Earlier versions', note: 'Not supported' },
                     ].map((row) => (
                       <div key={row.label} className="flex items-center gap-2 text-sm">
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: row.dot }} />

@@ -137,6 +137,7 @@ export function Nav() {
 
         <div className="hidden md:flex gap-5 items-center">
           <a href="/#features" className={linkClass}>Features</a>
+          <Link to="/extensions" className={linkClass}>Extensions</Link>
           <a href="/#download" className={linkClass}>Download</a>
 
           {user ? (
@@ -189,6 +190,7 @@ export function Nav() {
         <div className="md:hidden border-t" style={{ borderColor: 'var(--border)', background: 'rgba(10,10,15,0.95)' }}>
           <div className="flex flex-col px-6 py-3">
             <a href="/#features" className={`${linkClass} py-2.5`} onClick={() => setMobileOpen(false)}>Features</a>
+            <Link to="/extensions" className={`${linkClass} py-2.5`} onClick={() => setMobileOpen(false)}>Extensions</Link>
             <a href="/#download" className={`${linkClass} py-2.5`} onClick={() => setMobileOpen(false)}>Download</a>
 
             {user ? (

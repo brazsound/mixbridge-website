@@ -15,9 +15,10 @@ export function Footer() {
         </div>
 
         <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-[13px]">
+          <Link to="/extensions" className="text-text-muted hover:text-text transition-colors">Extensions</Link>
           <Link to="/account" className="text-text-muted hover:text-text transition-colors">Account</Link>
           <a href="mailto:support@mixbridge.net" className="text-text-muted hover:text-text transition-colors">Support</a>
-          <a href="https://github.com/Meteteus/mix-bridge" target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-text transition-colors">GitHub</a>
+          <a href="https://github.com/brazsound/mixbridge" target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-text transition-colors">GitHub</a>
           <Link to="/privacy" className="text-text-muted hover:text-text transition-colors">Privacy</Link>
           <Link to="/terms" className="text-text-muted hover:text-text transition-colors">Terms</Link>
         </div>

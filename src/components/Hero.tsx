@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrandLogo } from '@/components/BrandLogo';
+import { DOWNLOADS_ENABLED } from '@/lib/config';
 
 /** Bounce-type colors, mirrored from the app's design tokens. */
 const TYPE = {
@@ -274,7 +275,7 @@ export function Hero() {
 
       <div className="flex flex-col sm:flex-row gap-4 items-center">
         <a href="#download" className="btn-accent btn-accent-glow">
-          Download for Mac
+          {DOWNLOADS_ENABLED ? 'Download for Mac' : 'Coming soon to Mac'}
         </a>
         {showAccountCta && (
           <Link
