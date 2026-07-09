@@ -72,7 +72,7 @@ function SetPasswordModal() {
           <div className="text-center">
             <div className="text-4xl mb-4">✓</div>
             <h2 className="text-xl font-semibold mb-2">Password set!</h2>
-            <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>You're all set. Welcome to Mix Bridge.</p>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>You're all set. Welcome to MixBridge.</p>
             <button
               className="btn-accent w-full py-2.5 rounded-lg font-medium"
               onClick={() => window.location.replace('/account')}
@@ -82,7 +82,7 @@ function SetPasswordModal() {
           </div>
         ) : (
           <>
-            <h2 className="text-xl font-semibold mb-1">Welcome to Mix Bridge</h2>
+            <h2 className="text-xl font-semibold mb-1">Welcome to MixBridge</h2>
             <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
               Set a password to secure your account before continuing.
             </p>

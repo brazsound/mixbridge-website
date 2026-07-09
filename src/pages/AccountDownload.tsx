@@ -164,7 +164,7 @@ export function AccountDownload() {
   return (
     <div>
       <div className="flex items-start justify-between gap-4 mb-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Download Mix Bridge</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Download MixBridge</h1>
         {betaOptIn && (
           <span className="shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium mt-1"
             style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)', color: '#fbbf24' }}>

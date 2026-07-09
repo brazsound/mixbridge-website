@@ -51,13 +51,13 @@ export function AccountFeedback() {
     <div>
       <h1 className="text-2xl font-semibold tracking-tight mb-1">Feedback</h1>
       <p className="text-text-muted text-sm mb-8">
-        Share your thoughts and help us improve Mix Bridge.
+        Share your thoughts and help us improve MixBridge.
       </p>
 
       <div className="glass-card p-6 max-w-lg">
         <h2 className="font-medium mb-1">App Feedback</h2>
         <p className="text-text-muted text-sm mb-6">
-          {"Your feedback helps make Mix Bridge better for everyone. Whether it's a bug you've found or a feature you'd love to see, we want to hear from you."}
+          {"Your feedback helps make MixBridge better for everyone. Whether it's a bug you've found or a feature you'd love to see, we want to hear from you."}
         </p>
 
         {sent ? (

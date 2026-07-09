@@ -8,7 +8,7 @@ const features = [
       </svg>
     ),
     title: 'Queue everything at once',
-    description: 'Add all your stems to the bounce queue, hit Run, and walk away. Mix Bridge works through the list automatically.',
+    description: 'Add all your stems to the bounce queue, hit Run, and walk away. MixBridge works through the list automatically.',
   },
   {
     icon: (
@@ -17,7 +17,7 @@ const features = [
       </svg>
     ),
     title: 'Multiple sessions in one run',
-    description: 'Load several Pro Tools sessions into the queue. Mix Bridge opens each one, bounces your stems, and moves to the next.',
+    description: 'Load several Pro Tools sessions into the queue. MixBridge opens each one, bounces your stems, and moves to the next.',
   },
   {
     icon: (
@@ -53,7 +53,7 @@ const features = [
       </svg>
     ),
     title: 'Runs quietly in the background',
-    description: 'Launch Mix Bridge once and it stays ready. Undo a bounce, fix something in your session, and re-run. It keeps up.',
+    description: 'Launch MixBridge once and it stays ready. Undo a bounce, fix something in your session, and re-run. It keeps up.',
   },
 ];
 
@@ -65,7 +65,7 @@ export function Features() {
       className="px-6 py-24 md:py-32 relative overflow-hidden"
       style={{
         background: [
-          'radial-gradient(ellipse 50% 40% at 50% 100%, rgba(110,86,207,0.07) 0%, transparent 60%)',
+          'radial-gradient(ellipse 50% 40% at 50% 100%, rgba(123,92,255,0.07) 0%, transparent 60%)',
           'transparent',
         ].join(', '),
       }}

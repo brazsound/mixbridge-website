@@ -12,8 +12,17 @@ export function PrivacyPage() {
             <div>
               <h2 className="text-text font-medium text-base mb-2">Who we are</h2>
               <p>
-                Mix Bridge is a product of Braz Sound ("we", "us"). This policy explains how we handle
-                your information when you use our website at mixbridge.net and the Mix Bridge desktop application.
+                MixBridge is a product of Braz Sound ("we", "us"). This policy explains how we handle
+                your information when you use our website at mixbridge.net and the MixBridge desktop application.
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-text font-medium text-base mb-2">Our promise</h2>
+              <p>
+                MixBridge is completely free and we don't profit from it in any way. We will never sell,
+                rent, or share your personal data, we don't run ads, and we won't send you spam or marketing
+                emails. Your account exists only so we can keep track of your feedback.
               </p>
             </div>
 
@@ -30,7 +39,7 @@ export function PrivacyPage() {
               <h2 className="text-text font-medium text-base mb-2">What we do not collect</h2>
               <p>
                 We never access, upload, or transmit your Pro Tools sessions, audio files, or project data.
-                Mix Bridge operates entirely on your local machine. Bounced files stay on your disk.
+                MixBridge operates entirely on your local machine. Bounced files stay on your disk.
               </p>
             </div>
 

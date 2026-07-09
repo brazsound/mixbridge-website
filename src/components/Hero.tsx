@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { BrandLogo } from '@/components/BrandLogo';
 
 function AppMockup() {
   const rows = [
@@ -16,7 +17,7 @@ function AppMockup() {
       style={{
         background: 'rgba(255,255,255,0.025)',
         border: '1px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 0 60px rgba(110,86,207,0.12), 0 24px 64px rgba(0,0,0,0.5)',
+        boxShadow: '0 0 60px rgba(123,92,255,0.12), 0 24px 64px rgba(0,0,0,0.5)',
       }}
     >
       <div
@@ -28,7 +29,7 @@ function AppMockup() {
           <span className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgba(255,189,46,0.5)' }} />
           <span className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgba(40,200,64,0.5)' }} />
         </div>
-        <span className="text-[11px] ml-2 text-text-muted">Mix Bridge · Session 3 of 5</span>
+        <span className="text-[11px] ml-2 text-text-muted">MixBridge · Session 3 of 5</span>
       </div>
 
       <div
@@ -53,7 +54,7 @@ function AppMockup() {
                 ? 'rgba(255,255,255,0.015)'
                 : 'transparent',
               border: row.active
-                ? '1px solid rgba(110,86,207,0.2)'
+                ? '1px solid rgba(123,92,255,0.2)'
                 : '1px solid transparent',
             }}
           >
@@ -138,8 +139,8 @@ export function Hero() {
         className="absolute inset-0 -z-10"
         style={{
           background: [
-            'radial-gradient(ellipse 70% 55% at 50% -10%, rgba(110,86,207,0.18) 0%, transparent 60%)',
-            'radial-gradient(ellipse 40% 30% at 80% 80%, rgba(110,86,207,0.06) 0%, transparent 50%)',
+            'radial-gradient(ellipse 70% 55% at 50% -10%, rgba(123,92,255,0.18) 0%, transparent 60%)',
+            'radial-gradient(ellipse 40% 30% at 80% 80%, rgba(123,92,255,0.06) 0%, transparent 50%)',
             'var(--bg)',
           ].join(', '),
         }}
@@ -150,7 +151,7 @@ export function Hero() {
         className="flex items-center gap-2 px-3 py-1.5 rounded-full mb-8 text-xs font-medium"
         style={{
           background: 'var(--accent-subtle)',
-          border: '1px solid rgba(110,86,207,0.25)',
+          border: '1px solid rgba(123,92,255,0.25)',
           color: 'var(--accent)',
         }}
       >
@@ -171,17 +172,22 @@ export function Hero() {
         Free · macOS · Pro Tools required
       </div>
 
+      <div className="flex items-center gap-3 mb-6">
+        <BrandLogo size={44} color="var(--text)" />
+        <span className="text-2xl font-bold tracking-tight">MixBridge</span>
+      </div>
+
       <h1 className="text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight text-center mb-6 leading-[1.05]">
-        Mix Bridge
+        Automate your stems.
       </h1>
 
       <p className="text-lg md:text-xl text-text-secondary text-center max-w-2xl mb-3 leading-snug">
-        Pro Tools bounce automation for audio engineers.
+        Focus on the mix, not the manual work.
       </p>
       <p className="text-sm md:text-base text-text-muted text-center max-w-xl mb-12 leading-relaxed">
-        Queue your stems, set your formats, and walk away.
+        MixBridge exports clean, organized stems from Pro Tools in seconds.
         <br className="hidden sm:block" />
-        Mix Bridge handles the exports while you focus on the mix.
+        Save time, stay consistent, and keep your creative flow.
       </p>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center">

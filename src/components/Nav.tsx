@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { BrandLogo } from '@/components/BrandLogo';
 
 const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS ?? '')
   .split(',')
@@ -127,10 +128,11 @@ export function Nav() {
   const displayName = (user?.user_metadata as { full_name?: string })?.full_name || user?.email || '';
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b" style={{ background: 'rgba(10,10,15,0.85)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderColor: 'var(--border)' }}>
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b" style={{ background: 'rgba(20,22,26,0.85)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderColor: 'var(--border)' }}>
       <div className="max-w-5xl mx-auto px-6 h-[56px] flex items-center justify-between">
-        <Link to="/" className="font-semibold text-[15px] text-text hover:text-text transition-colors tracking-tight">
-          Mix Bridge
+        <Link to="/" className="flex items-center gap-2 font-semibold text-[15px] text-text hover:text-text transition-colors tracking-tight">
+          <BrandLogo size={22} color="var(--text)" />
+          MixBridge
         </Link>
 
         <div className="hidden md:flex gap-5 items-center">

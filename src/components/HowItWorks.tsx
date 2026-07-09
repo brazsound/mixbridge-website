@@ -27,7 +27,7 @@ function QueueMockup() {
       className="w-full max-w-lg mx-auto rounded-xl overflow-hidden"
       style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid var(--border)' }}
     >
-      <WindowChrome title="Mix Bridge · Queue" />
+      <WindowChrome title="MixBridge · Queue" />
       <div
         className="flex items-center justify-between px-4 py-2.5"
         style={{ borderBottom: '1px solid var(--border)' }}
@@ -35,7 +35,7 @@ function QueueMockup() {
         <span className="text-[11px] font-medium text-text-muted">5 items</span>
         <span
           className="text-[11px] px-2 py-1 rounded-md"
-          style={{ background: 'var(--accent-subtle)', color: 'var(--accent)', border: '1px solid rgba(110,86,207,0.2)' }}
+          style={{ background: 'var(--accent-subtle)', color: 'var(--accent)', border: '1px solid rgba(123,92,255,0.2)' }}
         >
           + Add Stem
         </span>
@@ -47,7 +47,7 @@ function QueueMockup() {
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
             style={{
               background: item.selected ? 'var(--accent-subtle)' : 'rgba(255,255,255,0.015)',
-              border: item.selected ? '1px solid rgba(110,86,207,0.25)' : '1px solid transparent',
+              border: item.selected ? '1px solid rgba(123,92,255,0.25)' : '1px solid transparent',
             }}
           >
             <svg
@@ -97,10 +97,10 @@ function FormatMockup() {
       className="w-full max-w-lg mx-auto rounded-xl overflow-hidden"
       style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid var(--border)' }}
     >
-      <WindowChrome title="Mix Bridge · Setup" />
+      <WindowChrome title="MixBridge · Setup" />
       <div
         className="flex items-center justify-between px-4 py-2"
-        style={{ borderBottom: '1px solid var(--border)', background: 'rgba(110,86,207,0.05)' }}
+        style={{ borderBottom: '1px solid var(--border)', background: 'rgba(123,92,255,0.05)' }}
       >
         <div className="flex items-center gap-2">
           <svg
@@ -220,7 +220,7 @@ function BatchRunMockup() {
       className="w-full max-w-lg mx-auto rounded-xl overflow-hidden"
       style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid var(--border)' }}
     >
-      <WindowChrome title="Mix Bridge · Batch Run" />
+      <WindowChrome title="MixBridge · Batch Run" />
       <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[11px] text-text-muted">Overall progress</span>
@@ -248,7 +248,7 @@ function BatchRunMockup() {
                   ? 'rgba(40,200,64,0.04)'
                   : 'rgba(255,255,255,0.015)',
               border:
-                session.status === 'active' ? '1px solid rgba(110,86,207,0.2)' : '1px solid transparent',
+                session.status === 'active' ? '1px solid rgba(123,92,255,0.2)' : '1px solid transparent',
             }}
           >
             <div className="flex items-center gap-2.5">
@@ -289,7 +289,7 @@ function BatchRunMockup() {
               {session.status === 'active' && session.progress !== undefined && (
                 <span
                   className="text-[10px] px-1.5 py-0.5 rounded"
-                  style={{ background: 'var(--accent-subtle)', color: 'var(--accent)', border: '1px solid rgba(110,86,207,0.2)' }}
+                  style={{ background: 'var(--accent-subtle)', color: 'var(--accent)', border: '1px solid rgba(123,92,255,0.2)' }}
                 >
                   {session.progress}%
                 </span>
@@ -349,7 +349,7 @@ const stepData: StepData[] = [
     number: '3',
     title: 'Walk away',
     description:
-      'Hit Run and let Mix Bridge work through the queue, even across multiple sessions. Come back to finished files.',
+      'Hit Run and let MixBridge work through the queue, even across multiple sessions. Come back to finished files.',
   },
 ];
 

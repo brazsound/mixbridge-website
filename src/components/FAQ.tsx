@@ -8,27 +8,27 @@ interface FAQItem {
 
 const faqs: FAQItem[] = [
   {
-    question: 'Does Mix Bridge work with Pro Tools 2024?',
+    question: 'Does MixBridge work with Pro Tools 2024?',
     answer:
-      'Yes. Mix Bridge uses the official Pro Tools Scripting Library (PTSL), so it supports any Pro Tools version that includes PTSL: Pro Tools 2023.12 and later, including all 2024 and 2025 releases.',
+      'Yes. MixBridge uses the official Pro Tools Scripting Library (PTSL), so it supports any Pro Tools version that includes PTSL: Pro Tools 2023.12 and later, including all 2024 and 2025 releases.',
   },
   {
     question: 'How is this different from SoundFlow scripts?',
     answer:
-      "SoundFlow runs keyboard-shortcut macros and screen-scraping. Mix Bridge talks to Pro Tools directly through its scripting API (PTSL), which means it doesn't depend on window positions, menu layouts, or screen resolution. It also handles multi-session batching natively, something that's extremely difficult with macro-based tools.",
+      "SoundFlow runs keyboard-shortcut macros and screen-scraping. MixBridge talks to Pro Tools directly through its scripting API (PTSL), which means it doesn't depend on window positions, menu layouts, or screen resolution. It also handles multi-session batching natively, something that's extremely difficult with macro-based tools.",
   },
   {
-    question: 'Is Mix Bridge really free?',
+    question: 'Is MixBridge really free?',
     answer:
-      'Yes. Mix Bridge is completely free to use — no fees, no trial limits, and no card required. Just create a free account, download the app, and start bouncing.',
+      "Yes. MixBridge is completely free — no fees, no trial limits, and no card required. We don't sell your data, run ads, or make money from it in any way. Just create a free account, download the app, and start bouncing.",
   },
   {
     question: 'Why do I need an account?',
     answer:
-      "So we can keep you posted on updates and make it easy to send us bug reports and feature requests right from the app. Creating one takes a few seconds and it's free.",
+      "Only so we can keep track of your feedback and follow up on the bug reports and feature requests you send from the app. We'll never send you spam or marketing emails. It's free and takes a few seconds.",
   },
   {
-    question: 'Can I use Mix Bridge on multiple systems?',
+    question: 'Can I use MixBridge on multiple systems?',
     answer:
       'Yes. Install it on as many Macs as you like — just sign in with your account on each one. There are no device limits.',
   },
@@ -40,17 +40,17 @@ const faqs: FAQItem[] = [
   {
     question: 'Does it work with Dolby Atmos sessions?',
     answer:
-      "Atmos-specific bounce workflows are on the roadmap. Currently Mix Bridge handles standard stereo and multi-mono bounces. If you're bouncing Atmos bed or object stems as standard audio files, those work today.",
+      "Atmos-specific bounce workflows are on the roadmap. Currently MixBridge handles standard stereo and multi-mono bounces. If you're bouncing Atmos bed or object stems as standard audio files, those work today.",
   },
   {
     question: 'What happens if a bounce fails mid-run?',
     answer:
-      "Mix Bridge logs the error and moves to the next item in the queue, so one failed bounce doesn't stop the entire batch. You can review what happened and re-run individual items.",
+      "MixBridge logs the error and moves to the next item in the queue, so one failed bounce doesn't stop the entire batch. You can review what happened and re-run individual items.",
   },
   {
-    question: 'Does Mix Bridge require an internet connection?',
+    question: 'Does MixBridge require an internet connection?',
     answer:
-      "Only to sign in to your account. Once you're signed in, Mix Bridge works fully offline. Your sessions and bounces never leave your machine.",
+      "Only to sign in to your account. Once you're signed in, MixBridge works fully offline. Your sessions and bounces never leave your machine.",
   },
 ];
 

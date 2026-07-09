@@ -49,7 +49,7 @@ export function Download() {
       className="px-6 py-24 md:py-32 relative overflow-hidden"
       style={{
         background: [
-          'radial-gradient(ellipse 60% 50% at 50% 110%, rgba(110,86,207,0.1) 0%, transparent 55%)',
+          'radial-gradient(ellipse 60% 50% at 50% 110%, rgba(123,92,255,0.1) 0%, transparent 55%)',
           'transparent',
         ].join(', '),
       }}
@@ -57,7 +57,7 @@ export function Download() {
       <div ref={revealRef} className="max-w-lg mx-auto reveal">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
-            Get Mix Bridge
+            Get MixBridge
           </h2>
           <p className="text-text-secondary text-sm leading-relaxed">
             Free to use.{' '}
@@ -70,7 +70,7 @@ export function Download() {
           style={{
             background: 'rgba(255,255,255,0.025)',
             border: '1px solid rgba(255,255,255,0.1)',
-            boxShadow: '0 0 40px rgba(110,86,207,0.08), 0 16px 48px rgba(0,0,0,0.4)',
+            boxShadow: '0 0 40px rgba(123,92,255,0.08), 0 16px 48px rgba(0,0,0,0.4)',
           }}
         >
           {/* Download CTA */}
@@ -117,7 +117,7 @@ export function Download() {
             >
               <div
                 className="flex items-center gap-2 px-4 py-2.5 text-[12px]"
-                style={{ background: 'rgba(110,86,207,0.08)', borderBottom: '1px solid var(--border)' }}
+                style={{ background: 'rgba(123,92,255,0.08)', borderBottom: '1px solid var(--border)' }}
               >
                 <svg
                   width="13"
@@ -136,7 +136,7 @@ export function Download() {
                 <span style={{ color: 'var(--accent)' }}>100% free — no trial limits</span>
               </div>
               <div className="px-4 py-3 text-[12px] text-text-muted leading-relaxed" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                The full app, free forever. Just create a free account so we can send updates and receive your bug reports and feature requests. No card, no device limits.
+                The full app, free forever. We never sell your data and don't profit from MixBridge — your free account just lets us keep track of your feedback. No spam, no card, no device limits.
               </div>
             </div>
           </div>

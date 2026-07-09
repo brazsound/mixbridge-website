@@ -5,7 +5,10 @@ export function Footer() {
     <footer className="px-6 py-10" style={{ borderTop: '1px solid var(--border)' }}>
       <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-5">
         <div className="flex flex-col items-center md:items-start gap-1">
-          <span className="font-medium text-sm">Mix Bridge</span>
+          <span className="font-medium text-sm">MixBridge</span>
+          <p className="text-text-muted text-xs">
+            Built for engineers. Designed for focus.
+          </p>
           <p className="text-text-muted text-xs">
             © {new Date().getFullYear()} Braz Sound. All rights reserved.
           </p>

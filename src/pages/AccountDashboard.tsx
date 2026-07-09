@@ -9,7 +9,7 @@ const inputClass =
 const quickLinks = [
   {
     to: '/account/download',
-    title: 'Download Mix Bridge',
+    title: 'Download MixBridge',
     body: 'Get the latest macOS build and install it in seconds.',
   },
   {
@@ -78,7 +78,7 @@ export function AccountDashboard() {
       {showRecoveryPassword && user && (
         <div
           className="glass-card p-6 mb-6"
-          style={{ background: 'var(--accent-subtle)', border: '1px solid rgba(110,86,207,0.2)' }}
+          style={{ background: 'var(--accent-subtle)', border: '1px solid rgba(123,92,255,0.2)' }}
         >
           <h2 className="font-medium mb-1">Set your password</h2>
           {recoveryDone ? (

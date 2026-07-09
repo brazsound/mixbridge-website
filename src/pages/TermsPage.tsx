@@ -12,7 +12,7 @@ export function TermsPage() {
             <div>
               <h2 className="text-text font-medium text-base mb-2">Agreement</h2>
               <p>
-                By creating an account or downloading Mix Bridge you agree to these terms. If you don't agree,
+                By creating an account or downloading MixBridge you agree to these terms. If you don't agree,
                 don't use the service.
               </p>
             </div>
@@ -20,7 +20,7 @@ export function TermsPage() {
             <div>
               <h2 className="text-text font-medium text-base mb-2">Licence</h2>
               <p>
-                Mix Bridge is free to use. We grant you a non-exclusive, non-transferable right to run the
+                MixBridge is free to use. We grant you a non-exclusive, non-transferable right to run the
                 software for your own audio work on as many Macs as you like. A free account is required to
                 download and sign in.
               </p>
@@ -38,7 +38,7 @@ export function TermsPage() {
             <div>
               <h2 className="text-text font-medium text-base mb-2">Availability</h2>
               <p>
-                Mix Bridge is provided "as is". We aim for high reliability but do not guarantee uninterrupted
+                MixBridge is provided "as is". We aim for high reliability but do not guarantee uninterrupted
                 service. Signing in requires internet access; the application itself works offline once you're
                 signed in.
               </p>
