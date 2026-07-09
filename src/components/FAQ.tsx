@@ -20,7 +20,7 @@ const faqs: FAQItem[] = [
   {
     question: 'Is MixBridge really free?',
     answer:
-      "Yes. MixBridge is completely free — no fees, no trial limits, and no card required. We don't sell your data, run ads, or make money from it in any way. Just create a free account, download the app, and start bouncing.",
+      "Yes. MixBridge is completely free, with no fees, no trial limits, and no card required. We don't sell your data, run ads, or make money from it in any way. Just create a free account, download the app, and start bouncing.",
   },
   {
     question: 'Why do I need an account?',
@@ -30,7 +30,7 @@ const faqs: FAQItem[] = [
   {
     question: 'Can I use MixBridge on multiple systems?',
     answer:
-      'Yes. Install it on as many Macs as you like — just sign in with your account on each one. There are no device limits.',
+      'Yes. Install it on as many Macs as you like. Just sign in with your account on each one, and there are no device limits.',
   },
   {
     question: 'What audio formats are supported?',

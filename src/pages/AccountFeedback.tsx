@@ -138,7 +138,7 @@ export function AccountFeedback() {
       <div className="glass-card p-6 max-w-lg mt-6">
         <h2 className="font-medium mb-2">What happens next</h2>
         <p className="text-text-muted text-sm leading-relaxed">
-          Every submission goes straight to our team — we read all of it, even when we can’t reply
+          Every submission goes straight to our team, and we read all of it, even when we can’t reply
           to each one individually. For anything that needs a direct response, email{' '}
           <a href="mailto:support@mixbridge.net" className="text-accent hover:underline">
             support@mixbridge.net

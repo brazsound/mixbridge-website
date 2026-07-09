@@ -172,10 +172,10 @@ function DashboardTab({ token }: { token: string }) {
   }, [token]);
 
   const cards: { label: string; value: number | string }[] = [
-    { label: 'Total members', value: stats?.total_members ?? '—' },
-    { label: 'New this week', value: stats?.new_members_this_week ?? '—' },
-    { label: 'Feature requests', value: stats?.open_feature_requests ?? '—' },
-    { label: 'Open bug reports', value: stats?.open_bug_reports ?? '—' },
+    { label: 'Total members', value: stats?.total_members ?? '-' },
+    { label: 'New this week', value: stats?.new_members_this_week ?? '-' },
+    { label: 'Feature requests', value: stats?.open_feature_requests ?? '-' },
+    { label: 'Open bug reports', value: stats?.open_bug_reports ?? '-' },
   ];
 
   return (

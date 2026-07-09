@@ -133,10 +133,10 @@ export function Download() {
                 >
                   <circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" />
                 </svg>
-                <span style={{ color: 'var(--accent)' }}>100% free — no trial limits</span>
+                <span style={{ color: 'var(--accent)' }}>100% free, no trial limits</span>
               </div>
               <div className="px-4 py-3 text-[12px] text-text-muted leading-relaxed" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                The full app, free forever. We never sell your data and don't profit from MixBridge — your free account just lets us keep track of your feedback. No spam, no card, no device limits.
+                The full app, free forever. We never sell your data and don't profit from MixBridge. Your free account just lets us keep track of your feedback. No spam, no card, no device limits.
               </div>
             </div>
           </div>

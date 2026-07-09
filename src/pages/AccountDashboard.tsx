@@ -15,7 +15,7 @@ const quickLinks = [
   {
     to: '/account/feedback',
     title: 'Send feedback',
-    body: 'Report a bug or request a feature — we read every message.',
+    body: 'Report a bug or request a feature. We read every message.',
   },
   {
     to: '/account/settings',

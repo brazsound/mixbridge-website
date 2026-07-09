@@ -187,7 +187,7 @@ export function Hero() {
       <p className="text-sm md:text-base text-text-muted text-center max-w-xl mb-12 leading-relaxed">
         Prep your bounces, queue them up, and walk away.
         <br className="hidden sm:block" />
-        MixBridge drives Pro Tools through every export — your stems are ready when you get back.
+        MixBridge drives Pro Tools through every export, so your stems are ready when you get back.
       </p>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center">
