@@ -120,6 +120,7 @@ export function AccountFeedback() {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Tell us what you think…"
                 rows={6}
+                maxLength={5000}
                 className={inputClass + ' resize-y'}
                 required
               />

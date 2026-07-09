@@ -8,9 +8,9 @@ interface FAQItem {
 
 const faqs: FAQItem[] = [
   {
-    question: 'Does MixBridge work with Pro Tools 2024?',
+    question: 'Which Pro Tools versions does MixBridge support?',
     answer:
-      'Yes. MixBridge uses the official Pro Tools Scripting Library (PTSL), so it supports any Pro Tools version that includes PTSL: Pro Tools 2023.12 and later, including all 2024 and 2025 releases.',
+      'MixBridge talks to Pro Tools through the official Pro Tools Scripting Library (PTSL) and requires Pro Tools 2025.6 or later. Older versions are missing the scripting features MixBridge relies on.',
   },
   {
     question: 'How is this different from SoundFlow scripts?',
