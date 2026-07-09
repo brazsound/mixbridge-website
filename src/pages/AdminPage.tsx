@@ -35,6 +35,17 @@ interface Stats {
   total_members: number;
   new_members_this_week: number;
   open_bug_reports: number;
+  open_feature_requests?: number;
+}
+
+interface FeedbackItem {
+  id: string;
+  created_at: string;
+  user_email: string | null;
+  type: string;
+  message: string;
+  status: string;
+  admin_note: string | null;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -163,13 +174,14 @@ function DashboardTab({ token }: { token: string }) {
   const cards: { label: string; value: number | string }[] = [
     { label: 'Total members', value: stats?.total_members ?? '—' },
     { label: 'New this week', value: stats?.new_members_this_week ?? '—' },
+    { label: 'Feature requests', value: stats?.open_feature_requests ?? '—' },
     { label: 'Open bug reports', value: stats?.open_bug_reports ?? '—' },
   ];
 
   return (
     <div>
       {error && <p className="text-sm mb-4" style={{ color: '#fbbf24' }}>{error}</p>}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {cards.map((c) => (
           <div key={c.label} className="glass-card px-5 py-6">
             <p className="text-3xl font-semibold" style={{ color: 'var(--text)' }}>{c.value}</p>
@@ -923,13 +935,162 @@ function ReleasesTab({ token }: { token: string }) {
   );
 }
 
+// ── Feedback Tab ──────────────────────────────────────────────────────────────
+
+const FEEDBACK_FILTERS: { value: string; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'feature', label: 'Feature requests' },
+  { value: 'bug', label: 'Bugs' },
+  { value: 'general', label: 'Other' },
+];
+
+const FEEDBACK_STATUSES = ['new', 'planned', 'done', 'declined'] as const;
+
+function feedbackTypeStyle(type: string) {
+  if (type === 'feature') return { background: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.25)' };
+  if (type === 'bug') return { background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' };
+  return { background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.1)' };
+}
+
+function feedbackTypeLabel(type: string) {
+  if (type === 'feature') return 'Feature';
+  if (type === 'bug') return 'Bug';
+  return 'Other';
+}
+
+function FeedbackTab({ token }: { token: string }) {
+  const [items, setItems] = useState<FeedbackItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState('all');
+  const [noteValues, setNoteValues] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API}/api/admin/feedback`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.status === 403) { setError('Access denied.'); return; }
+      const data = await res.json() as { feedback?: FeedbackItem[]; error?: string };
+      if (data.error) { setError(data.error); return; }
+      const loaded = data.feedback ?? [];
+      setItems(loaded);
+      const notes: Record<string, string> = {};
+      loaded.forEach((f) => { notes[f.id] = f.admin_note ?? ''; });
+      setNoteValues(notes);
+    } catch {
+      setError('Failed to load feedback.');
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const updateItem = async (id: string, patch: Record<string, unknown>) => {
+    setBusy(id);
+    await fetch(`${API}/api/admin/feedback`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id, ...patch }),
+    });
+    setBusy(null);
+    await load();
+  };
+
+  const remove = async (id: string) => {
+    if (!window.confirm('Delete this feedback item?')) return;
+    setBusy(id);
+    await fetch(`${API}/api/admin/feedback?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    setBusy(null);
+    await load();
+  };
+
+  const visible = filter === 'all' ? items : items.filter((i) => i.type === filter);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
+        <h2 className="font-medium" style={{ color: 'var(--text)' }}>
+          Feedback
+          <span className="ml-2 text-sm font-normal" style={{ color: 'var(--text-muted)' }}>{visible.length}</span>
+        </h2>
+        <button onClick={() => void load()} disabled={loading} className="text-sm transition-colors disabled:opacity-40" style={{ color: 'var(--text-muted)' }}>
+          {loading ? 'Loading…' : 'Refresh'}
+        </button>
+      </div>
+
+      <div className="flex gap-1.5 mb-5 flex-wrap">
+        {FEEDBACK_FILTERS.map((f) => (
+          <button key={f.value} onClick={() => setFilter(f.value)}
+            className="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
+            style={filter === f.value
+              ? { background: 'var(--accent)', color: '#fff' }
+              : { background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {error && <p className="text-sm mb-4" style={{ color: '#fbbf24' }}>{error}</p>}
+      {!loading && visible.length === 0 && !error && (
+        <div className="glass-card px-6 py-14 text-center">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No feedback yet.</p>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3">
+        {visible.map((f) => (
+          <div key={f.id} className="glass-card px-5 py-4">
+            <div className="flex items-start gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={feedbackTypeStyle(f.type)}>{feedbackTypeLabel(f.type)}</span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDateTime(f.created_at)}</span>
+                  {f.user_email && <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>· {f.user_email}</span>}
+                </div>
+                <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--text)' }}>{f.message}</p>
+                <div className="mt-3 flex items-center gap-2">
+                  <input
+                    value={noteValues[f.id] ?? ''}
+                    onChange={(e) => setNoteValues((v) => ({ ...v, [f.id]: e.target.value }))}
+                    placeholder="Add an internal note…"
+                    className="flex-1 px-3 py-1.5 rounded-lg text-xs bg-black/30 border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent"
+                    style={{ color: 'var(--text)' }}
+                  />
+                  <button onClick={() => void updateItem(f.id, { admin_note: noteValues[f.id] ?? '' })} disabled={busy === f.id}
+                    className="text-xs px-3 py-1.5 rounded-lg font-medium disabled:opacity-40"
+                    style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    Save note
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-2 shrink-0">
+                <select value={f.status} onChange={(e) => void updateItem(f.id, { status: e.target.value })} disabled={busy === f.id}
+                  className="text-xs px-2 py-1 rounded-lg bg-black/30 border border-white/10 focus:outline-none capitalize" style={{ color: 'var(--text)' }}>
+                  {FEEDBACK_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <button onClick={() => void remove(f.id)} disabled={busy === f.id} className="text-xs transition-colors disabled:opacity-40" style={{ color: '#f87171' }}>
+                  {busy === f.id ? '…' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Page Shell ────────────────────────────────────────────────────────────────
 
-type Tab = 'dashboard' | 'accounts' | 'bugs' | 'audit' | 'releases';
+type Tab = 'dashboard' | 'accounts' | 'bugs' | 'audit' | 'feedback' | 'releases';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'accounts', label: 'Members' },
+  { id: 'feedback', label: 'Feedback' },
   { id: 'bugs', label: 'Bug Reports' },
   { id: 'audit', label: 'Audit Log' },
   { id: 'releases', label: 'Releases' },
@@ -1043,6 +1204,7 @@ export function AdminPage() {
             <AccountsTab token={token} />
           </AccountsTabErrorBoundary>
         )}
+        {tab === 'feedback' && <FeedbackTab token={token} />}
         {tab === 'bugs' && <BugReportsTab token={token} />}
         {tab === 'audit' && <AuditLogTab token={token} />}
         {tab === 'releases' && <ReleasesTab token={token} />}
