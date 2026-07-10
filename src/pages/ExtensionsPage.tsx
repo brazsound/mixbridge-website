@@ -347,14 +347,18 @@ export function ExtensionsPage() {
 
         <div className="text-center mt-12 space-y-3">
           <p className="text-sm text-text-muted">
-            Built something? Extensions are open to everyone —{' '}
+            Built something? Submit it from your{' '}
+            <Link to="/account/extensions" className="text-accent hover:underline">
+              account dashboard
+            </Link>{' '}
+            — or the old-school way, via a{' '}
             <a
               href="https://github.com/brazsound/mixbridge/tree/main/registry"
               target="_blank"
               rel="noopener noreferrer"
               className="text-accent hover:underline"
             >
-              submit yours to the registry
+              registry pull request
             </a>
             .
           </p>

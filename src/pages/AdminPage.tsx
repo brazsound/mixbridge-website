@@ -1,6 +1,7 @@
 import { Component, useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { AdminExtensionsTab } from './AdminExtensionsTab';
 
 const API = (import.meta.env.VITE_LICENSE_API_URL ?? '').replace(/\/$/, '');
 
@@ -1085,7 +1086,7 @@ function FeedbackTab({ token }: { token: string }) {
 
 // ── Page Shell ────────────────────────────────────────────────────────────────
 
-type Tab = 'dashboard' | 'accounts' | 'bugs' | 'audit' | 'feedback' | 'releases';
+type Tab = 'dashboard' | 'accounts' | 'bugs' | 'audit' | 'feedback' | 'releases' | 'extensions';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -1094,6 +1095,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'bugs', label: 'Bug Reports' },
   { id: 'audit', label: 'Audit Log' },
   { id: 'releases', label: 'Releases' },
+  { id: 'extensions', label: 'Extensions' },
 ];
 
 export function AdminPage() {
@@ -1208,6 +1210,7 @@ export function AdminPage() {
         {tab === 'bugs' && <BugReportsTab token={token} />}
         {tab === 'audit' && <AuditLogTab token={token} />}
         {tab === 'releases' && <ReleasesTab token={token} />}
+        {tab === 'extensions' && <AdminExtensionsTab />}
       </div>
     </div>
   );

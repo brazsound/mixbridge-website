@@ -19,6 +19,7 @@ import { AdminPage } from './pages/AdminPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
 import { ExtensionsPage } from './pages/ExtensionsPage';
+import { AccountExtensions } from './pages/AccountExtensions';
 
 function HomePage() {
   return (
@@ -271,6 +272,7 @@ function AppInner() {
           <Route index element={<AccountDashboard />} />
           <Route path="download" element={<AccountDownload />} />
           <Route path="feedback" element={<AccountFeedback />} />
+          <Route path="extensions" element={<AccountExtensions />} />
           <Route path="settings" element={<AccountSettings />} />
           <Route path="*" element={<Navigate to="/account" replace />} />
         </Route>
