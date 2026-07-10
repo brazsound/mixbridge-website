@@ -2,6 +2,8 @@ import { Component, useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminExtensionsTab } from './AdminExtensionsTab';
+import { NotificationBadge } from '@/components/NotificationBadge';
+import { useAdminBadges } from '@/lib/useAdminBadges';
 
 const API = (import.meta.env.VITE_LICENSE_API_URL ?? '').replace(/\/$/, '');
 
@@ -959,7 +961,7 @@ function feedbackTypeLabel(type: string) {
   return 'Other';
 }
 
-function FeedbackTab({ token }: { token: string }) {
+function FeedbackTab({ token, onChanged }: { token: string; onChanged?: () => void }) {
   const [items, setItems] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -984,8 +986,9 @@ function FeedbackTab({ token }: { token: string }) {
       setError('Failed to load feedback.');
     } finally {
       setLoading(false);
+      onChanged?.();
     }
-  }, [token]);
+  }, [token, onChanged]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -1105,12 +1108,16 @@ export function AdminPage() {
   const [signInError, setSignInError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
   const [tab, setTab] = useState<Tab>('dashboard');
+  const { badges, refresh: refreshBadges } = useAdminBadges(!!session?.access_token && !forbidden);
 
   useEffect(() => {
     if (!session?.access_token) return;
     void fetch(`${API}/api/admin/accounts`, { headers: { Authorization: `Bearer ${session.access_token}` } })
       .then((r) => { if (r.status === 403) setForbidden(true); });
   }, [session?.access_token]);
+
+  // Re-check counts whenever the admin switches tabs (cheap, keeps badges honest).
+  useEffect(() => { void refreshBadges(); }, [tab, refreshBadges]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1186,17 +1193,21 @@ export function AdminPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 mb-6 p-1 rounded-xl w-full overflow-x-auto" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          {TABS.map((t) => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap"
-              style={{
-                background: tab === t.id ? 'rgba(255,255,255,0.1)' : 'transparent',
-                color: tab === t.id ? 'var(--text)' : 'var(--text-muted)',
-                boxShadow: tab === t.id ? '0 0 0 1px rgba(255,255,255,0.12)' : 'none',
-              }}>
-              {t.label}
-            </button>
-          ))}
+          {TABS.map((t) => {
+            const count = t.id === 'feedback' ? badges.feedbackNew : t.id === 'extensions' ? badges.extensionsPending : 0;
+            return (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex items-center gap-1.5"
+                style={{
+                  background: tab === t.id ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  color: tab === t.id ? 'var(--text)' : 'var(--text-muted)',
+                  boxShadow: tab === t.id ? '0 0 0 1px rgba(255,255,255,0.12)' : 'none',
+                }}>
+                {t.label}
+                <NotificationBadge count={count} />
+              </button>
+            );
+          })}
         </div>
 
         {/* Tab content */}
@@ -1206,11 +1217,11 @@ export function AdminPage() {
             <AccountsTab token={token} />
           </AccountsTabErrorBoundary>
         )}
-        {tab === 'feedback' && <FeedbackTab token={token} />}
+        {tab === 'feedback' && <FeedbackTab token={token} onChanged={refreshBadges} />}
         {tab === 'bugs' && <BugReportsTab token={token} />}
         {tab === 'audit' && <AuditLogTab token={token} />}
         {tab === 'releases' && <ReleasesTab token={token} />}
-        {tab === 'extensions' && <AdminExtensionsTab />}
+        {tab === 'extensions' && <AdminExtensionsTab onChanged={refreshBadges} />}
       </div>
     </div>
   );

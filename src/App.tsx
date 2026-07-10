@@ -19,6 +19,7 @@ import { AdminPage } from './pages/AdminPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
 import { ExtensionsPage } from './pages/ExtensionsPage';
+import { ExtensionDetailPage } from './pages/ExtensionDetailPage';
 import { AccountExtensions } from './pages/AccountExtensions';
 
 function HomePage() {
@@ -281,6 +282,7 @@ function AppInner() {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/extensions" element={<ExtensionsPage />} />
+        <Route path="/extensions/:id" element={<ExtensionDetailPage />} />
         {/* Catch-all: unknown URLs go home instead of rendering a blank page */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

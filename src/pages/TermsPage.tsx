@@ -73,8 +73,8 @@ export function TermsPage() {
               <h2 className="text-text font-medium text-base mb-2">Contact</h2>
               <p>
                 Questions? Reach us at{' '}
-                <a href="mailto:support@mixbridge.net" className="text-accent hover:underline">
-                  support@mixbridge.net
+                <a href="mailto:support@mixbridge.studio" className="text-accent hover:underline">
+                  support@mixbridge.studio
                 </a>.
               </p>
             </div>

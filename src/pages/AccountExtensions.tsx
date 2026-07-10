@@ -151,22 +151,33 @@ export function AccountExtensions() {
     setSubmitting(true);
     setFatal(null);
     try {
-      const { error } = await supabase.from('extension_submissions').insert({
-        user_id: user.id,
-        extension_id: manifest.id,
-        name: manifest.name.trim(),
-        version: manifest.version,
-        description: (manifest.description ?? '').trim(),
-        author_name: (manifest.author ?? '').trim(),
-        repository: manifest.repository ?? '',
-        license: manifest.license ?? '',
-        min_app_version: manifest.minAppVersion ?? '',
-        permissions: manifest.permissions ?? [],
-        allowed_domains: manifest.allowedDomains ?? [],
-        manifest_url: manifestUrl,
-        main_url: mainUrl,
+      // Submit through the backend so support gets notified and the submitter
+      // receives a confirmation email (see /api/web/submit-extension).
+      const { data: { session } } = await supabase.auth.getSession();
+      const apiUrl = ((import.meta.env.VITE_LICENSE_API_URL as string | undefined) ?? '').replace(/\/$/, '');
+      const res = await fetch(`${apiUrl}/api/web/submit-extension`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({
+          extension_id: manifest.id,
+          name: manifest.name.trim(),
+          version: manifest.version,
+          description: (manifest.description ?? '').trim(),
+          author_name: (manifest.author ?? '').trim(),
+          repository: manifest.repository ?? '',
+          license: manifest.license ?? '',
+          min_app_version: manifest.minAppVersion ?? '',
+          permissions: manifest.permissions ?? [],
+          allowed_domains: manifest.allowedDomains ?? [],
+          manifest_url: manifestUrl,
+          main_url: mainUrl,
+        }),
       });
-      if (error) throw new Error(error.message);
+      const json = await res.json() as { ok?: boolean; error?: string };
+      if (!res.ok) throw new Error(json.error ?? 'Submission failed. Please try again.');
       setSubmitted(true);
       setManifest(null);
       setManifestInput('');
@@ -289,8 +300,9 @@ export function AccountExtensions() {
 
         {submitted && (
           <div className="mt-4 rounded-lg px-4 py-3 text-sm" style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)', color: '#34d399' }}>
-            Submitted! We review manifest honesty and code transparency — you'll see the status
-            below, and your extension goes live in the store once approved.
+            Submitted! A confirmation is on its way to your inbox. We review manifest honesty and
+            code transparency — you'll see the status below, and your extension goes live in the
+            store once approved.
           </div>
         )}
       </div>

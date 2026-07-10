@@ -63,7 +63,8 @@ export function AccountFeedback() {
         {sent ? (
           <div className="space-y-4">
             <p className="text-emerald-400/90 text-sm">
-              Thanks! Your feedback has been sent. We'll get back to you if needed.
+              Thanks! Your feedback has been sent and a confirmation email is on its way.
+              We'll get back to you if needed.
             </p>
             <button
               type="button"
@@ -141,8 +142,8 @@ export function AccountFeedback() {
         <p className="text-text-muted text-sm leading-relaxed">
           Every submission goes straight to our team, and we read all of it, even when we can’t reply
           to each one individually. For anything that needs a direct response, email{' '}
-          <a href="mailto:support@mixbridge.net" className="text-accent hover:underline">
-            support@mixbridge.net
+          <a href="mailto:support@mixbridge.studio" className="text-accent hover:underline">
+            support@mixbridge.studio
           </a>
           .
         </p>

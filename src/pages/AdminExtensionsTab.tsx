@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 interface SubmissionRow {
   id: string;
   user_id: string;
+  user_email: string | null;
   status: 'pending' | 'approved' | 'rejected';
   review_note: string | null;
   extension_id: string;
@@ -47,7 +48,7 @@ function registrySnippet(s: SubmissionRow): string {
   return JSON.stringify(entry, null, 2);
 }
 
-export function AdminExtensionsTab() {
+export function AdminExtensionsTab({ onChanged }: { onChanged?: () => void }) {
   const [rows, setRows] = useState<SubmissionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -67,7 +68,8 @@ export function AdminExtensionsTab() {
     if (err) setError(err.message);
     else setRows((data ?? []) as SubmissionRow[]);
     setLoading(false);
-  }, []);
+    onChanged?.();
+  }, [onChanged]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -189,6 +191,16 @@ export function AdminExtensionsTab() {
                 <p className="text-sm text-text-muted mt-1 leading-relaxed">{s.description}</p>
                 <div className="flex items-center gap-2 flex-wrap mt-2">
                   <span className="text-xs text-text-muted">by {s.author_name || 'unknown'}</span>
+                  <span className="text-xs text-text-muted">
+                    · submitted by{' '}
+                    {s.user_email ? (
+                      <a href={`mailto:${s.user_email}`} className="text-accent hover:underline" title="Email the submitter (send from support@mixbridge.studio)">
+                        {s.user_email}
+                      </a>
+                    ) : (
+                      'unknown'
+                    )}
+                  </span>
                   <span className="text-xs text-text-muted">· {s.license}</span>
                   {s.permissions.map((p) => (
                     <span key={p} className="text-[11px] px-2 py-0.5 rounded-full"

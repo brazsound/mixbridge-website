@@ -65,8 +65,8 @@ export function PrivacyPage() {
               <p>
                 You can update or delete your account data from the Account page at any time. If you want us to
                 remove all data associated with your email, contact{' '}
-                <a href="mailto:support@mixbridge.net" className="text-accent hover:underline">
-                  support@mixbridge.net
+                <a href="mailto:support@mixbridge.studio" className="text-accent hover:underline">
+                  support@mixbridge.studio
                 </a>.
               </p>
             </div>
@@ -83,8 +83,8 @@ export function PrivacyPage() {
               <h2 className="text-text font-medium text-base mb-2">Contact</h2>
               <p>
                 Questions? Reach us at{' '}
-                <a href="mailto:support@mixbridge.net" className="text-accent hover:underline">
-                  support@mixbridge.net
+                <a href="mailto:support@mixbridge.studio" className="text-accent hover:underline">
+                  support@mixbridge.studio
                 </a>.
               </p>
             </div>

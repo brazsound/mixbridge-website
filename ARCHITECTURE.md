@@ -71,6 +71,7 @@ APP CODING/
 │   │   │   │   ├── list-activations.ts ← POST /api/web/list-activations (Website)
 │   │   │   │   ├── deactivate.ts       ← POST /api/web/deactivate       (Website)
 │   │   │   │   ├── feedback.ts         ← POST /api/web/feedback         (Website)
+│   │   │   │   ├── submit-extension.ts ← POST /api/web/submit-extension (Website)
 │   │   │   │   └── delete-account.ts   ← POST /api/web/delete-account   (Website)
 │   │   │   └── admin/             ← Admin-only endpoints (require ADMIN_EMAILS JWT)
 │   │   │       ├── accounts.ts    ← GET  /api/admin/accounts
@@ -83,7 +84,8 @@ APP CODING/
 │   │   │       ├── stats.ts       ← Dashboard stats
 │   │   │       └── user-actions.ts
 │   │   ├── lib/
-│   │   │   └── admin.ts           ← Shared: CORS headers, getAdminEmail(), logAction()
+│   │   │   ├── admin.ts           ← Shared: CORS headers, getAdminEmail(), logAction()
+│   │   │   └── emails.ts          ← Shared: Resend sendEmail(), branded template, SUPPORT_EMAIL
 │   │   ├── vercel.json            ← Cron: /api/ping-supabase runs daily at noon UTC
 │   │   └── package.json
 │   └── supabase/                  ← (if present) local Supabase config/migrations
@@ -135,7 +137,10 @@ APP CODING/
 | `PADDLE_SANDBOX` | `"true"` to use sandbox API |
 | `RTO_INSTALLMENT_COUNT` | Number of installments to complete rent-to-own (default: 12) |
 | `ADMIN_EMAILS` | Comma-separated admin email list |
-| `SITE_URL` | Used in invite emails: redirect to `{SITE_URL}/account` |
+| `SITE_URL` | Used in invite emails: redirect to `{SITE_URL}/account`; also linked in notification emails |
+| `RESEND_API_KEY` | Resend API key — all outbound email (notifications, confirmations, admin email tool) |
+| `RESEND_FROM_EMAIL` | From address (default `MixBridge <support@mixbridge.studio>` — domain must be verified in Resend) |
+| `SUPPORT_EMAIL` | Where feedback/extension notifications go + reply-to for user confirmations (default `support@mixbridge.studio`) |
 
 ### Website (`Mixbridge Website/.env`)
 | Variable | Purpose |
@@ -459,7 +464,8 @@ event_type = 'subscription.updated' / 'subscription.canceled':
 |---|---|---|---|
 | POST | `/api/web/list-activations` | `{}` | `{ activations[], status, activation_used, activation_limit, license_key, purchase_type, rto_* }` |
 | POST | `/api/web/deactivate` | `{ device_id }` | `{ ok }` |
-| POST | `/api/web/feedback` | `{ message, ... }` | `{ ok }` |
+| POST | `/api/web/feedback` | `{ type, message }` | `{ ok }` — saves to `feedback` (status `new`), emails `SUPPORT_EMAIL` (reply-to: user) + confirmation to user (reply-to: `SUPPORT_EMAIL`) |
+| POST | `/api/web/submit-extension` | manifest fields + `manifest_url`, `main_url` | `{ ok }` — validates server-side, saves to `extension_submissions` (status `pending`, records `user_email`), emails `SUPPORT_EMAIL` + confirmation to submitter |
 | POST | `/api/web/delete-account` | `{}` | `{ ok }` |
 
 ### Admin-facing (require admin JWT — email must be in `ADMIN_EMAILS` env var)
@@ -475,6 +481,44 @@ event_type = 'subscription.updated' / 'subscription.canceled':
 | POST | `/api/admin/email` | Send transactional emails |
 | POST | `/api/admin/releases` | Publish new app release |
 | POST | `/api/admin/user-actions` | Force-delete user, reset, etc. |
+
+---
+
+## 9b. Submission Notifications & Admin Badges
+
+**Email flows (Resend, via `backend/lib/emails.ts` — all best-effort, never fail the request):**
+
+```
+User submits feedback (website /account/feedback)
+→ POST /api/web/feedback
+  INSERT feedback { user_id, user_email, type, message, status:'new' }
+  Email 1 → SUPPORT_EMAIL (reply-to: submitter)  — full message + admin link
+  Email 2 → submitter     (reply-to: SUPPORT_EMAIL) — confirmation + copy of message
+
+User submits extension (website /account/extensions)
+→ POST /api/web/submit-extension   (replaced the old direct Supabase insert)
+  Server re-validates manifest fields (client not trusted)
+  INSERT extension_submissions { user_id, user_email, ..., status:'pending' }
+  Email 1 → SUPPORT_EMAIL (reply-to: submitter)  — manifest details, repo/code links, admin link
+  Email 2 → submitter     (reply-to: SUPPORT_EMAIL) — "in review" confirmation
+```
+
+Replying to a notification in the support inbox emails the submitter directly; when the
+submitter replies to their confirmation, it lands back at `SUPPORT_EMAIL`.
+
+**Submitter identity:** `extension_submissions.user_email` is set by the API and guaranteed by
+a `before insert` trigger (`fill_extension_submission_email()`, reads `auth.users`), so even a
+direct client insert records who submitted. Shown in the admin Extensions tab as a mailto link.
+
+**Unread badges (triage-based):** Postgres function `admin_unread_counts()` (SECURITY DEFINER,
+returns zeros unless `is_admin()`) counts `feedback.status = 'new'` and
+`extension_submissions.status = 'pending'`. The website hook `src/lib/useAdminBadges.ts` polls
+it every 60s (+ on tab focus) and feeds:
+- red dot on the nav avatar + count pill on the "Admin" menu item (admins only),
+- count pills on the Admin page "Feedback" and "Extensions" tabs (refreshed after every triage action).
+
+Badges clear as items are triaged: setting a feedback status (planned/done/declined) or
+approving/rejecting a submission — not merely by viewing.
 
 ---
 

@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrandLogo } from '@/components/BrandLogo';
+import { NotificationBadge } from '@/components/NotificationBadge';
+import { useAdminBadges } from '@/lib/useAdminBadges';
 
 const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS ?? '')
   .split(',')
@@ -38,7 +40,7 @@ function Avatar({ url, name, size = 32 }: { url: string | null; name: string; si
   );
 }
 
-function AccountDropdown({ onClose, triggerRef }: { onClose: () => void; triggerRef: React.RefObject<HTMLButtonElement | null> }) {
+function AccountDropdown({ onClose, triggerRef, adminUnread }: { onClose: () => void; triggerRef: React.RefObject<HTMLButtonElement | null>; adminUnread: number }) {
   const { user, avatarUrl, signOut } = useAuth();
   const navigate = useNavigate();
   const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
@@ -97,9 +99,10 @@ function AccountDropdown({ onClose, triggerRef }: { onClose: () => void; trigger
           <button
             type="button"
             onClick={() => handleNav('/admin')}
-            className="w-full text-left px-4 py-2 text-[13px] text-text-muted hover:text-text hover:bg-white/[0.04] transition-colors"
+            className="w-full text-left px-4 py-2 text-[13px] text-text-muted hover:text-text hover:bg-white/[0.04] transition-colors flex items-center justify-between gap-2"
           >
             Admin
+            <NotificationBadge count={adminUnread} />
           </button>
         )}
       </div>
@@ -121,6 +124,8 @@ function AccountDropdown({ onClose, triggerRef }: { onClose: () => void; trigger
 export function Nav() {
   const { user, avatarUrl, signOut } = useAuth();
   const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+  const { badges } = useAdminBadges(isAdmin);
+  const adminUnread = badges.feedbackNew + badges.extensionsPending;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -153,12 +158,21 @@ export function Nav() {
                 {displayName && (
                   <span className="text-[13px] text-text-muted max-w-[120px] truncate">{displayName.split(' ')[0]}</span>
                 )}
-                <Avatar url={avatarUrl} name={displayName} size={30} />
+                <span className="relative inline-flex shrink-0">
+                  <Avatar url={avatarUrl} name={displayName} size={30} />
+                  {adminUnread > 0 && (
+                    <span
+                      aria-hidden
+                      className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full"
+                      style={{ background: '#ef4444', border: '2px solid rgba(20,22,26,1)' }}
+                    />
+                  )}
+                </span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-text-muted" style={{ transform: dropdownOpen ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s' }}>
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </button>
-              {dropdownOpen && <AccountDropdown onClose={() => setDropdownOpen(false)} triggerRef={triggerRef} />}
+              {dropdownOpen && <AccountDropdown onClose={() => setDropdownOpen(false)} triggerRef={triggerRef} adminUnread={adminUnread} />}
             </div>
           ) : (
             <Link to="/account" className={linkClass}>Account</Link>
@@ -203,7 +217,12 @@ export function Nav() {
                 {accountLinks.map(({ to, label }) => (
                   <Link key={to} to={to} className={`${linkClass} py-2`} onClick={() => setMobileOpen(false)}>{label}</Link>
                 ))}
-                {isAdmin && <Link to="/admin" className={`${linkClass} py-2`} onClick={() => setMobileOpen(false)}>Admin</Link>}
+                {isAdmin && (
+                  <Link to="/admin" className={`${linkClass} py-2 flex items-center gap-2`} onClick={() => setMobileOpen(false)}>
+                    Admin
+                    <NotificationBadge count={adminUnread} />
+                  </Link>
+                )}
                 <button
                   type="button"
                   onClick={async () => { setMobileOpen(false); await signOut(); }}
