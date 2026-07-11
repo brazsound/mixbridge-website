@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 const KNOWN_PERMISSIONS = [
   'queue:read', 'queue:write', 'events', 'naming',
   'files:read', 'files:write', 'network', 'ui:menus', 'ui:panels',
+  'pt:read', 'pt:tracks', 'pt:markers', 'pt:transport',
 ];
 
 interface Manifest {

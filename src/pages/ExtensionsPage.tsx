@@ -13,6 +13,7 @@ export function ExtensionsPage() {
   const [votes, setVotes] = useState<Record<string, number>>({});
   const [myVotes, setMyVotes] = useState<Set<string>>(new Set());
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const [installs, setInstalls] = useState<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -44,6 +45,12 @@ export function ExtensionsPage() {
           const map: Record<string, number> = {};
           for (const r of cc as { extension_id: string; comments: number }[]) map[r.extension_id] = r.comments;
           setCommentCounts(map);
+        }
+        const { data: inst } = await supabase.from('extensions').select('id, installs');
+        if (inst && !cancelled) {
+          const map: Record<string, number> = {};
+          for (const r of inst as { id: string; installs: number }[]) map[r.id] = r.installs;
+          setInstalls(map);
         }
         if (user && !cancelled) {
           const { data: mine } = await supabase.from('extension_votes').select('extension_id').eq('user_id', user.id);
@@ -138,6 +145,12 @@ export function ExtensionsPage() {
                       ▲ {votes[entry.id] ?? 0}
                     </button>
                   </div>
+
+                  {(installs[entry.id] ?? 0) > 0 && (
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                      {installs[entry.id]!.toLocaleString()} install{installs[entry.id] === 1 ? '' : 's'}
+                    </p>
+                  )}
 
                   <div className="flex items-center gap-2 flex-wrap mt-4">
                     {(entry.permissions ?? []).map((perm) => (

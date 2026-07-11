@@ -47,6 +47,10 @@ export const PERMISSION_LABELS: Record<string, string> = {
   network: 'Network',
   'ui:menus': 'Context menus',
   'ui:panels': 'Panels',
+  'pt:read': 'Read Pro Tools session',
+  'pt:tracks': 'Change Pro Tools tracks',
+  'pt:markers': 'Create Pro Tools markers',
+  'pt:transport': 'Control Pro Tools transport',
 };
 
 /** One-line explanation of what each permission lets an extension do. */
@@ -60,6 +64,10 @@ export const PERMISSION_DESCRIPTIONS: Record<string, string> = {
   network: 'Make network requests to the allowed domains listed below.',
   'ui:menus': 'Add items to context menus.',
   'ui:panels': 'Add custom panels to the app.',
+  'pt:read': 'Read session info, tracks, markers, timeline, and transport state from Pro Tools.',
+  'pt:tracks': 'Solo, mute, freeze, recolor, or re-route tracks in Pro Tools.',
+  'pt:markers': 'Create and select memory locations (markers) in Pro Tools.',
+  'pt:transport': 'Start and stop Pro Tools playback.',
 };
 
 /** Compact relative time, e.g. "just now", "5m ago", "3d ago". */
