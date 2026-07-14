@@ -15,6 +15,7 @@ interface AuthContextValue {
   /** Public avatar URL from user metadata, or null if not set. */
   avatarUrl: string | null;
   signInWithEmail: (email: string) => Promise<{ error?: string }>;
+  signInWithProvider: (provider: 'google' | 'apple') => Promise<{ error?: string }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error?: string }>;
   signUpWithPassword: (email: string, password: string) => Promise<{ error?: string; needsEmailConfirmation?: boolean }>;
   updateProfile: (fullName: string) => Promise<{ error?: string }>;
@@ -142,6 +143,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithOtp({
       email: trimmed,
       options: { emailRedirectTo: redirectTo },
+    });
+    if (error) return { error: error.message };
+    return {};
+  }, []);
+
+  const signInWithProvider = useCallback(async (provider: 'google' | 'apple') => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/account` },
     });
     if (error) return { error: error.message };
     return {};
@@ -280,6 +290,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     uploadAvatar,
     avatarUrl,
     signInWithEmail,
+    signInWithProvider,
     signInWithPassword,
     signUpWithPassword,
     updateProfile,

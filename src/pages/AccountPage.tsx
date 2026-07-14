@@ -20,6 +20,7 @@ type AuthPanel = 'signin' | 'signup';
 export function AccountAuthGate() {
   const {
     signInWithEmail,
+    signInWithProvider,
     signInWithPassword,
     signUpWithPassword,
     resetPasswordForEmail,
@@ -123,6 +124,30 @@ export function AccountAuthGate() {
                 </button>
               ))}
             </div>
+
+            {!showForgotPassword && !showMagicLink && (
+              <>
+                <div className="space-y-2">
+                  <button type="button" onClick={() => { setSignInError(null); void signInWithProvider('google').then((r) => { if (r.error) setSignInError(r.error); }); }}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text)' }}>
+                    <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.2C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.1-11.3-7.5l-6.5 5C9.6 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.6l6.3 5.2C41.9 35.5 44 30.2 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg>
+                    Continue with Google
+                  </button>
+                  <button type="button" onClick={() => { setSignInError(null); void signInWithProvider('apple').then((r) => { if (r.error) setSignInError(r.error); }); }}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text)' }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.02-3.76-2.05-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.89-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.79 1.3 10.34.86 1.25 1.88 2.65 3.22 2.6 1.29-.05 1.78-.83 3.34-.83 1.56 0 1.99.83 3.35.81 1.38-.03 2.26-1.27 3.11-2.53.98-1.45 1.38-2.85 1.4-2.92-.03-.01-2.69-1.03-2.72-4.09zM14.6 4.42c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44z"/></svg>
+                    Continue with Apple
+                  </button>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                  <span className="text-xs text-text-muted">or</span>
+                  <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                </div>
+              </>
+            )}
 
             {authPanel === 'signin' && !showForgotPassword && !showMagicLink && (
               <form onSubmit={handlePasswordSignIn} className="space-y-4">
