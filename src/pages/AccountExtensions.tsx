@@ -55,9 +55,8 @@ function validateManifest(m: Manifest): string[] {
   if (!m.name || !m.name.trim()) errors.push('"name" is required');
   if (!m.version || !/^\d+\.\d+\.\d+$/.test(m.version)) errors.push('"version" must be semver (e.g. "1.0.0")');
   if (!m.repository || !/^https:\/\/github\.com\/.+\/.+/.test(m.repository)) {
-    errors.push('"repository" must be a public GitHub URL — listings must be open source');
+    errors.push('"repository" must be a public GitHub URL');
   }
-  if (!m.license || !m.license.trim()) errors.push('"license" is required (OSI-approved, e.g. "MIT")');
   const perms = m.permissions ?? [];
   const unknown = perms.filter((p) => !KNOWN_PERMISSIONS.includes(p));
   if (unknown.length > 0) errors.push(`Unknown permission(s): ${unknown.join(', ')}`);
@@ -231,7 +230,7 @@ export function AccountExtensions() {
           </button>
         </div>
         <p className="text-[11px] text-text-muted mt-2 leading-relaxed">
-          Requirements: public GitHub repo · OSI license · honest permissions ·{' '}
+          Requirements: public GitHub repo · free for users (no selling) · honest permissions ·{' '}
           <code>main.js</code> next to <code>plugin.json</code>. Start from the{' '}
           <a
             href="https://github.com/brazsound/mixbridge/tree/main/examples/plugins"

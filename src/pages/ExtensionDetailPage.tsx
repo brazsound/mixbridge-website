@@ -361,7 +361,7 @@ export function ExtensionDetailPage() {
         <section className="mt-10">
           <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-3">Source code</h2>
           <p className="text-[13px] text-text-muted mb-3">
-            Every extension is open source and runs sandboxed. Read exactly what it does before you install it.
+            Every extension's source is public and runs sandboxed. Read exactly what it does before you install it.
           </p>
           <CodeViewer
             mainCode={mainCode}

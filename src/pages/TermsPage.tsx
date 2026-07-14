@@ -21,7 +21,7 @@ export function TermsPage() {
               <h2 className="text-text font-medium text-base mb-2">Licence</h2>
               <p>
                 MixBridge is free to use. We grant you a non-exclusive, non-transferable right to run the
-                software for your own audio work on as many Macs as you like. A free account is required to
+                software for your own audio work on as many systems as you like. A free account is required to
                 download and sign in.
               </p>
             </div>
@@ -33,6 +33,16 @@ export function TermsPage() {
                 <li>Do not share your account credentials.</li>
                 <li>Do not use the software to violate any applicable law.</li>
               </ul>
+            </div>
+
+            <div>
+              <h2 className="text-text font-medium text-base mb-2">Extensions</h2>
+              <p>
+                MixBridge supports third-party extensions. You may build extensions for your own use and keep
+                them private. Any extension you publish or share with other users must be free: selling
+                extensions, or charging for access to them, is not permitted. Published listings must link to a
+                public repository so users can inspect the code before installing.
+              </p>
             </div>
 
             <div>

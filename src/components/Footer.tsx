@@ -7,7 +7,7 @@ export function Footer() {
         <div className="flex flex-col items-center md:items-start gap-1">
           <span className="font-medium text-sm">MixBridge</span>
           <p className="text-text-muted text-xs">
-            Built for engineers. Designed for focus.
+            Built for engineers, for engineers.
           </p>
           <p className="text-text-muted text-xs">
             © {new Date().getFullYear()} Braz Sound. All rights reserved.

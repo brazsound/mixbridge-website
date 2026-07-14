@@ -90,8 +90,8 @@ export function ExtensionsPage() {
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">Extensions</h1>
           <p className="text-text-secondary text-sm max-w-xl mx-auto leading-relaxed">
-            Community-built add-ons for MixBridge. Every extension is open source, runs sandboxed
-            with explicit permissions, and installs right from the app (Settings → Extensions → Browse).
+            Community-built add-ons for MixBridge. Every extension is free, with public source, runs
+            sandboxed with explicit permissions, and installs right from the app (Settings → Extensions → Browse).
             Click any extension to read its source, links, and discussion.
           </p>
         </div>

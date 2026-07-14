@@ -13,11 +13,6 @@ const faqs: FAQItem[] = [
       'MixBridge talks to Pro Tools through the official Pro Tools Scripting Library (PTSL) and requires Pro Tools 2025.6 or later. Older versions are missing the scripting features MixBridge relies on.',
   },
   {
-    question: 'How is this different from SoundFlow scripts?',
-    answer:
-      "SoundFlow runs keyboard-shortcut macros and screen-scraping. MixBridge talks to Pro Tools directly through its scripting API (PTSL), which means it doesn't depend on window positions, menu layouts, or screen resolution. It also handles multi-session batching natively, something that's extremely difficult with macro-based tools.",
-  },
-  {
     question: 'Is MixBridge really free?',
     answer:
       "Yes. MixBridge is completely free, with no fees, no trial limits, and no card required. We don't sell your data, run ads, or make money from it in any way. Just create a free account, download the app, and start bouncing.",
@@ -30,7 +25,7 @@ const faqs: FAQItem[] = [
   {
     question: 'Can I use MixBridge on multiple systems?',
     answer:
-      'Yes. Install it on as many Macs as you like. Just sign in with your account on each one, and there are no device limits.',
+      'Yes. Install it on as many systems as you like. Just sign in with your account on each one, and there are no device limits.',
   },
   {
     question: 'What audio formats are supported?',
@@ -45,12 +40,12 @@ const faqs: FAQItem[] = [
   {
     question: 'What happens if a bounce fails mid-run?',
     answer:
-      "MixBridge stops at the failed item and shows you exactly what went wrong. Fix the issue in your session, then resume the run from that item — everything already bounced stays done, so you never repeat work.",
+      "MixBridge stops at the failed item and shows you exactly what went wrong. Fix the issue in your session, then resume the run from that item. Everything already bounced stays done, so you never repeat work.",
   },
   {
     question: 'Can I extend MixBridge or build my own add-ons?',
     answer:
-      'Yes — MixBridge is open source (GPL-3.0) and has a full extension system. Install community extensions from Settings → Extensions inside the app, or build your own with the MIT-licensed SDK: extensions run sandboxed with explicit permissions and can react to bounces, edit the queue, call webhooks, and more. You can also attach shell commands to app events under Settings → Automation, no code required.',
+      "Yes. MixBridge has a full extension system. Install free community extensions from Settings → Extensions inside the app, or build your own with our SDK: they run sandboxed with explicit permissions and can react to bounces, edit the queue, call webhooks, and more. Keep your extensions private or share them with the community, but they're always free to use and can't be sold. You can also attach shell commands to app events under Settings → Automation, no code required.",
   },
   {
     question: 'Does MixBridge require an internet connection?',

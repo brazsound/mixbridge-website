@@ -137,21 +137,6 @@ button:focus-visible,
   box-shadow: 0 0 28px rgba(123, 92, 255, 0.5), 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
-}
-
-.hero-mockup-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-mockup-float {
-    animation: none;
-  }
-}
-
 /* Scroll reveal — paired with the useReveal() hook */
 .reveal {
   opacity: 0;
