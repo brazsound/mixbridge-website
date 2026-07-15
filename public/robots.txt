@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.mixbridge.net/sitemap.xml
+Sitemap: https://mixbridge.studio/sitemap.xml

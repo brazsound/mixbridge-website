@@ -18,6 +18,7 @@ import { AccountSettings } from './pages/AccountSettings';
 import { AdminPage } from './pages/AdminPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
+import { SupportPage } from './pages/SupportPage';
 import { ExtensionsPage } from './pages/ExtensionsPage';
 import { ExtensionDetailPage } from './pages/ExtensionDetailPage';
 import { AccountExtensions } from './pages/AccountExtensions';
@@ -281,6 +282,7 @@ function AppInner() {
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/support" element={<SupportPage />} />
         <Route path="/extensions" element={<ExtensionsPage />} />
         <Route path="/extensions/:id" element={<ExtensionDetailPage />} />
         {/* Catch-all: unknown URLs go home instead of rendering a blank page */}

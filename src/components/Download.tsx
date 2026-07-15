@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useReveal } from '@/lib/useReveal';
-import { DOWNLOADS_ENABLED } from '@/lib/config';
+import { DOWNLOADS_ENABLED, SUPPORT_URL } from '@/lib/config';
 
 const GITHUB_API = 'https://api.github.com/repos/brazsound/mixbridge/releases/latest';
 
@@ -184,6 +185,28 @@ export function Download() {
             </ul>
           </div>
         </div>
+
+        {SUPPORT_URL && (
+          <div className="text-center mt-6">
+            <p className="text-[12px] text-text-muted mb-3">
+              MixBridge is free. If it saves you time, you can chip in to help cover costs.
+            </p>
+            <Link
+              to="/support"
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:opacity-90"
+              style={{
+                background: 'var(--accent-subtle)',
+                border: '1px solid rgba(123,92,255,0.30)',
+                color: 'var(--accent)',
+              }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z" />
+              </svg>
+              Support development
+            </Link>
+          </div>
+        )}
       </div>
     </section>
   );
